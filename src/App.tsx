@@ -16,6 +16,20 @@ import Checkout from "./pages/events/Checkout";
 import OrderConfirmation from "./pages/events/OrderConfirmation";
 import Profile from "./pages/profile/Profile";
 
+// Organizer Pages
+import {
+  OrganizerDashboard,
+  CreateEvent,
+  ManageEvents,
+  ManageTickets,
+  Vouchers,
+  Orders,
+  Statistics,
+  Team,
+  CheckIn,
+  OrganizerSettings,
+} from "./pages/organizer";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -40,6 +54,18 @@ const App = () => (
           {/* User Profile */}
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:tab" element={<Profile />} />
+          
+          {/* Organizer */}
+          <Route path="/organizer" element={<OrganizerDashboard />} />
+          <Route path="/organizer/create-event" element={<CreateEvent />} />
+          <Route path="/organizer/events" element={<ManageEvents />} />
+          <Route path="/organizer/tickets" element={<ManageTickets />} />
+          <Route path="/organizer/vouchers" element={<Vouchers />} />
+          <Route path="/organizer/orders" element={<Orders />} />
+          <Route path="/organizer/statistics" element={<Statistics />} />
+          <Route path="/organizer/team" element={<Team />} />
+          <Route path="/organizer/check-in" element={<CheckIn />} />
+          <Route path="/organizer/settings" element={<OrganizerSettings />} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
