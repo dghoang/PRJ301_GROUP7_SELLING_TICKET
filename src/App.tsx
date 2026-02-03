@@ -30,6 +30,15 @@ import {
   OrganizerSettings,
 } from "./pages/organizer";
 
+// Admin Pages
+import {
+  AdminDashboard,
+  EventApproval,
+  UserManagement,
+  ShippingManagement,
+  Reports,
+} from "./pages/admin";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -66,6 +75,13 @@ const App = () => (
           <Route path="/organizer/team" element={<Team />} />
           <Route path="/organizer/check-in" element={<CheckIn />} />
           <Route path="/organizer/settings" element={<OrganizerSettings />} />
+          
+          {/* Admin */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/events" element={<EventApproval />} />
+          <Route path="/admin/users" element={<UserManagement />} />
+          <Route path="/admin/shipping" element={<ShippingManagement />} />
+          <Route path="/admin/reports" element={<Reports />} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
