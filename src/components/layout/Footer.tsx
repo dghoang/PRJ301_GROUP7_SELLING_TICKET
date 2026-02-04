@@ -1,27 +1,27 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Ticket, Facebook, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
 
 const Footer = () => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     company: [
-      { label: "Về chúng tôi", href: "/about" },
-      { label: "Liên hệ", href: "/contact" },
-      { label: "Tuyển dụng", href: "/careers" },
+      { label: t("common.about"), href: "/about" },
+      { label: t("footer.contact"), href: "/contact" },
       { label: "Blog", href: "/blog" },
     ],
     support: [
-      { label: "Hướng dẫn mua vé", href: "/guide" },
-      { label: "Câu hỏi thường gặp", href: "/faq" },
-      { label: "Chính sách hoàn vé", href: "/refund-policy" },
-      { label: "Điều khoản sử dụng", href: "/terms" },
+      { label: t("footer.faq"), href: "/faq" },
+      { label: t("footer.terms"), href: "/terms" },
+      { label: t("footer.privacy"), href: "/privacy" },
+      { label: t("footer.help"), href: "/help" },
     ],
     organizer: [
-      { label: "Đăng ký BTC", href: "/organizer/register" },
-      { label: "Tạo sự kiện", href: "/organizer/create-event" },
-      { label: "Bảng giá dịch vụ", href: "/pricing" },
-      { label: "Hỗ trợ BTC", href: "/organizer/support" },
+      { label: t("cta.registerNow"), href: "/organizer/register" },
+      { label: t("organizer.createEvent"), href: "/organizer/create-event" },
+      { label: t("cta.viewPricing"), href: "/pricing" },
     ],
   };
 
@@ -44,7 +44,7 @@ const Footer = () => {
               <span className="text-xl font-bold text-gradient">Ticketbox</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-              Nền tảng bán vé sự kiện hàng đầu Việt Nam. Khám phá và đặt vé cho các sự kiện âm nhạc, workshop, thể thao và nhiều hơn nữa.
+              {t("footer.aboutDesc")}
             </p>
             
             {/* Contact Info */}
@@ -80,7 +80,7 @@ const Footer = () => {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold mb-4">Công ty</h4>
+            <h4 className="font-semibold mb-4">{t("footer.about")}</h4>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
@@ -96,7 +96,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Hỗ trợ</h4>
+            <h4 className="font-semibold mb-4">{t("footer.support")}</h4>
             <ul className="space-y-2">
               {footerLinks.support.map((link) => (
                 <li key={link.href}>
@@ -112,7 +112,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Ban tổ chức</h4>
+            <h4 className="font-semibold mb-4">{t("footer.forOrganizers")}</h4>
             <ul className="space-y-2">
               {footerLinks.organizer.map((link) => (
                 <li key={link.href}>
@@ -131,14 +131,14 @@ const Footer = () => {
         {/* Bottom */}
         <div className="border-t border-border/50 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} Ticketbox. Tất cả quyền được bảo lưu.
+            © {currentYear} Ticketbox. {t("footer.copyright").replace("© 2026 Ticketbox. ", "")}
           </p>
           <div className="flex gap-4 text-sm text-muted-foreground">
             <Link to="/privacy" className="hover:text-foreground transition-colors">
-              Chính sách bảo mật
+              {t("footer.privacy")}
             </Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">
-              Điều khoản
+              {t("footer.terms")}
             </Link>
           </div>
         </div>

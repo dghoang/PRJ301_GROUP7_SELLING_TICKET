@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { MainLayout } from "@/components/layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
@@ -36,6 +37,8 @@ const orderData = {
 };
 
 const OrderConfirmation = () => {
+  const { t } = useTranslation();
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -51,9 +54,9 @@ const OrderConfirmation = () => {
           <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-green-500" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Đặt vé thành công!</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">{t("order.success")}</h1>
           <p className="text-muted-foreground">
-            Mã đơn hàng: <span className="font-semibold text-foreground">{orderData.orderId}</span>
+            {t("order.orderId")}: <span className="font-semibold text-foreground">{orderData.orderId}</span>
           </p>
         </div>
 
@@ -62,7 +65,7 @@ const OrderConfirmation = () => {
           <div className="flex items-center gap-3">
             <Mail className="w-5 h-5 text-green-500" />
             <p className="text-sm">
-              Chúng tôi đã gửi xác nhận đơn hàng và vé điện tử đến <strong>{orderData.email}</strong>
+              {t("order.emailSent")} <strong>{orderData.email}</strong>
             </p>
           </div>
         </GlassCard>
@@ -99,7 +102,7 @@ const OrderConfirmation = () => {
           <div className="py-6 border-b border-border">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <Ticket className="w-5 h-5 text-primary" />
-              Vé của bạn
+              {t("tickets.yourTickets")}
             </h3>
             <div className="space-y-3">
               {orderData.tickets.map((ticket, i) => (
@@ -107,7 +110,7 @@ const OrderConfirmation = () => {
                   <div>
                     <p className="font-medium">{ticket.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Số lượng: {ticket.quantity} • Ghế: {ticket.seats.join(", ")}
+                      {t("tickets.quantity")}: {ticket.quantity} • {t("tickets.seats")}: {ticket.seats.join(", ")}
                     </p>
                   </div>
                   <p className="font-semibold">{formatPrice(ticket.price * ticket.quantity)}</p>
@@ -124,34 +127,34 @@ const OrderConfirmation = () => {
               ) : (
                 <Truck className="w-5 h-5 text-primary" />
               )}
-              Hình thức nhận vé
+              {t("checkout.deliveryMethod")}
             </h3>
             <p className="text-muted-foreground">
               {orderData.deliveryType === "electronic" 
-                ? "Vé điện tử - Đã gửi qua email" 
-                : "Vé giấy - Đang vận chuyển"
+                ? t("order.deliveryType.electronic")
+                : t("order.deliveryType.physical")
               }
             </p>
           </div>
 
           {/* QR Code */}
           <div className="py-6 border-b border-border text-center">
-            <h3 className="font-semibold mb-4">Mã QR Check-in</h3>
+            <h3 className="font-semibold mb-4">{t("order.qrCode")}</h3>
             <img
               src={orderData.qrCode}
               alt="QR Code"
               className="w-48 h-48 mx-auto rounded-xl bg-white p-2"
             />
             <p className="text-sm text-muted-foreground mt-4">
-              Xuất trình mã QR này tại cổng check-in
+              {t("order.qrNote")}
             </p>
           </div>
 
           {/* Total */}
           <div className="pt-6 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Tổng thanh toán</p>
-              <p className="text-sm text-muted-foreground">Thanh toán qua: {orderData.paymentMethod}</p>
+              <p className="text-sm text-muted-foreground">{t("checkout.totalAmount")}</p>
+              <p className="text-sm text-muted-foreground">{t("checkout.paymentMethod")}: {orderData.paymentMethod}</p>
             </div>
             <p className="text-2xl font-bold text-primary">{formatPrice(orderData.total)}</p>
           </div>
@@ -161,11 +164,11 @@ const OrderConfirmation = () => {
         <div className="flex flex-col sm:flex-row gap-4">
           <GradientButton className="flex-1 h-12">
             <Download className="w-5 h-5" />
-            Tải vé PDF
+            {t("order.downloadPdf")}
           </GradientButton>
           <Link to="/profile/orders" className="flex-1">
             <GradientButton variant="secondary" className="w-full h-12">
-              Xem đơn hàng
+              {t("order.viewOrders")}
               <ArrowRight className="w-5 h-5" />
             </GradientButton>
           </Link>
@@ -174,7 +177,7 @@ const OrderConfirmation = () => {
         {/* Back to home */}
         <div className="text-center mt-8">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
-            ← Quay về trang chủ
+            ← {t("order.backHome")}
           </Link>
         </div>
       </div>

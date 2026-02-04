@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { MainLayout } from "@/components/layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
@@ -101,6 +102,8 @@ const upcomingEvents = [
 ];
 
 const Index = () => {
+  const { t } = useTranslation();
+
   return (
     <MainLayout headerVariant="transparent">
       {/* Hero Section */}
@@ -117,21 +120,20 @@ const Index = () => {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full mb-8 animate-fade-in">
               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span className="text-sm font-medium">Nền tảng bán vé sự kiện #1 Việt Nam</span>
+              <span className="text-sm font-medium">{t("header.platformBadge")}</span>
             </div>
 
             {/* Heading */}
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              Khám phá{" "}
-              <span className="text-gradient">sự kiện</span>
+              {t("hero.title")}{" "}
+              <span className="text-gradient">{t("hero.titleHighlight")}</span>
               <br />
-              tuyệt vời nhất
+              {t("hero.titleEnd")}
             </h1>
 
             {/* Subheading */}
             <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              Tìm và đặt vé cho các sự kiện âm nhạc, workshop, thể thao và nhiều hơn nữa. 
-              Trải nghiệm mua vé đơn giản, nhanh chóng.
+              {t("hero.subtitle")}
             </p>
 
             {/* Search Bar */}
@@ -142,13 +144,13 @@ const Index = () => {
                     <Search className="w-5 h-5 text-muted-foreground" />
                     <input
                       type="text"
-                      placeholder="Tìm kiếm sự kiện, nghệ sĩ, địa điểm..."
+                      placeholder={t("common.searchAdvanced")}
                       className="flex-1 bg-transparent border-none outline-none text-base placeholder:text-muted-foreground"
                     />
                   </div>
                   <GradientButton size="lg" className="px-8">
                     <Search className="w-5 h-5 mr-2" />
-                    Tìm kiếm
+                    {t("common.search")}
                   </GradientButton>
                 </div>
               </GlassCard>
@@ -157,9 +159,9 @@ const Index = () => {
             {/* Stats */}
             <div className="flex flex-wrap justify-center gap-8 mt-12 animate-fade-in" style={{ animationDelay: "0.4s" }}>
               {[
-                { value: "10K+", label: "Sự kiện" },
-                { value: "500K+", label: "Người dùng" },
-                { value: "1M+", label: "Vé đã bán" },
+                { value: "10K+", label: t("hero.stats.events") },
+                { value: "500K+", label: t("hero.stats.users") },
+                { value: "1M+", label: t("hero.stats.ticketsSold") },
               ].map((stat, index) => (
                 <div key={index} className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-gradient">{stat.value}</div>
@@ -176,12 +178,12 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Danh mục sự kiện</h2>
-              <p className="text-muted-foreground">Khám phá sự kiện theo sở thích của bạn</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">{t("categories.title")}</h2>
+              <p className="text-muted-foreground">{t("categories.subtitle")}</p>
             </div>
             <Link to="/categories">
               <GradientButton variant="ghost">
-                Xem tất cả
+                {t("common.viewAll")}
                 <ChevronRight className="w-4 h-4" />
               </GradientButton>
             </Link>
@@ -204,13 +206,13 @@ const Index = () => {
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold">Sự kiện nổi bật</h2>
-                <p className="text-muted-foreground">Được nhiều người quan tâm nhất</p>
+                <h2 className="text-2xl md:text-3xl font-bold">{t("events.featured")}</h2>
+                <p className="text-muted-foreground">{t("events.featuredSubtitle")}</p>
               </div>
             </div>
             <Link to="/events?sort=popular">
               <GradientButton variant="ghost">
-                Xem tất cả
+                {t("common.viewAll")}
                 <ChevronRight className="w-4 h-4" />
               </GradientButton>
             </Link>
@@ -229,12 +231,12 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold">Sắp diễn ra</h2>
-              <p className="text-muted-foreground">Đừng bỏ lỡ những sự kiện hấp dẫn</p>
+              <h2 className="text-2xl md:text-3xl font-bold">{t("events.upcoming")}</h2>
+              <p className="text-muted-foreground">{t("events.upcomingSubtitle")}</p>
             </div>
             <Link to="/events?sort=upcoming">
               <GradientButton variant="ghost">
-                Xem tất cả
+                {t("common.viewAll")}
                 <ChevronRight className="w-4 h-4" />
               </GradientButton>
             </Link>
@@ -253,22 +255,21 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <GlassCard variant="strong" className="p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-4xl font-bold mb-4">
-              Bạn là ban tổ chức sự kiện?
+              {t("cta.organizerTitle")}
             </h2>
             <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Tạo và quản lý sự kiện của bạn một cách dễ dàng. 
-              Tiếp cận hàng triệu khách hàng tiềm năng với Ticketbox.
+              {t("cta.organizerSubtitle")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/organizer/register">
                 <GradientButton size="lg">
-                  Đăng ký ngay
+                  {t("cta.registerNow")}
                   <ArrowRight className="w-5 h-5" />
                 </GradientButton>
               </Link>
               <Link to="/pricing">
                 <GradientButton variant="secondary" size="lg">
-                  Xem bảng giá
+                  {t("cta.viewPricing")}
                 </GradientButton>
               </Link>
             </div>

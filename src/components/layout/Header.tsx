@@ -1,13 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { GradientButton } from "@/components/ui/gradient-button";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { 
   Search, 
   Menu, 
   X, 
-  User, 
   Ticket, 
-  Calendar,
   Moon,
   Sun
 } from "lucide-react";
@@ -18,6 +18,7 @@ interface HeaderProps {
 }
 
 const Header = ({ variant = "default" }: HeaderProps) => {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -42,10 +43,10 @@ const Header = ({ variant = "default" }: HeaderProps) => {
   };
 
   const navLinks = [
-    { href: "/", label: "Trang chủ" },
-    { href: "/events", label: "Sự kiện" },
-    { href: "/categories", label: "Danh mục" },
-    { href: "/about", label: "Về chúng tôi" },
+    { href: "/", label: t("common.home") },
+    { href: "/events", label: t("common.events") },
+    { href: "/categories", label: t("common.categories") },
+    { href: "/about", label: t("common.about") },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -96,10 +97,13 @@ const Header = ({ variant = "default" }: HeaderProps) => {
               <Search className="w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm sự kiện..."
+                placeholder={t("common.searchPlaceholder")}
                 className="bg-transparent border-none outline-none text-sm w-40 lg:w-52 placeholder:text-muted-foreground"
               />
             </div>
+
+            {/* Language Switcher */}
+            <LanguageSwitcher />
 
             {/* Dark Mode Toggle */}
             <button
@@ -117,11 +121,11 @@ const Header = ({ variant = "default" }: HeaderProps) => {
             <div className="hidden sm:flex items-center gap-2">
               <Link to="/login">
                 <GradientButton variant="ghost" size="sm">
-                  Đăng nhập
+                  {t("common.login")}
                 </GradientButton>
               </Link>
               <Link to="/register">
-                <GradientButton size="sm">Đăng ký</GradientButton>
+                <GradientButton size="sm">{t("common.register")}</GradientButton>
               </Link>
             </div>
 
@@ -147,7 +151,7 @@ const Header = ({ variant = "default" }: HeaderProps) => {
               <Search className="w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm sự kiện..."
+                placeholder={t("common.searchPlaceholder")}
                 className="bg-transparent border-none outline-none text-sm flex-1 placeholder:text-muted-foreground"
               />
             </div>
@@ -175,11 +179,11 @@ const Header = ({ variant = "default" }: HeaderProps) => {
             <div className="flex gap-2">
               <Link to="/login" className="flex-1">
                 <GradientButton variant="secondary" className="w-full">
-                  Đăng nhập
+                  {t("common.login")}
                 </GradientButton>
               </Link>
               <Link to="/register" className="flex-1">
-                <GradientButton className="w-full">Đăng ký</GradientButton>
+                <GradientButton className="w-full">{t("common.register")}</GradientButton>
               </Link>
             </div>
           </div>
