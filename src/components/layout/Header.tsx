@@ -47,6 +47,7 @@ const Header = ({ variant = "default" }: HeaderProps) => {
     { href: "/events", label: t("common.events") },
     { href: "/categories", label: t("common.categories") },
     { href: "/about", label: t("common.about") },
+    { href: "/faq", label: "FAQ" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
