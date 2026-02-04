@@ -17,6 +17,7 @@ import OrderConfirmation from "./pages/events/OrderConfirmation";
 import Profile from "./pages/profile/Profile";
 import { Categories } from "./pages/categories";
 import { AboutUs } from "./pages/about";
+import { FAQ } from "./pages/faq";
 
 // Organizer Pages
 import {
@@ -62,9 +63,10 @@ const App = () => (
           <Route path="/events/:id/checkout" element={<Checkout />} />
           <Route path="/events/:id/confirmation" element={<OrderConfirmation />} />
           
-          {/* Categories & About */}
+          {/* Categories, About & FAQ */}
           <Route path="/categories" element={<Categories />} />
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/faq" element={<FAQ />} />
           
           {/* User Profile */}
           <Route path="/profile" element={<Profile />} />
