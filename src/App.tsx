@@ -18,6 +18,7 @@ import Profile from "./pages/profile/Profile";
 import { Categories } from "./pages/categories";
 import { AboutUs } from "./pages/about";
 import { FAQ } from "./pages/faq";
+import { TermsOfService, PrivacyPolicy } from "./pages/legal";
 
 // Organizer Pages
 import {
@@ -63,10 +64,12 @@ const App = () => (
           <Route path="/events/:id/checkout" element={<Checkout />} />
           <Route path="/events/:id/confirmation" element={<OrderConfirmation />} />
           
-          {/* Categories, About & FAQ */}
+          {/* Categories, About, FAQ & Legal */}
           <Route path="/categories" element={<Categories />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           
           {/* User Profile */}
           <Route path="/profile" element={<Profile />} />
