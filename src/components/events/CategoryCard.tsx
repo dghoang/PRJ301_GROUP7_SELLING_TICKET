@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn } from "@/lib/utils";
 import { 
@@ -51,6 +52,7 @@ const CategoryCard = ({
   color,
   className,
 }: CategoryCardProps) => {
+  const { t } = useTranslation();
   const IconComponent = iconMap[icon] || Sparkles;
   const gradientClass = colorMap[color] || "from-primary to-purple-600";
 
@@ -69,7 +71,7 @@ const CategoryCard = ({
           <IconComponent className="w-8 h-8 text-white" />
         </div>
         <h3 className="font-semibold mb-1">{name}</h3>
-        <p className="text-sm text-muted-foreground">{count} sự kiện</p>
+        <p className="text-sm text-muted-foreground">{count} {t("common.eventsCount")}</p>
       </GlassCard>
     </Link>
   );

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,8 +29,10 @@ const EventCard = ({
   isPrivate = false,
   className,
 }: EventCardProps) => {
+  const { t } = useTranslation();
+  
   const formatPrice = (price: number) => {
-    if (price === 0) return "Miễn phí";
+    if (price === 0) return t("common.free");
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
@@ -58,7 +61,7 @@ const EventCard = ({
           {isPrivate && (
             <div className="absolute top-3 right-3">
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                🔒 Riêng tư
+                🔒 {t("common.private")}
               </span>
             </div>
           )}
@@ -94,7 +97,7 @@ const EventCard = ({
             {attendees && (
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
-                <span>{attendees.toLocaleString("vi-VN")} người quan tâm</span>
+                <span>{attendees.toLocaleString("vi-VN")} {t("common.peopleInterested")}</span>
               </div>
             )}
           </div>
