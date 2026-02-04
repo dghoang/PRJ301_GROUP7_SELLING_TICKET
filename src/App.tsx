@@ -15,6 +15,8 @@ import TicketSelection from "./pages/events/TicketSelection";
 import Checkout from "./pages/events/Checkout";
 import OrderConfirmation from "./pages/events/OrderConfirmation";
 import Profile from "./pages/profile/Profile";
+import { Categories } from "./pages/categories";
+import { AboutUs } from "./pages/about";
 
 // Organizer Pages
 import {
@@ -59,6 +61,10 @@ const App = () => (
           <Route path="/events/:id/tickets" element={<TicketSelection />} />
           <Route path="/events/:id/checkout" element={<Checkout />} />
           <Route path="/events/:id/confirmation" element={<OrderConfirmation />} />
+          
+          {/* Categories & About */}
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/about" element={<AboutUs />} />
           
           {/* User Profile */}
           <Route path="/profile" element={<Profile />} />
