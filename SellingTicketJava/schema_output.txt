@@ -1,0 +1,8 @@
+Changed database context to 'master'.
+Msg 3702, Level 16, State 4, Server HoangDepTrai, Line 2
+Cannot drop database "SellingTicketDB" because it is currently in use.
+Msg 1801, Level 16, State 3, Server HoangDepTrai, Line 1
+Database 'SellingTicketDB' already exists. Choose a different database name.
+Changed database context to 'SellingTicketDB'.
+Msg 2714, Level 16, State 6, Server HoangDepTrai, Line 5
+There is already an object named 'Users' in the database.
