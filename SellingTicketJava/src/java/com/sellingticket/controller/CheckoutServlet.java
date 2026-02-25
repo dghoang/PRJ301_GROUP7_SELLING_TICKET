@@ -37,7 +37,7 @@ public class CheckoutServlet extends HttpServlet {
             Event event = eventService.getEventDetails(eventId);
             request.setAttribute("event", event);
             if (event != null) {
-                request.setAttribute("tickets", ticketService.getTicketTypesByEvent(eventId));
+                request.setAttribute("tickets", ticketService.getTicketsByEvent(eventId));
             }
         }
 
