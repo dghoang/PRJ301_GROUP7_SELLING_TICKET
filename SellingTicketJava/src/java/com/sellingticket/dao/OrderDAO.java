@@ -146,10 +146,234 @@ public class OrderDAO extends DBContext {
     }
     
     public Order getOrderByCode(String orderCode) {
-        // reuse existing logic or duplicate if needed, here just a wrapper if needed or implement similar to getOrderById
-        // For brevity, fetching by ID is main pattern used in confirmation page usually
-        // But let's implement checking order code
-        // ... (skipping for now to focus on main flow, relying on ID is safer for internal redirect)
+        String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
+                     "JOIN Events e ON o.event_id = e.event_id " +
+                     "WHERE o.order_code = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, orderCode);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                Order order = mapResultSetToOrder(rs);
+                order.setItems(getOrderItems(order.getOrderId()));
+                return order;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return null; 
+    }
+
+    // ========================
+    // NEW CRUD METHODS
+    // ========================
+
+    /**
+     * Helper method to map ResultSet to Order object
+     */
+    private Order mapResultSetToOrder(ResultSet rs) throws SQLException {
+        Order order = new Order();
+        order.setOrderId(rs.getInt("order_id"));
+        order.setOrderCode(rs.getString("order_code"));
+        order.setUserId(rs.getInt("user_id"));
+        order.setEventId(rs.getInt("event_id"));
+        order.setTotalAmount(rs.getDouble("total_amount"));
+        order.setDiscountAmount(rs.getDouble("discount_amount"));
+        order.setFinalAmount(rs.getDouble("final_amount"));
+        order.setStatus(rs.getString("status"));
+        order.setPaymentMethod(rs.getString("payment_method"));
+        order.setPaymentDate(rs.getTimestamp("payment_date"));
+        order.setBuyerName(rs.getString("buyer_name"));
+        order.setBuyerEmail(rs.getString("buyer_email"));
+        order.setBuyerPhone(rs.getString("buyer_phone"));
+        order.setNotes(rs.getString("notes"));
+        order.setCreatedAt(rs.getTimestamp("created_at"));
+        order.setEventTitle(rs.getString("event_title"));
+        return order;
+    }
+
+    /**
+     * Update order status (pending, paid, cancelled, refunded)
+     */
+    public boolean updateOrderStatus(int orderId, String status) {
+        String sql = "UPDATE Orders SET status = ?, updated_at = GETDATE()";
+        if ("paid".equals(status)) {
+            sql += ", payment_date = GETDATE()";
+        }
+        sql += " WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, orderId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Cancel an order and restore ticket quantities
+     */
+    public boolean cancelOrder(int orderId) {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+            
+            // Restore ticket quantities
+            String restoreSql = "UPDATE TicketTypes SET sold_quantity = sold_quantity - oi.quantity " +
+                               "FROM TicketTypes tt " +
+                               "JOIN OrderItems oi ON tt.ticket_type_id = oi.ticket_type_id " +
+                               "WHERE oi.order_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(restoreSql)) {
+                ps.setInt(1, orderId);
+                ps.executeUpdate();
+            }
+            
+            // Update order status
+            String updateSql = "UPDATE Orders SET status = 'cancelled', updated_at = GETDATE() WHERE order_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setInt(1, orderId);
+                ps.executeUpdate();
+            }
+            
+            conn.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        } finally {
+            try {
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get orders by user with pagination
+     */
+    public List<Order> getOrdersByUser(int userId, int page, int pageSize) {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
+                     "JOIN Events e ON o.event_id = e.event_id " +
+                     "WHERE o.user_id = ? ORDER BY o.created_at DESC " +
+                     "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, (page - 1) * pageSize);
+            ps.setInt(3, pageSize);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Order order = mapResultSetToOrder(rs);
+                order.setItems(getOrderItems(order.getOrderId()));
+                orders.add(order);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return orders;
+    }
+
+    /**
+     * Get orders by event (for organizer view)
+     */
+    public List<Order> getOrdersByEvent(int eventId, int page, int pageSize) {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
+                     "JOIN Events e ON o.event_id = e.event_id " +
+                     "WHERE o.event_id = ? ORDER BY o.created_at DESC " +
+                     "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, eventId);
+            ps.setInt(2, (page - 1) * pageSize);
+            ps.setInt(3, pageSize);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Order order = mapResultSetToOrder(rs);
+                orders.add(order);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return orders;
+    }
+
+    /**
+     * Get all orders with filters (for admin)
+     */
+    public List<Order> getAllOrders(String status, int page, int pageSize) {
+        List<Order> orders = new ArrayList<>();
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT o.*, e.title as event_title FROM Orders o ");
+        sql.append("JOIN Events e ON o.event_id = e.event_id ");
+        boolean hasStatus = status != null && !status.trim().isEmpty();
+        if (hasStatus) {
+            sql.append("WHERE o.status = ? ");
+        }
+        sql.append("ORDER BY o.created_at DESC ");
+        sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (hasStatus) {
+                ps.setString(paramIndex++, status);
+            }
+            ps.setInt(paramIndex++, (page - 1) * pageSize);
+            ps.setInt(paramIndex, pageSize);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Order order = mapResultSetToOrder(rs);
+                orders.add(order);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return orders;
+    }
+
+    /**
+     * Get total revenue (for dashboard stats)
+     */
+    public double getTotalRevenue() {
+        String sql = "SELECT COALESCE(SUM(final_amount), 0) FROM Orders WHERE status = 'paid'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getDouble(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Count orders by status
+     */
+    public int countOrdersByStatus(String status) {
+        String sql = "SELECT COUNT(*) FROM Orders WHERE status = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

@@ -107,7 +107,7 @@
     
     <script>
     // Check login status (set by JSP)
-    const isLoggedIn = ${sessionScope.account != null ? 'true' : 'false'};
+    const isLoggedIn = "${sessionScope.account != null}" === "true";
     
     // Require login function for protected links
     function requireLogin(element) {

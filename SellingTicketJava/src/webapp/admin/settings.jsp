@@ -14,8 +14,8 @@
 
         <!-- Main Content -->
         <div class="col-lg-10">
-            <h2 class="fw-bold mb-2">Cài đặt hệ thống</h2>
-            <p class="text-muted mb-4">Cấu hình toàn cục cho nền tảng</p>
+            <h2 class="fw-bold mb-2 animate-fadeInDown">⚙️ Cài đặt hệ thống</h2>
+            <p class="text-muted mb-4 animate-fadeInDown">Cấu hình toàn cục cho nền tảng</p>
 
             <!-- Tabs -->
             <ul class="nav nav-tabs-glass mb-4" id="settingsTabs" role="tablist">

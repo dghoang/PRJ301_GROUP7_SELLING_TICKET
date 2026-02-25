@@ -29,24 +29,34 @@ public class EventDAO extends DBContext {
         return event;
     }
 
-    public List<Event> getFeaturedEvents(int limit) {
+    private void enrichWithJoinedFields(Event event, ResultSet rs) throws SQLException {
+        event.setCategoryName(rs.getString("category_name"));
+        event.setOrganizerName(rs.getString("organizer_name"));
+        event.setMinPrice(rs.getDouble("min_price"));
+    }
+
+    private static final String BASE_SELECT_WITH_JOINS =
+            "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
+            "(SELECT MIN(price) FROM TicketTypes WHERE event_id = e.event_id) as min_price " +
+            "FROM Events e " +
+            "JOIN Categories c ON e.category_id = c.category_id " +
+            "JOIN Users u ON e.organizer_id = u.user_id ";
+
+    public List<Event> getApprovedEvents(boolean featuredOnly, int limit) {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT TOP (?) e.*, c.name as category_name, u.full_name as organizer_name, " +
-                     "(SELECT MIN(price) FROM TicketTypes WHERE event_id = e.event_id) as min_price " +
-                     "FROM Events e " +
-                     "JOIN Categories c ON e.category_id = c.category_id " +
-                     "JOIN Users u ON e.organizer_id = u.user_id " +
-                     "WHERE e.status = 'approved' AND e.is_featured = 1 AND e.start_date > GETDATE() " +
+        String where = featuredOnly
+                ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND e.start_date > GETDATE() "
+                : "WHERE e.status = 'approved' AND e.start_date > GETDATE() ";
+        String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) + where +
                      "ORDER BY e.start_date ASC";
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, limit);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 Event event = mapResultSetToEvent(rs);
-                event.setCategoryName(rs.getString("category_name"));
-                event.setOrganizerName(rs.getString("organizer_name"));
-                event.setMinPrice(rs.getDouble("min_price"));
+                enrichWithJoinedFields(event, rs);
                 events.add(event);
             }
         } catch (Exception e) {
@@ -55,48 +65,56 @@ public class EventDAO extends DBContext {
         return events;
     }
 
+    public List<Event> getFeaturedEvents(int limit) {
+        return getApprovedEvents(true, limit);
+    }
+
     public List<Event> getUpcomingEvents(int limit) {
-        List<Event> events = new ArrayList<>();
-        String sql = "SELECT TOP (?) e.*, c.name as category_name, u.full_name as organizer_name, " +
-                     "(SELECT MIN(price) FROM TicketTypes WHERE event_id = e.event_id) as min_price " +
-                     "FROM Events e " +
-                     "JOIN Categories c ON e.category_id = c.category_id " +
-                     "JOIN Users u ON e.organizer_id = u.user_id " +
-                     "WHERE e.status = 'approved' AND e.start_date > GETDATE() " +
-                     "ORDER BY e.start_date ASC";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, limit);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Event event = mapResultSetToEvent(rs);
-                event.setCategoryName(rs.getString("category_name"));
-                event.setOrganizerName(rs.getString("organizer_name"));
-                event.setMinPrice(rs.getDouble("min_price"));
-                events.add(event);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return events;
+        return getApprovedEvents(false, limit);
     }
 
     public List<Event> searchEvents(String keyword, String category, String dateFilter, int page, int pageSize) {
         List<Event> events = new ArrayList<>();
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT e.*, c.name as category_name, u.full_name as organizer_name, ");
-        sql.append("(SELECT MIN(price) FROM TicketTypes WHERE event_id = e.event_id) as min_price ");
-        sql.append("FROM Events e ");
-        sql.append("JOIN Categories c ON e.category_id = c.category_id ");
-        sql.append("JOIN Users u ON e.organizer_id = u.user_id ");
+        StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
         sql.append("WHERE e.status = 'approved' ");
-        
+
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
         }
         if (category != null && !category.trim().isEmpty()) {
             sql.append("AND c.slug = ? ");
         }
+        appendDateFilter(sql, dateFilter);
+
+        sql.append("ORDER BY e.start_date ASC ");
+        sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                ps.setString(idx++, "%" + keyword + "%");
+                ps.setString(idx++, "%" + keyword + "%");
+            }
+            if (category != null && !category.trim().isEmpty()) {
+                ps.setString(idx++, category);
+            }
+            ps.setInt(idx++, (page - 1) * pageSize);
+            ps.setInt(idx, pageSize);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Event event = mapResultSetToEvent(rs);
+                enrichWithJoinedFields(event, rs);
+                events.add(event);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
+    private void appendDateFilter(StringBuilder sql, String dateFilter) {
         if ("today".equals(dateFilter)) {
             sql.append("AND CAST(e.start_date AS DATE) = CAST(GETDATE() AS DATE) ");
         } else if ("week".equals(dateFilter)) {
@@ -104,51 +122,17 @@ public class EventDAO extends DBContext {
         } else if ("month".equals(dateFilter)) {
             sql.append("AND e.start_date BETWEEN GETDATE() AND DATEADD(MONTH, 1, GETDATE()) ");
         }
-        
-        sql.append("ORDER BY e.start_date ASC ");
-        sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            int paramIndex = 1;
-            if (keyword != null && !keyword.trim().isEmpty()) {
-                ps.setString(paramIndex++, "%" + keyword + "%");
-                ps.setString(paramIndex++, "%" + keyword + "%");
-            }
-            if (category != null && !category.trim().isEmpty()) {
-                ps.setString(paramIndex++, category);
-            }
-            ps.setInt(paramIndex++, (page - 1) * pageSize);
-            ps.setInt(paramIndex, pageSize);
-            
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Event event = mapResultSetToEvent(rs);
-                event.setCategoryName(rs.getString("category_name"));
-                event.setOrganizerName(rs.getString("organizer_name"));
-                event.setMinPrice(rs.getDouble("min_price"));
-                events.add(event);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return events;
     }
 
     public Event getEventById(int eventId) {
-        String sql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name " +
-                     "FROM Events e " +
-                     "JOIN Categories c ON e.category_id = c.category_id " +
-                     "JOIN Users u ON e.organizer_id = u.user_id " +
-                     "WHERE e.event_id = ?";
+        String sql = BASE_SELECT_WITH_JOINS + "WHERE e.event_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, eventId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 Event event = mapResultSetToEvent(rs);
-                event.setCategoryName(rs.getString("category_name"));
-                event.setOrganizerName(rs.getString("organizer_name"));
+                enrichWithJoinedFields(event, rs);
                 return event;
             }
         } catch (Exception e) {
@@ -223,7 +207,7 @@ public class EventDAO extends DBContext {
             ps.setString(11, event.getStatus());
             ps.setBoolean(12, event.isFeatured());
             ps.setBoolean(13, event.isPrivate());
-            
+
             int rows = ps.executeUpdate();
             if (rows > 0) {
                 ResultSet keys = ps.getGeneratedKeys();
@@ -267,9 +251,101 @@ public class EventDAO extends DBContext {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt(1);
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<Event> getRelatedEvents(int categoryId, int currentEventId, int limit) {
+        List<Event> events = new ArrayList<>();
+        String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) +
+                     "WHERE e.status = 'approved' AND e.category_id = ? AND e.event_id != ? AND e.start_date > GETDATE() " +
+                     "ORDER BY e.start_date ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setInt(2, categoryId);
+            ps.setInt(3, currentEventId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Event event = mapResultSetToEvent(rs);
+                enrichWithJoinedFields(event, rs);
+                events.add(event);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
+    public boolean updateEvent(Event event) {
+        String sql = "UPDATE Events SET " +
+                     "category_id = ?, title = ?, slug = ?, description = ?, banner_image = ?, " +
+                     "location = ?, address = ?, start_date = ?, end_date = ?, " +
+                     "is_featured = ?, is_private = ?, updated_at = GETDATE() " +
+                     "WHERE event_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, event.getCategoryId());
+            ps.setString(2, event.getTitle());
+            ps.setString(3, event.getSlug());
+            ps.setString(4, event.getDescription());
+            ps.setString(5, event.getBannerImage());
+            ps.setString(6, event.getLocation());
+            ps.setString(7, event.getAddress());
+            ps.setTimestamp(8, new Timestamp(event.getStartDate().getTime()));
+            ps.setTimestamp(9, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
+            ps.setBoolean(10, event.isFeatured());
+            ps.setBoolean(11, event.isPrivate());
+            ps.setInt(12, event.getEventId());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean deleteEvent(int eventId) {
+        return updateEventStatus(eventId, "deleted");
+    }
+
+    public List<Event> getAllEvents(String status, int page, int pageSize) {
+        List<Event> events = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
+
+        boolean hasStatus = status != null && !status.trim().isEmpty();
+        if (hasStatus) sql.append("WHERE e.status = ? ");
+        sql.append("ORDER BY e.created_at DESC ");
+        sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (hasStatus) ps.setString(idx++, status);
+            ps.setInt(idx++, (page - 1) * pageSize);
+            ps.setInt(idx, pageSize);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Event event = mapResultSetToEvent(rs);
+                enrichWithJoinedFields(event, rs);
+                events.add(event);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
+    public int countEventsByStatus(String status) {
+        String sql = "SELECT COUNT(*) FROM Events WHERE status = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
         } catch (Exception e) {
             e.printStackTrace();
         }

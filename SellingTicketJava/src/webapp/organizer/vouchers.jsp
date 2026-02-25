@@ -14,7 +14,7 @@
 
         <!-- Main Content -->
         <div class="col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
                 <h2 class="fw-bold mb-0">Quản lý Vouchers</h2>
                 <button class="btn btn-gradient rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createVoucherModal">
                     <i class="fas fa-plus me-2"></i>Tạo Voucher
@@ -23,8 +23,8 @@
 
             <!-- Vouchers Grid -->
             <div class="row g-4">
-                <div class="col-md-6 col-lg-4">
-                    <div class="card glass-strong border-0 rounded-4">
+                <div class="col-md-6 col-lg-4 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift" style="transition: all 0.3s;">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="bg-primary bg-opacity-10 rounded-3 p-3">
@@ -58,8 +58,8 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 col-lg-4">
-                    <div class="card glass-strong border-0 rounded-4">
+                <div class="col-md-6 col-lg-4 animate-on-scroll stagger-1">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift" style="transition: all 0.3s;">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="bg-success bg-opacity-10 rounded-3 p-3">
@@ -93,8 +93,8 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 col-lg-4">
-                    <div class="card glass-strong border-0 rounded-4">
+                <div class="col-md-6 col-lg-4 animate-on-scroll stagger-2">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift" style="transition: all 0.3s;">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="bg-warning bg-opacity-10 rounded-3 p-3">

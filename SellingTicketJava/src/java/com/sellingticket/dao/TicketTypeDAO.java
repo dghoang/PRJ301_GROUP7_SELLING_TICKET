@@ -108,4 +108,64 @@ public class TicketTypeDAO extends DBContext {
         }
         return 0;
     }
+
+    // ========================
+    // NEW CRUD METHODS
+    // ========================
+
+    /**
+     * Update an existing ticket type
+     */
+    public boolean updateTicketType(TicketType ticketType) {
+        String sql = "UPDATE TicketTypes SET name = ?, description = ?, price = ?, quantity = ?, " +
+                     "sale_start = ?, sale_end = ?, is_active = ? WHERE ticket_type_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, ticketType.getName());
+            ps.setString(2, ticketType.getDescription());
+            ps.setDouble(3, ticketType.getPrice());
+            ps.setInt(4, ticketType.getQuantity());
+            ps.setTimestamp(5, ticketType.getSaleStart() != null ? new Timestamp(ticketType.getSaleStart().getTime()) : null);
+            ps.setTimestamp(6, ticketType.getSaleEnd() != null ? new Timestamp(ticketType.getSaleEnd().getTime()) : null);
+            ps.setBoolean(7, ticketType.isActive());
+            ps.setInt(8, ticketType.getTicketTypeId());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Soft delete a ticket type (set is_active = false)
+     */
+    public boolean deleteTicketType(int ticketTypeId) {
+        String sql = "UPDATE TicketTypes SET is_active = 0 WHERE ticket_type_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ticketTypeId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Check ticket availability
+     */
+    public boolean checkAvailability(int ticketTypeId, int requestedQuantity) {
+        String sql = "SELECT (quantity - sold_quantity) as available FROM TicketTypes WHERE ticket_type_id = ? AND is_active = 1";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ticketTypeId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("available") >= requestedQuantity;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

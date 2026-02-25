@@ -1092,3 +1092,102 @@ h1, h2, h3, h4, h5, h6 {
         max-width: none;
     }
 }
+
+/* ================================
+   DASHBOARD COMPONENTS
+   ================================ */
+
+/* Dashboard Icon Box */
+.dash-icon-box {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Activity Feed */
+.activity-feed .activity-item {
+    position: relative;
+    padding-left: 4px;
+}
+.activity-feed .activity-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8);
+}
+.activity-feed .activity-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 20px;
+    bottom: -12px;
+    width: 2px;
+    background: rgba(0, 0, 0, 0.06);
+}
+
+/* Glass Table */
+.table-glass {
+    background: transparent;
+}
+.table-glass thead th {
+    background: rgba(255, 255, 255, 0.5);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0.875rem 1rem;
+}
+.table-glass tbody td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    vertical-align: middle;
+}
+.table-glass tbody tr:hover {
+    background: rgba(147, 51, 234, 0.03);
+}
+
+/* Admin Sidebar Enhanced */
+.sidebar-nav .nav-link {
+    border-radius: var(--radius-sm) !important;
+    padding: 0.625rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-bottom: 2px;
+}
+.sidebar-nav .nav-link:hover:not(.active) {
+    background: rgba(147, 51, 234, 0.06);
+    color: var(--primary) !important;
+    transform: translateX(4px);
+}
+.sidebar-nav .nav-link.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    width: 100%;
+}
+
+/* Dashboard mobile */
+@media (max-width: 768px) {
+    .container-fluid { padding-left: 12px; padding-right: 12px; }
+    .dash-icon-box { width: 44px; height: 44px; }
+    .dash-icon-box i { font-size: 1rem !important; }
+    .card-body h3 { font-size: 1.25rem; }
+}
+
+@media (max-width: 992px) {
+    .col-lg-2 .sticky-top { position: static !important; }
+}

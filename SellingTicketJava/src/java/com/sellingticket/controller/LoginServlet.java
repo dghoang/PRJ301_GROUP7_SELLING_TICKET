@@ -24,22 +24,25 @@ public class LoginServlet extends HttpServlet {
             throws ServletException, IOException {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
-        
+
         UserDAO dao = new UserDAO();
         User user = dao.login(email, password);
-        
-        if (user != null) {
-            HttpSession session = request.getSession();
-            session.setAttribute("account", user);
-            String redirect = request.getParameter("redirect");
-            if (redirect != null && !redirect.isEmpty()) {
-                response.sendRedirect(redirect);
-            } else {
-                response.sendRedirect(request.getContextPath() + "/home");
-            }
-        } else {
+
+        if (user == null) {
             request.setAttribute("error", "Invalid email or password!");
             request.getRequestDispatcher("login.jsp").forward(request, response);
+            return;
+        }
+
+        HttpSession session = request.getSession();
+        session.setAttribute("user", user);
+        session.setAttribute("account", user); // backwards compatibility
+
+        String redirect = request.getParameter("redirect");
+        if (redirect != null && !redirect.isEmpty()) {
+            response.sendRedirect(redirect);
+        } else {
+            response.sendRedirect(request.getContextPath() + "/home");
         }
     }
 }

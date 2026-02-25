@@ -1,6 +1,7 @@
 package com.sellingticket.model;
 
 import java.util.Date;
+import java.util.List;
 
 public class Event {
     private int eventId;
@@ -26,6 +27,9 @@ public class Event {
     private double minPrice;
     private int totalTickets;
     private int soldTickets;
+    
+    // Associated ticket types (for event detail view)
+    private List<TicketType> ticketTypes;
 
     public Event() {}
 
@@ -92,4 +96,7 @@ public class Event {
 
     public int getSoldTickets() { return soldTickets; }
     public void setSoldTickets(int soldTickets) { this.soldTickets = soldTickets; }
+    
+    public List<TicketType> getTicketTypes() { return ticketTypes; }
+    public void setTicketTypes(List<TicketType> ticketTypes) { this.ticketTypes = ticketTypes; }
 }

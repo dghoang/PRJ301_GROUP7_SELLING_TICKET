@@ -14,7 +14,7 @@
 
         <!-- Main Content -->
         <div class="col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
                 <div>
                     <h2 class="fw-bold mb-1">Quản lý loại vé</h2>
                     <p class="text-muted mb-0">Tạo và quản lý các loại vé cho sự kiện của bạn</p>
@@ -25,7 +25,7 @@
             </div>
 
             <!-- Event Filter -->
-            <div class="card glass-strong border-0 rounded-4 mb-4">
+            <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll">
                 <div class="card-body p-3">
                     <div class="row align-items-center">
                         <div class="col-md-6">
@@ -51,7 +51,7 @@
             </div>
 
             <!-- Ticket Types Table -->
-            <div class="card glass-strong border-0 rounded-4">
+            <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-glass align-middle mb-0">

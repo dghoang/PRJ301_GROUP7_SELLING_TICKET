@@ -14,11 +14,11 @@
 
         <!-- Main Content -->
         <div class="col-lg-10">
-            <h2 class="fw-bold mb-4">Check-in khách</h2>
+            <h2 class="fw-bold mb-4 animate-fadeInDown">🎫 Check-in khách</h2>
 
             <div class="row g-4">
                 <!-- QR Scanner -->
-                <div class="col-lg-6">
+                <div class="col-lg-6 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4">
                         <div class="card-body p-4 text-center">
                             <h5 class="fw-bold mb-4"><i class="fas fa-qrcode text-primary me-2"></i>Quét mã QR</h5>
@@ -39,7 +39,7 @@
                 </div>
 
                 <!-- Manual Input + Stats -->
-                <div class="col-lg-6">
+                <div class="col-lg-6 animate-on-scroll stagger-1">
                     <!-- Manual Input -->
                     <div class="card glass-strong border-0 rounded-4 mb-4">
                         <div class="card-body p-4">

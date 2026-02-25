@@ -14,7 +14,7 @@
 
         <!-- Main Content -->
         <div class="col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
                 <div>
                     <h2 class="fw-bold mb-1">Quản lý danh mục</h2>
                     <p class="text-muted mb-0">Tạo và quản lý các danh mục sự kiện</p>
@@ -27,8 +27,8 @@
             <!-- Categories Grid -->
             <div class="row g-4">
                 <!-- Category: Âm nhạc -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #ec4899, #a855f7);">
                                 <i class="fas fa-music fa-lg text-white"></i>
@@ -44,8 +44,8 @@
                 </div>
 
                 <!-- Category: Workshop -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
                                 <i class="fas fa-graduation-cap fa-lg text-white"></i>
@@ -61,8 +61,8 @@
                 </div>
 
                 <!-- Category: Thể thao -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981, #059669);">
                                 <i class="fas fa-running fa-lg text-white"></i>
@@ -78,8 +78,8 @@
                 </div>
 
                 <!-- Category: Nghệ thuật -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #f59e0b, #d97706);">
                                 <i class="fas fa-palette fa-lg text-white"></i>
@@ -95,8 +95,8 @@
                 </div>
 
                 <!-- Category: Ẩm thực -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444, #dc2626);">
                                 <i class="fas fa-utensils fa-lg text-white"></i>
@@ -112,8 +112,8 @@
                 </div>
 
                 <!-- Category: Kinh doanh -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #6366f1, #4f46e5);">
                                 <i class="fas fa-briefcase fa-lg text-white"></i>
@@ -129,8 +129,8 @@
                 </div>
 
                 <!-- Category: Công nghệ -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #06b6d4, #0891b2);">
                                 <i class="fas fa-laptop-code fa-lg text-white"></i>
@@ -146,8 +146,8 @@
                 </div>
 
                 <!-- Category: Gia đình -->
-                <div class="col-md-4 col-lg-3">
-                    <div class="card glass-strong border-0 rounded-4 card-hover h-100">
+                <div class="col-md-4 col-lg-3 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 card-hover hover-lift h-100" style="transition: all 0.3s;">
                         <div class="card-body p-4 text-center">
                             <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, #f472b6, #ec4899);">
                                 <i class="fas fa-users fa-lg text-white"></i>
