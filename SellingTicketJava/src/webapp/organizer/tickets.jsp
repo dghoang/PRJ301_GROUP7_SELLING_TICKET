@@ -118,6 +118,7 @@
                                                         <i class="fas fa-edit text-primary"></i>
                                                     </button>
                                                     <form method="POST" action="${pageContext.request.contextPath}/organizer/tickets" style="display:inline;">
+                                                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                                                         <input type="hidden" name="action" value="delete"/>
                                                         <input type="hidden" name="ticketTypeId" value="${tt.ticketTypeId}"/>
                                                         <button type="submit" class="btn btn-sm glass rounded-circle"
@@ -145,6 +146,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content glass-strong border-0 rounded-4">
             <form method="POST" action="${pageContext.request.contextPath}/organizer/tickets" id="ticketForm">
+                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                 <input type="hidden" name="action" value="create" id="ticketAction"/>
                 <input type="hidden" name="ticketTypeId" value="" id="ticketId"/>
                 <div class="modal-header border-0 pb-0">

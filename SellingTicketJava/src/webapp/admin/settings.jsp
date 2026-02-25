@@ -39,6 +39,7 @@
             </ul>
 
             <form method="POST" action="${pageContext.request.contextPath}/admin/settings">
+                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                 <div class="tab-content">
                     <%-- General Tab --%>
                     <div class="tab-pane fade show active" id="general" role="tabpanel">

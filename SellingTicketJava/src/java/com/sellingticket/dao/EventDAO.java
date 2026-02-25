@@ -41,10 +41,12 @@ public class EventDAO extends DBContext {
 
     private static final String BASE_SELECT_WITH_JOINS =
             "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
-            "(SELECT MIN(price) FROM TicketTypes WHERE event_id = e.event_id) as min_price " +
+            "ISNULL(tp.min_price, 0) as min_price " +
             "FROM Events e " +
             "JOIN Categories c ON e.category_id = c.category_id " +
-            "JOIN Users u ON e.organizer_id = u.user_id ";
+            "JOIN Users u ON e.organizer_id = u.user_id " +
+            "LEFT JOIN (SELECT event_id, MIN(price) as min_price FROM TicketTypes GROUP BY event_id) tp " +
+            "ON tp.event_id = e.event_id ";
 
     public List<Event> getApprovedEvents(boolean featuredOnly, int limit) {
         List<Event> events = new ArrayList<>();
@@ -148,10 +150,12 @@ public class EventDAO extends DBContext {
     public List<Event> getEventsByOrganizer(int organizerId) {
         List<Event> events = new ArrayList<>();
         String sql = "SELECT e.*, c.name as category_name, " +
-                     "(SELECT SUM(sold_quantity) FROM TicketTypes WHERE event_id = e.event_id) as sold_tickets, " +
-                     "(SELECT SUM(quantity) FROM TicketTypes WHERE event_id = e.event_id) as total_tickets " +
+                     "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                     "ISNULL(ts.total_tickets, 0) as total_tickets " +
                      "FROM Events e " +
                      "JOIN Categories c ON e.category_id = c.category_id " +
+                     "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                     "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
                      "WHERE e.organizer_id = ? ORDER BY e.created_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -365,6 +369,42 @@ public class EventDAO extends DBContext {
             if (rs.next()) return rs.getInt(1);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
+        }
+        return 0;
+    }
+
+    /**
+     * Count total search results for pagination.
+     * Mirrors the WHERE clause logic of searchEvents() without OFFSET/FETCH.
+     */
+    public int countSearchEvents(String keyword, String category, String dateFilter) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " +
+                "WHERE e.status = 'approved' ");
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            sql.append("AND c.slug = ? ");
+        }
+        appendDateFilter(sql, dateFilter);
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                ps.setString(idx++, "%" + keyword + "%");
+                ps.setString(idx++, "%" + keyword + "%");
+            }
+            if (category != null && !category.trim().isEmpty()) {
+                ps.setString(idx++, category);
+            }
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO.countSearchEvents", e);
         }
         return 0;
     }

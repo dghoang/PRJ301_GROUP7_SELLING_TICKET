@@ -30,12 +30,16 @@ public class EventsServlet extends HttpServlet {
 
         List<Event> events = eventService.searchEvents(search, category, dateFilter, page, PAGE_SIZE);
         List<Category> categories = eventService.getAllCategories();
+        int totalResults = eventService.countSearchEvents(search, category, dateFilter);
+        int totalPages = (int) Math.ceil((double) totalResults / PAGE_SIZE);
 
         request.setAttribute("events", events);
         request.setAttribute("categories", categories);
         request.setAttribute("selectedCategory", category);
         request.setAttribute("searchQuery", search != null ? search : "");
         request.setAttribute("currentPage", page);
+        request.setAttribute("totalResults", totalResults);
+        request.setAttribute("totalPages", totalPages);
 
         request.getRequestDispatcher("events.jsp").forward(request, response);
     }

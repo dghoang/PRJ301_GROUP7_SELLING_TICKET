@@ -96,6 +96,11 @@
 .checkin-stat .stat-val.bump {
     animation: countPulse 0.3s ease;
 }
+@keyframes countPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
 .checkin-stat .stat-lbl {
     font-size: 0.7rem;
     color: var(--text-muted);
@@ -324,10 +329,19 @@
 <script>
 const eventId = '${event != null ? event.eventId : ""}';
 const contextPath = '${pageContext.request.contextPath}';
+let csrfToken = '${csrf_token}';
 let html5QrCode = null;
 let cameraOn = false;
-let checkedInCount = parseInt('${checkedInCount}' || '0');
-let totalOrders = parseInt('${totalOrders}' || '0');
+let checkedInCount = parseInt('${checkedInCount != null ? checkedInCount : 0}') || 0;
+let totalOrders = parseInt('${totalOrders != null ? totalOrders : 0}') || 0;
+
+/** Escape HTML to prevent XSS in template literals */
+function escapeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
 function selectEvent(id) {
     if (id) window.location = contextPath + '/organizer/check-in?eventId=' + id;
@@ -398,31 +412,46 @@ function checkInManual() {
 }
 
 function processCheckIn(code) {
-    showResult('loading', 'Đang xử lý...', code);
+    showResult('loading', 'Đang xử lý...', escapeHTML(code));
 
     fetch(contextPath + '/organizer/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'eventId=' + encodeURIComponent(eventId) + '&orderCode=' + encodeURIComponent(code)
+        body: 'eventId=' + encodeURIComponent(eventId)
+            + '&orderCode=' + encodeURIComponent(code)
+            + '&csrf_token=' + encodeURIComponent(csrfToken)
     })
-    .then(r => r.json())
+    .then(r => {
+        if (r.status === 403) throw new Error('CSRF');
+        return r.json();
+    })
     .then(data => {
+        // Refresh CSRF token after successful validation (server rotates it)
+        if (data.csrfToken) csrfToken = data.csrfToken;
+
         if (data.success) {
-            showResult('success', 'Check-in thành công!', data.customerName || code);
+            showResult('success', 'Check-in thành công!', escapeHTML(data.customerName || code));
             addFeedItem(code, data.customerName, 'success');
             checkedInCount++;
             updateStats();
             playSound('success');
         } else if (data.alreadyCheckedIn) {
-            showResult('warning', 'Đã check-in trước đó', 'Lúc ' + (data.checkInTime || 'trước đó'));
+            showResult('warning', 'Đã check-in trước đó', 'Lúc ' + escapeHTML(data.checkInTime || 'trước đó'));
             addFeedItem(code, data.customerName, 'duplicate');
+            playSound('error');
         } else {
-            showResult('error', data.message || 'Mã không hợp lệ', code);
+            showResult('error', escapeHTML(data.message) || 'Mã không hợp lệ', escapeHTML(code));
             addFeedItem(code, null, 'invalid');
+            playSound('error');
         }
     })
-    .catch(() => {
-        showResult('error', 'Lỗi kết nối', 'Vui lòng thử lại');
+    .catch(err => {
+        if (err.message === 'CSRF') {
+            showResult('error', 'Phiên hết hạn', 'Vui lòng tải lại trang (F5)');
+        } else {
+            showResult('error', 'Lỗi kết nối', 'Vui lòng thử lại');
+        }
+        playSound('error');
     });
 }
 
@@ -444,8 +473,8 @@ function showResult(type, title, subtitle) {
             <div class="result-icon" style="background: ${cfg.color}20; color: ${cfg.color};">
                 <i class="fas ${cfg.icon}"></i>
             </div>
-            <h5 class="fw-bold mb-1">${title}</h5>
-            <p class="text-muted small mb-0">${subtitle}</p>
+            <h5 class="fw-bold mb-1">${escapeHTML(title)}</h5>
+            <p class="text-muted small mb-0">${escapeHTML(subtitle)}</p>
         </div>
     `;
 
@@ -485,7 +514,7 @@ function addFeedItem(code, name, type) {
             <i class="fas ${icons[type]}"></i>
         </div>
         <div class="flex-grow-1">
-            <div class="fw-medium small">${name || code}</div>
+            <div class="fw-medium small">${escapeHTML(name || code)}</div>
             <div class="text-muted" style="font-size:0.7rem;">${labels[type]} • ${new Date().toLocaleTimeString('vi-VN')}</div>
         </div>
     `;

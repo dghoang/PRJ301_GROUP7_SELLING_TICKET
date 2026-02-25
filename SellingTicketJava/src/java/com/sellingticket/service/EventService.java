@@ -168,6 +168,13 @@ public class EventService {
     }
 
     /**
+     * Count total search results for pagination.
+     */
+    public int countSearchEvents(String keyword, String category, String dateFilter) {
+        return eventDAO.countSearchEvents(keyword, category, dateFilter);
+    }
+
+    /**
      * Get total approved events
      */
     public int getTotalEvents() {

@@ -27,9 +27,17 @@ public class CheckoutServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(CheckoutServlet.class.getName());
     private static final int MAX_QUANTITY = 10;
 
-    private final OrderService orderService = new OrderService();
-    private final EventService eventService = new EventService();
-    private final TicketService ticketService = new TicketService();
+    private OrderService orderService;
+    private EventService eventService;
+    private TicketService ticketService;
+
+    @Override
+    public void init() throws ServletException {
+        orderService = new OrderService();
+        eventService = new EventService();
+        ticketService = new TicketService();
+    }
+
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)

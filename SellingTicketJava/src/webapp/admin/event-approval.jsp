@@ -112,6 +112,7 @@
 
                                     <div class="d-flex gap-2">
                                         <form method="POST" action="${pageContext.request.contextPath}/admin/events/approve" class="flex-grow-1">
+                                            <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                                             <input type="hidden" name="eventId" value="${e.eventId}"/>
                                             <button type="submit" class="btn w-100 rounded-pill" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white; border: none;">
                                                 <i class="fas fa-check me-2"></i>Duyệt
@@ -142,6 +143,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-strong border-0 rounded-4">
             <form method="POST" action="${pageContext.request.contextPath}/admin/events/reject">
+                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                 <input type="hidden" name="eventId" id="rejectEventId"/>
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold"><i class="fas fa-times-circle text-danger me-2"></i>Từ chối sự kiện</h5>
@@ -165,5 +167,5 @@
     </div>
 </div>
 
-<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+
 <jsp:include page="../footer.jsp" />

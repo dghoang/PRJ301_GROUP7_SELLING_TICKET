@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -187,15 +188,16 @@
                                 </p>
 
                                 <!-- Ticket Progress -->
+                                <c:set var="soldPct" value="${event.totalTickets > 0 ? (event.soldTickets * 100 / event.totalTickets) : 0}"/>
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span><strong>${event.soldTickets}</strong>/${event.totalTickets} vé</span>
                                         <c:if test="${event.totalTickets > 0}">
-                                            <span class="text-muted">${Math.round(event.soldTickets * 100.0 / event.totalTickets)}%</span>
+                                            <span class="text-muted"><fmt:formatNumber value="${soldPct}" maxFractionDigits="0"/>%</span>
                                         </c:if>
                                     </div>
                                     <div class="progress-thin">
-                                        <div class="progress-bar" style="width: ${event.totalTickets > 0 ? Math.round(event.soldTickets * 100.0 / event.totalTickets) : 0}%"></div>
+                                        <div class="progress-bar" style="width: <fmt:formatNumber value='${soldPct}' maxFractionDigits='0'/>%"></div>
                                     </div>
                                 </div>
 
@@ -261,6 +263,7 @@
                 <div class="d-flex gap-3 justify-content-center">
                     <button class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
                     <form id="deleteForm" method="POST">
+                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                         <button type="submit" class="btn btn-danger rounded-pill px-4"><i class="fas fa-trash me-2"></i>Xóa</button>
                     </form>
                 </div>

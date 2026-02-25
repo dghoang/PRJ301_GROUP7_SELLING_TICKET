@@ -9,6 +9,7 @@ import com.sellingticket.service.OrderService;
 import com.sellingticket.service.TicketService;
 import com.sellingticket.util.CloudinaryUtil;
 import static com.sellingticket.util.ServletUtil.*;
+import com.sellingticket.util.InputValidator;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -175,6 +176,20 @@ public class OrganizerEventController extends HttpServlet {
         }
 
         try {
+            // Validate inputs before processing
+            String title = request.getParameter("title");
+            String description = request.getParameter("description");
+            if (!InputValidator.isValidEventTitle(title)) {
+                request.setAttribute("error", "Tên sự kiện phải từ 3-200 ký tự");
+                showCreateForm(request, response, user);
+                return;
+            }
+            if (!InputValidator.isValidDescription(description)) {
+                request.setAttribute("error", "Mô tả phải từ 10-10,000 ký tự");
+                showCreateForm(request, response, user);
+                return;
+            }
+
             Event event = buildEventFromRequest(request, user);
             uploadBanner(request, event, user);
             event.setStatus("pending");

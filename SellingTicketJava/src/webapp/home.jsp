@@ -349,7 +349,7 @@
                     Đăng tải sự kiện, quản lý vé và tiếp cận hàng ngàn khán giả tiềm năng ngay hôm nay với Ticketbox.
                 </p>
                 <div class="d-flex justify-content-center gap-3 flex-wrap">
-                    <a href="register-organizer" class="btn btn-gradient rounded-pill px-4 py-2 hover-glow">
+                    <a href="register" class="btn btn-gradient rounded-pill px-4 py-2 hover-glow">
                         <i class="fas fa-rocket me-2"></i>Đăng ký ngay
                     </a>
                     <a href="#" class="btn btn-outline-dark rounded-pill px-4 py-2">

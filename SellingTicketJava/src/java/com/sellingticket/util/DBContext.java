@@ -2,6 +2,9 @@ package com.sellingticket.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -18,13 +21,18 @@ import java.util.logging.Logger;
  * Maintains a pool of reusable connections to avoid the overhead
  * of creating a new TCP connection for every query.</p>
  * 
+ * <p>Connections returned by {@link #getConnection()} are wrapped in a proxy
+ * that intercepts {@code close()} to return the connection to the pool
+ * instead of destroying it. This makes the pool compatible with
+ * {@code try-with-resources} used in DAOs.</p>
+ * 
  * <p>Thread-safe. Pool size is configurable via properties.</p>
  */
 public class DBContext {
 
     private static final Logger LOGGER = Logger.getLogger(DBContext.class.getName());
 
-    // Pool
+    // Pool stores raw (unwrapped) connections
     private static final LinkedBlockingQueue<Connection> pool = new LinkedBlockingQueue<>();
     private static final AtomicInteger activeCount = new AtomicInteger(0);
 
@@ -64,20 +72,21 @@ public class DBContext {
     }
 
     /**
-     * Get a connection from the pool, or create a new one if the pool is empty
-     * and we haven't reached the maximum size.
+     * Get a pool-managed connection. The returned connection is wrapped so that
+     * {@code close()} returns it to the pool instead of destroying the TCP link.
+     * Safe to use with {@code try-with-resources}.
      */
     public Connection getConnection() throws SQLException {
         // 1. Try to reuse a pooled connection
-        Connection conn = pool.poll();
-        if (conn != null) {
+        Connection raw = pool.poll();
+        if (raw != null) {
             try {
-                if (!conn.isClosed() && conn.isValid(1)) {
-                    return conn;
+                if (!raw.isClosed() && raw.isValid(1)) {
+                    return wrapConnection(raw);
                 }
                 // Stale connection — discard and decrement
                 activeCount.decrementAndGet();
-                conn.close();
+                raw.close();
             } catch (SQLException e) {
                 activeCount.decrementAndGet();
             }
@@ -88,7 +97,7 @@ public class DBContext {
             activeCount.incrementAndGet();
             try {
                 Connection newConn = DriverManager.getConnection(URL, USER, PASS);
-                return newConn;
+                return wrapConnection(newConn);
             } catch (SQLException e) {
                 activeCount.decrementAndGet();
                 throw e;
@@ -97,9 +106,9 @@ public class DBContext {
 
         // 3. Pool exhausted — wait for a returned connection
         try {
-            conn = pool.poll(CONNECTION_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
-            if (conn != null && !conn.isClosed() && conn.isValid(2)) {
-                return conn;
+            raw = pool.poll(CONNECTION_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            if (raw != null && !raw.isClosed() && raw.isValid(2)) {
+                return wrapConnection(raw);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -108,24 +117,99 @@ public class DBContext {
         throw new SQLException("Connection pool exhausted (max=" + MAX_POOL_SIZE + ")");
     }
 
+    // ========================
+    // CONNECTION PROXY
+    // ========================
+
     /**
-     * Return a connection to the pool for reuse.
-     * Call this in a {@code finally} block instead of {@code conn.close()}.
+     * Wrap a raw JDBC connection so that {@code close()} returns it to the pool
+     * instead of destroying it. All other method calls delegate to the real connection.
      */
-    public static void returnConnection(Connection conn) {
-        if (conn == null) return;
+    private static Connection wrapConnection(Connection raw) {
+        return (Connection) Proxy.newProxyInstance(
+                Connection.class.getClassLoader(),
+                new Class<?>[]{Connection.class},
+                new PooledConnectionHandler(raw));
+    }
+
+    /**
+     * Unwrap a proxied connection to get the raw JDBC connection.
+     * Used by {@link OrderDAO#createOrderAtomic} and other code that needs
+     * direct transaction control (setAutoCommit, commit, rollback).
+     */
+    public static Connection unwrap(Connection conn) {
+        if (Proxy.isProxyClass(conn.getClass())) {
+            InvocationHandler handler = Proxy.getInvocationHandler(conn);
+            if (handler instanceof PooledConnectionHandler) {
+                return ((PooledConnectionHandler) handler).raw;
+            }
+        }
+        return conn;
+    }
+
+    /**
+     * InvocationHandler that intercepts {@code close()} to return the
+     * connection to the pool, and delegates everything else to the raw connection.
+     */
+    private static class PooledConnectionHandler implements InvocationHandler {
+        final Connection raw;
+        private boolean returned = false;
+
+        PooledConnectionHandler(Connection raw) {
+            this.raw = raw;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            // Intercept close() → return to pool
+            if ("close".equals(method.getName()) && (args == null || args.length == 0)) {
+                if (!returned) {
+                    returned = true;
+                    returnConnectionToPool(raw);
+                }
+                return null;
+            }
+            // Intercept isClosed() — report as closed if already returned
+            if ("isClosed".equals(method.getName()) && (args == null || args.length == 0)) {
+                return returned || raw.isClosed();
+            }
+            try {
+                return method.invoke(raw, args);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        }
+    }
+
+    /**
+     * Return a raw connection to the pool for reuse.
+     */
+    private static void returnConnectionToPool(Connection raw) {
+        if (raw == null) return;
         try {
-            if (!conn.isClosed() && conn.isValid(1)) {
-                conn.setAutoCommit(true); // Reset state
-                pool.offer(conn);
+            if (!raw.isClosed() && raw.isValid(1)) {
+                raw.setAutoCommit(true); // Reset state
+                pool.offer(raw);
             } else {
                 activeCount.decrementAndGet();
-                conn.close();
+                raw.close();
             }
         } catch (SQLException e) {
             activeCount.decrementAndGet();
-            try { conn.close(); } catch (SQLException ignored) {}
+            try { raw.close(); } catch (SQLException ignored) {}
         }
+    }
+
+    /**
+     * Return a connection to the pool for reuse.
+     * @deprecated Use {@code try-with-resources} instead — proxy handles return automatically.
+     */
+    @Deprecated
+    public static void returnConnection(Connection conn) {
+        if (conn == null) return;
+        // Unwrap proxy before returning to pool
+        Connection raw = unwrap(conn);
+        returnConnectionToPool(raw);
     }
 
     /**
@@ -133,8 +217,9 @@ public class DBContext {
      */
     public static void closeConnection(Connection conn) {
         if (conn == null) return;
+        Connection raw = unwrap(conn);
         activeCount.decrementAndGet();
-        try { conn.close(); } catch (SQLException ignored) {}
+        try { raw.close(); } catch (SQLException ignored) {}
     }
 
     /**
@@ -145,3 +230,4 @@ public class DBContext {
                 + ", max=" + MAX_POOL_SIZE + "]";
     }
 }
+
