@@ -12,3 +12,66 @@
 
 # Secrets
 **/cloudinary.properties
+**/db.properties
+# Ignore environment-specific files
+config/database.php
+src/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+tests/
+
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+
+# Ignore temp/cache files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.sublime-*
+
+# Ignore uploads (keep directory structure)
+uploads/*
+!uploads/.gitkeep
+
+# Ignore test/dev files
+create_test_users.php
+migrate.php
+*.agent
+*.md
+.agent/
+.github/
+.cursor/
+.context
+.antigravity/
+*.cursorrules
+agent_memory.json
+mcp_servers.json
+.sh
+memory-bank/
+artifacts/
+scripts/
+tests/

@@ -1,5 +1,6 @@
 package com.sellingticket.controller.admin;
 
+import com.sellingticket.dao.DashboardDAO;
 import com.sellingticket.model.Event;
 import com.sellingticket.service.CategoryService;
 import com.sellingticket.service.EventService;
@@ -7,6 +8,7 @@ import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -18,6 +20,7 @@ public class AdminEventController extends HttpServlet {
 
     private final EventService eventService = new EventService();
     private final CategoryService categoryService = new CategoryService();
+    private final DashboardDAO dashboardDAO = new DashboardDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -65,9 +68,15 @@ public class AdminEventController extends HttpServlet {
         request.setAttribute("currentPage", page);
         request.setAttribute("statusFilter", status);
         request.setAttribute("categories", categoryService.getAllCategories());
-        request.setAttribute("approvedCount", eventService.countEventsByStatus("approved"));
-        request.setAttribute("pendingCount", eventService.countEventsByStatus("pending"));
-        request.setAttribute("rejectedCount", eventService.countEventsByStatus("rejected"));
+
+        // Single query for all counts (was 3 separate countEventsByStatus calls)
+        Map<String, Object> stats = dashboardDAO.getAdminDashboardStats();
+        int approved = ((Number) stats.getOrDefault("approvedEvents", 0)).intValue();
+        int pending = ((Number) stats.getOrDefault("pendingEvents", 0)).intValue();
+        int total = ((Number) stats.getOrDefault("totalEvents", 0)).intValue();
+        request.setAttribute("approvedCount", approved);
+        request.setAttribute("pendingCount", pending);
+        request.setAttribute("rejectedCount", total - approved - pending);
 
         request.getRequestDispatcher("/admin/events.jsp").forward(request, response);
     }
@@ -75,9 +84,9 @@ public class AdminEventController extends HttpServlet {
     private void listPendingEvents(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        request.setAttribute("events", eventService.getPendingEvents());
+        request.setAttribute("pendingEvents", eventService.getPendingEvents());
         request.setAttribute("statusFilter", "pending");
-        request.getRequestDispatcher("/admin/events.jsp").forward(request, response);
+        request.getRequestDispatcher("/admin/event-approval.jsp").forward(request, response);
     }
 
     private void viewEvent(HttpServletRequest request, HttpServletResponse response)

@@ -5,6 +5,8 @@ import com.sellingticket.model.User;
 import com.sellingticket.service.MediaService;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -41,6 +43,7 @@ import jakarta.servlet.http.Part;
 )
 public class MediaUploadServlet extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(MediaUploadServlet.class.getName());
     private MediaService mediaService;
 
     @Override
@@ -109,7 +112,7 @@ public class MediaUploadServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             out.print("{\"success\":false,\"error\":\"Invalid entityId\"}");
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Upload failed", e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.print("{\"success\":false,\"error\":\"Server error: " + escapeJson(e.getMessage()) + "\"}");
         }
@@ -151,7 +154,7 @@ public class MediaUploadServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             out.print("{\"success\":false,\"error\":\"Invalid mediaId\"}");
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Delete failed", e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.print("{\"success\":false,\"error\":\"Server error\"}");
         }

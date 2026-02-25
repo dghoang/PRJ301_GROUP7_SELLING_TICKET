@@ -3,6 +3,7 @@ package com.sellingticket.service;
 import com.sellingticket.dao.TicketTypeDAO;
 import com.sellingticket.model.TicketType;
 import java.util.List;
+import java.util.Map;
 
 /**
  * TicketService - Business logic layer for TicketType operations
@@ -25,6 +26,13 @@ public class TicketService {
      */
     public List<TicketType> getTicketsByEvent(int eventId) {
         return ticketTypeDAO.getTicketTypesByEventId(eventId);
+    }
+
+    /**
+     * Batch load ticket types for multiple events (single query).
+     */
+    public Map<Integer, List<TicketType>> getTicketsByEventIds(List<Integer> eventIds) {
+        return ticketTypeDAO.getTicketTypesByEventIds(eventIds);
     }
 
     /**

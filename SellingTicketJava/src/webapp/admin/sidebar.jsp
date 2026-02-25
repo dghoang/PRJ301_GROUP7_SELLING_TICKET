@@ -23,7 +23,7 @@
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'events' ? 'active' : ''}">
                 <i class="fas fa-calendar" style="width: 20px; text-align: center;"></i>Sự kiện
             </a>
-            <a href="${pageContext.request.contextPath}/admin/event-approval" 
+            <a href="${pageContext.request.contextPath}/admin/events/pending" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'event-approval' ? 'active' : ''}">
                 <i class="fas fa-check-circle" style="width: 20px; text-align: center;"></i>Duyệt sự kiện
                 <span class="badge rounded-pill ms-auto" style="background: linear-gradient(135deg, #ef4444, #f97316); font-size: 0.65rem;">3</span>

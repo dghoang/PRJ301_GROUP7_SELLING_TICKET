@@ -1,11 +1,15 @@
 package com.sellingticket.controller;
 
-import com.sellingticket.dao.EventDAO;
-import com.sellingticket.dao.CategoryDAO;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.Category;
+import com.sellingticket.service.DashboardService;
+import com.sellingticket.service.EventService;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -15,28 +19,38 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "HomeServlet", urlPatterns = {"/home"})
 public class HomeServlet extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(HomeServlet.class.getName());
+    private final EventService eventService = new EventService();
+    private final DashboardService dashboardService = new DashboardService();
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         try {
-            EventDAO eventDAO = new EventDAO();
-            CategoryDAO categoryDAO = new CategoryDAO();
-            
-            List<Event> featuredEvents = eventDAO.getFeaturedEvents(6);
-            List<Event> upcomingEvents = eventDAO.getUpcomingEvents(8);
-            List<Category> categories = categoryDAO.getAllCategories();
-            
+            List<Event> featuredEvents = eventService.getFeaturedEvents(6);
+            List<Event> upcomingEvents = eventService.getUpcomingEvents(8);
+            List<Category> categories = eventService.getAllCategories();
+
             request.setAttribute("featuredEvents", featuredEvents);
             request.setAttribute("upcomingEvents", upcomingEvents);
             request.setAttribute("categories", categories);
+
+            // Stats for hero section
+            Map<String, Object> stats = dashboardService.getAdminDashboardStats();
+            request.setAttribute("totalEvents", stats.getOrDefault("totalEvents", 0));
+            request.setAttribute("totalUsers", stats.getOrDefault("totalUsers", 0));
+            request.setAttribute("totalTicketsSold", stats.getOrDefault("paidOrders", 0));
         } catch (Exception e) {
-            e.printStackTrace(); // Log error for debugging
-            // Continue rendering home page even if data fails (empty lists will be handled by JSP)
-            // Or set an error attribute
-            request.setAttribute("error", "System error: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error loading home page data", e);
+            request.setAttribute("featuredEvents", Collections.emptyList());
+            request.setAttribute("upcomingEvents", Collections.emptyList());
+            request.setAttribute("categories", Collections.emptyList());
+            request.setAttribute("totalEvents", 0);
+            request.setAttribute("totalUsers", 0);
+            request.setAttribute("totalTicketsSold", 0);
         }
-        
+
         request.getRequestDispatcher("home.jsp").forward(request, response);
     }
 }

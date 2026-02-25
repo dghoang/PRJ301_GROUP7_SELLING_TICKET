@@ -21,10 +21,6 @@ public class UserService {
     // AUTHENTICATION
     // ========================
 
-    /**
-     * Authenticate user with email and password
-     * @return User object if successful, null otherwise
-     */
     public User authenticate(String email, String password) {
         if (email == null || email.trim().isEmpty() || password == null || password.isEmpty()) {
             return null;
@@ -32,35 +28,25 @@ public class UserService {
         return userDAO.login(email.trim().toLowerCase(), password);
     }
 
-    /**
-     * Register new user (simple)
-     */
+    // ========================
+    // REGISTRATION
+    // ========================
+
     public boolean register(String email, String password, String fullName, String phone) {
-        // Validate input
-        if (!isValidEmail(email)) {
-            return false;
-        }
-        if (password == null || password.length() < 6) {
+        if (!isValidEmail(email) || !isValidPassword(password)) {
             return false;
         }
         if (fullName == null || fullName.trim().isEmpty()) {
             return false;
         }
-        
-        // Check if email exists
         if (userDAO.isEmailExists(email.trim().toLowerCase())) {
             return false;
         }
-        
         return userDAO.register(email.trim().toLowerCase(), password, fullName.trim(), phone);
     }
 
-    /**
-     * Register with full details
-     */
     public boolean registerFull(String email, String password, String fullName, String phone, String gender, Date dob) {
-        // Validate input
-        if (!isValidEmail(email) || password == null || password.length() < 6) {
+        if (!isValidEmail(email) || !isValidPassword(password)) {
             return false;
         }
         if (userDAO.isEmailExists(email.trim().toLowerCase())) {
@@ -70,9 +56,18 @@ public class UserService {
     }
 
     /**
-     * Check if email is already registered
+     * Register a user from OAuth provider (Google).
+     * Bypasses password validation — OAuth users authenticate via provider, not password.
      */
+    public boolean registerOAuth(String email, String fullName, String avatar) {
+        if (!isValidEmail(email)) return false;
+        if (fullName == null || fullName.trim().isEmpty()) return false;
+        if (userDAO.isEmailExists(email.trim().toLowerCase())) return false;
+        return userDAO.registerOAuth(email.trim().toLowerCase(), fullName.trim(), avatar);
+    }
+
     public boolean isEmailExists(String email) {
+        if (email == null || email.trim().isEmpty()) return false;
         return userDAO.isEmailExists(email.trim().toLowerCase());
     }
 
@@ -80,33 +75,27 @@ public class UserService {
     // PROFILE MANAGEMENT
     // ========================
 
-    /**
-     * Get user by ID
-     */
     public User getUserById(int userId) {
         return userDAO.getUserById(userId);
     }
 
-    /**
-     * Update user profile
-     */
+    public User getUserByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) return null;
+        return userDAO.getUserByEmail(email);
+    }
+
     public boolean updateProfile(User user) {
         return userDAO.updateUser(user);
     }
 
-    /**
-     * Change password
-     */
+    public boolean updateOrganizerProfile(User user) {
+        return userDAO.updateOrganizerProfile(user);
+    }
+
     public boolean changePassword(int userId, String oldPassword, String newPassword) {
-        if (newPassword == null || newPassword.length() < 6) {
+        if (!isValidPassword(newPassword)) {
             return false;
         }
-        // Get user and verify old password
-        User user = userDAO.getUserById(userId);
-        if (user == null) {
-            return false;
-        }
-        // Note: The DAO method should verify the old password hash
         return userDAO.changePassword(userId, oldPassword, newPassword);
     }
 
@@ -114,30 +103,18 @@ public class UserService {
     // ADMIN OPERATIONS
     // ========================
 
-    /**
-     * Get all users
-     */
     public List<User> getAllUsers() {
         return userDAO.getAllUsers();
     }
 
-    /**
-     * Update user role
-     */
     public boolean updateUserRole(int userId, String role) {
         return userDAO.updateUserRole(userId, role);
     }
 
-    /**
-     * Deactivate user
-     */
     public boolean deactivateUser(int userId) {
         return userDAO.deactivateUser(userId);
     }
 
-    /**
-     * Search users
-     */
     public List<User> searchUsers(String keyword) {
         return userDAO.searchUsers(keyword);
     }
@@ -146,9 +123,6 @@ public class UserService {
     // STATISTICS
     // ========================
 
-    /**
-     * Get total user count
-     */
     public int getTotalUsers() {
         return userDAO.getTotalUsers();
     }
@@ -158,10 +132,17 @@ public class UserService {
     // ========================
 
     private boolean isValidEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
+        if (email == null || email.trim().isEmpty() || email.length() > 255) {
             return false;
         }
-        // Simple email validation
-        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    private boolean isValidPassword(String password) {
+        if (password == null || password.length() < 8) {
+            return false;
+        }
+        // At least 1 uppercase and 1 digit
+        return password.matches(".*[A-Z].*") && password.matches(".*[0-9].*");
     }
 }

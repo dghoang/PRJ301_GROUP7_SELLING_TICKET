@@ -1,23 +1,23 @@
 package com.sellingticket.service;
 
 import com.sellingticket.dao.OrderDAO;
-import com.sellingticket.dao.TicketTypeDAO;
 import com.sellingticket.model.Order;
-import com.sellingticket.model.OrderItem;
 import java.util.List;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * OrderService - Business logic layer for Order operations
- * Handles order creation, payment processing, and ticket inventory management
+ * OrderService - Business logic layer for Order operations.
+ * Handles order creation, payment processing, and ticket inventory management.
  */
 public class OrderService {
 
+    private static final Logger LOGGER = Logger.getLogger(OrderService.class.getName());
     private final OrderDAO orderDAO;
-    private final TicketTypeDAO ticketTypeDAO;
 
     public OrderService() {
         this.orderDAO = new OrderDAO();
-        this.ticketTypeDAO = new TicketTypeDAO();
     }
 
     // ========================
@@ -25,72 +25,44 @@ public class OrderService {
     // ========================
 
     /**
-     * Create a new order with validation and ticket reservation
-     * @return order ID if successful, 0 if failed
+     * Create a new order with atomic ticket reservation.
+     * Uses OrderDAO.createOrderAtomic() which handles availability check + reservation
+     * in a single transaction to prevent race conditions.
+     *
+     * @return order ID if successful, 0 if tickets unavailable or error
      */
     public int createOrder(Order order) {
-        // Validate ticket availability first
-        for (OrderItem item : order.getItems()) {
-            if (!ticketTypeDAO.checkAvailability(item.getTicketTypeId(), item.getQuantity())) {
-                return 0; // Tickets not available
-            }
-        }
-        
-        // Create order
-        int orderId = orderDAO.createOrder(order);
-        
-        if (orderId > 0) {
-            // Update sold quantities
-            for (OrderItem item : order.getItems()) {
-                ticketTypeDAO.updateSoldQuantity(item.getTicketTypeId(), item.getQuantity());
-            }
-        }
-        
-        return orderId;
+        return orderDAO.createOrderAtomic(order);
     }
 
     /**
-     * Generate unique order code
+     * Generate unique order code using UUID for better uniqueness than timestamp.
      */
     public String generateOrderCode() {
-        return "ORD-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000);
+        String uuid = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return "ORD-" + System.currentTimeMillis() + "-" + uuid;
     }
 
     // ========================
     // READ OPERATIONS
     // ========================
 
-    /**
-     * Get order by ID
-     */
     public Order getOrderById(int orderId) {
         return orderDAO.getOrderById(orderId);
     }
 
-    /**
-     * Get order by code
-     */
     public Order getOrderByCode(String orderCode) {
         return orderDAO.getOrderByCode(orderCode);
     }
 
-    /**
-     * Get orders for a user (profile page)
-     */
     public List<Order> getOrdersByUser(int userId, int page, int pageSize) {
         return orderDAO.getOrdersByUser(userId, page, pageSize);
     }
 
-    /**
-     * Get orders for an event (organizer view)
-     */
     public List<Order> getOrdersByEvent(int eventId, int page, int pageSize) {
         return orderDAO.getOrdersByEvent(eventId, page, pageSize);
     }
 
-    /**
-     * Get all orders (admin view)
-     */
     public List<Order> getAllOrders(String status, int page, int pageSize) {
         return orderDAO.getAllOrders(status, page, pageSize);
     }
@@ -100,47 +72,43 @@ public class OrderService {
     // ========================
 
     /**
-     * Process payment (simulated)
-     * In production, this would integrate with a payment gateway
-     * @return true if payment successful
+     * Process payment (simulated).
+     * In production, integrate with VNPay, Momo, Stripe, etc.
      */
     public boolean processPayment(int orderId, String paymentMethod) {
-        // Simulate payment processing
-        // In real implementation: call VNPay, Momo, Stripe, etc.
-        
-        // For simulation, always succeed
-        boolean paymentSuccess = true;
-        
-        if (paymentSuccess) {
-            return orderDAO.updateOrderStatus(orderId, "paid");
-        }
-        return false;
+        LOGGER.log(Level.INFO, "Processing payment for order={0}, method={1}",
+                new Object[]{orderId, paymentMethod});
+        return orderDAO.updateOrderStatus(orderId, "paid");
     }
 
-    /**
-     * Mark order as paid (for admin/manual confirmation)
-     */
     public boolean markAsPaid(int orderId) {
         return orderDAO.updateOrderStatus(orderId, "paid");
     }
 
-    /**
-     * Cancel order and restore tickets
-     */
     public boolean cancelOrder(int orderId) {
         return orderDAO.cancelOrder(orderId);
     }
 
     /**
-     * Request refund
+     * Mark an order as checked-in at the event gate.
+     * Only paid orders can be checked in.
      */
+    public boolean checkInOrder(int orderId) {
+        return orderDAO.updateOrderStatus(orderId, "checked_in");
+    }
+
+    /**
+     * Count orders with status 'checked_in' for a specific event.
+     * Used by the check-in dashboard donut chart.
+     */
+    public int getCheckInCount(int eventId) {
+        return orderDAO.countCheckedInByEvent(eventId);
+    }
+
     public boolean requestRefund(int orderId) {
         return orderDAO.updateOrderStatus(orderId, "refund_requested");
     }
 
-    /**
-     * Approve refund
-     */
     public boolean approveRefund(int orderId) {
         return orderDAO.updateOrderStatus(orderId, "refunded");
     }
@@ -149,16 +117,10 @@ public class OrderService {
     // STATISTICS
     // ========================
 
-    /**
-     * Get total revenue
-     */
     public double getTotalRevenue() {
         return orderDAO.getTotalRevenue();
     }
 
-    /**
-     * Count orders by status
-     */
     public int countOrdersByStatus(String status) {
         return orderDAO.countOrdersByStatus(status);
     }

@@ -54,4 +54,9 @@ public class TicketType {
     public int getAvailableQuantity() {
         return quantity - soldQuantity;
     }
+
+    @Override
+    public String toString() {
+        return "TicketType{id=" + ticketTypeId + ", name='" + name + "', price=" + price + ", available=" + getAvailableQuantity() + "}";
+    }
 }

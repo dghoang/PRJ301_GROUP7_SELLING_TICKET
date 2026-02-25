@@ -5,12 +5,61 @@
     
     <display-name>SellingTicketJava</display-name>
     
-    <!-- Authorization Filter -->
+    <!-- ============================= -->
+    <!-- SECURITY HEADERS FILTER       -->
+    <!-- ============================= -->
+    <filter>
+        <filter-name>SecurityHeadersFilter</filter-name>
+        <filter-class>com.sellingticket.filter.SecurityHeadersFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>SecurityHeadersFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <!-- ============================= -->
+    <!-- CSRF PROTECTION FILTER        -->
+    <!-- ============================= -->
+    <filter>
+        <filter-name>CsrfFilter</filter-name>
+        <filter-class>com.sellingticket.filter.CsrfFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/login</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/register</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/checkout</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/profile</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/change-password</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/organizer/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+
+    <!-- ============================= -->
+    <!-- AUTHORIZATION FILTER          -->
+    <!-- ============================= -->
     <filter>
         <filter-name>AuthFilter</filter-name>
         <filter-class>com.sellingticket.filter.AuthFilter</filter-class>
     </filter>
-    
     <filter-mapping>
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/organizer/*</url-pattern>
@@ -31,9 +80,28 @@
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/order-confirmation</url-pattern>
     </filter-mapping>
-    
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/profile</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/change-password</url-pattern>
+    </filter-mapping>
 
-    
+    <!-- ============================= -->
+    <!-- SESSION CONFIGURATION         -->
+    <!-- ============================= -->
+    <session-config>
+        <session-timeout>60</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+        </cookie-config>
+    </session-config>
+
+    <!-- ============================= -->
+    <!-- WELCOME FILE                  -->
+    <!-- ============================= -->
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>
     </welcome-file-list>

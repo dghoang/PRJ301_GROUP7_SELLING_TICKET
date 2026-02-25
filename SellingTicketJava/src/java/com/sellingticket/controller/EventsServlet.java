@@ -1,9 +1,8 @@
 package com.sellingticket.controller;
 
-import com.sellingticket.dao.CategoryDAO;
-import com.sellingticket.dao.EventDAO;
 import com.sellingticket.model.Category;
 import com.sellingticket.model.Event;
+import com.sellingticket.service.EventService;
 import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
 
 import java.io.IOException;
@@ -18,20 +17,19 @@ import jakarta.servlet.http.HttpServletResponse;
 public class EventsServlet extends HttpServlet {
 
     private static final int PAGE_SIZE = 9;
+    private final EventService eventService = new EventService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        EventDAO dao = new EventDAO();
-        CategoryDAO categoryDAO = new CategoryDAO();
-
         String category = request.getParameter("category");
         String search = request.getParameter("search");
+        String dateFilter = request.getParameter("date");
         int page = parseIntOrDefault(request.getParameter("page"), 1);
 
-        List<Event> events = dao.searchEvents(search, category, null, page, PAGE_SIZE);
-        List<Category> categories = categoryDAO.getAllCategories();
+        List<Event> events = eventService.searchEvents(search, category, dateFilter, page, PAGE_SIZE);
+        List<Category> categories = eventService.getAllCategories();
 
         request.setAttribute("events", events);
         request.setAttribute("categories", categories);

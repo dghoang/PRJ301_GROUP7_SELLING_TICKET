@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="header.jsp" />
 
@@ -56,18 +57,18 @@
                     </form>
                 </div>
 
-                <!-- Animated Stats -->
+                <!-- Animated Stats (from DB) -->
                 <div class="d-flex justify-content-center gap-4 gap-md-5 flex-wrap">
                     <div class="stat-card animate-on-scroll stagger-1">
-                        <div class="stat-number" data-counter="10000">0</div>
+                        <div class="stat-number" data-counter="${totalEvents}">0</div>
                         <div class="stat-label">Sự kiện</div>
                     </div>
                     <div class="stat-card animate-on-scroll stagger-2">
-                        <div class="stat-number" data-counter="500000">0</div>
+                        <div class="stat-number" data-counter="${totalUsers}">0</div>
                         <div class="stat-label">Người dùng</div>
                     </div>
                     <div class="stat-card animate-on-scroll stagger-3">
-                        <div class="stat-number" data-counter="1000000">0</div>
+                        <div class="stat-number" data-counter="${totalTicketsSold}">0</div>
                         <div class="stat-label">Vé đã bán</div>
                     </div>
                 </div>
@@ -76,7 +77,7 @@
     </div>
 </section>
 
-<!-- Categories Section - Enhanced -->
+<!-- Categories Section - Dynamic from DB -->
 <section class="py-5">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4 animate-on-scroll">
@@ -92,133 +93,67 @@
         </div>
 
         <div class="row g-3" data-stagger-children="0.1">
-            <!-- Music -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=music" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-music">
-                        <i class="fas fa-music"></i>
-                    </div>
-                    <span class="category-name">Âm nhạc</span>
-                    <small class="text-muted mt-1">150+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Workshop -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=workshop" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-workshop">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <span class="category-name">Workshop</span>
-                    <small class="text-muted mt-1">80+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Sports -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=sports" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-sports">
-                        <i class="fas fa-running"></i>
-                    </div>
-                    <span class="category-name">Thể thao</span>
-                    <small class="text-muted mt-1">65+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Art -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=art" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-art">
-                        <i class="fas fa-palette"></i>
-                    </div>
-                    <span class="category-name">Nghệ thuật</span>
-                    <small class="text-muted mt-1">45+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Food -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=food" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-food">
-                        <i class="fas fa-utensils"></i>
-                    </div>
-                    <span class="category-name">Ẩm thực</span>
-                    <small class="text-muted mt-1">35+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Business -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=business" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-business">
-                        <i class="fas fa-briefcase"></i>
-                    </div>
-                    <span class="category-name">Kinh doanh</span>
-                    <small class="text-muted mt-1">55+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Tech -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=tech" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-tech">
-                        <i class="fas fa-laptop-code"></i>
-                    </div>
-                    <span class="category-name">Công nghệ</span>
-                    <small class="text-muted mt-1">40+ sự kiện</small>
-                </a>
-            </div>
-            <!-- Family -->
-            <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
-                <a href="events?category=family" class="category-card-enhanced shadow-sm">
-                    <div class="category-icon-enhanced category-icon-family">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <span class="category-name">Gia đình</span>
-                    <small class="text-muted mt-1">25+ sự kiện</small>
-                </a>
-            </div>
+            <c:forEach var="cat" items="${categories}">
+                <div class="col-6 col-md-4 col-lg-3 animate-on-scroll">
+                    <a href="events?category=${cat.slug}" class="category-card-enhanced shadow-sm">
+                        <div class="category-icon-enhanced category-icon-${cat.slug}">
+                            <i class="fas ${not empty cat.icon ? cat.icon : 'fa-calendar'}"></i>
+                        </div>
+                        <span class="category-name">${cat.name}</span>
+                        <small class="text-muted mt-1">${cat.eventCount} sự kiện</small>
+                    </a>
+                </div>
+            </c:forEach>
         </div>
     </div>
 </section>
 
-<!-- Featured Event Banner -->
-<section class="py-4">
-    <div class="container">
-        <div class="featured-event-banner animate-on-scroll shadow-lg hover-lift">
-            <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200" alt="Featured Event">
-            <div class="featured-event-overlay">
-                <span class="badge badge-hot mb-2">
-                    <i class="fas fa-fire me-1"></i>SỰ KIỆN HOT
-                </span>
-                <h2>Festival Âm nhạc Mùa Hè 2026</h2>
-                <div class="d-flex flex-wrap gap-3 text-white-50 mb-3">
-                    <span><i class="far fa-calendar me-2"></i>15/06/2026</span>
-                    <span><i class="fas fa-map-marker-alt me-2"></i>SVĐ Phú Thọ, TP.HCM</span>
-                    <span><i class="fas fa-users me-2"></i>10,000+ người quan tâm</span>
+<!-- Featured Event Banner - Dynamic from DB -->
+<c:if test="${not empty featuredEvents}">
+    <c:set var="bannerEvent" value="${featuredEvents[0]}" />
+    <section class="py-4">
+        <div class="container">
+            <div class="featured-event-banner animate-on-scroll shadow-lg hover-lift">
+                <img src="${not empty bannerEvent.bannerImage ? bannerEvent.bannerImage : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200'}" alt="${bannerEvent.title}">
+                <div class="featured-event-overlay">
+                    <span class="badge badge-hot mb-2">
+                        <i class="fas fa-fire me-1"></i>SỰ KIỆN HOT
+                    </span>
+                    <h2>${bannerEvent.title}</h2>
+                    <div class="d-flex flex-wrap gap-3 text-white-50 mb-3">
+                        <span><i class="far fa-calendar me-2"></i><fmt:formatDate value="${bannerEvent.startDate}" pattern="dd/MM/yyyy"/></span>
+                        <span><i class="fas fa-map-marker-alt me-2"></i>${bannerEvent.location}</span>
+                    </div>
+                    <!-- Countdown -->
+                    <div class="d-flex gap-2 mb-3" data-countdown="<fmt:formatDate value='${bannerEvent.startDate}' pattern="yyyy-MM-dd'T'HH:mm:ss"/>">
+                        <div class="countdown-box">
+                            <span class="countdown-number countdown-days">00</span>
+                            <span class="countdown-label">Ngày</span>
+                        </div>
+                        <div class="countdown-box">
+                            <span class="countdown-number countdown-hours">00</span>
+                            <span class="countdown-label">Giờ</span>
+                        </div>
+                        <div class="countdown-box">
+                            <span class="countdown-number countdown-minutes">00</span>
+                            <span class="countdown-label">Phút</span>
+                        </div>
+                        <div class="countdown-box">
+                            <span class="countdown-number countdown-seconds">00</span>
+                            <span class="countdown-label">Giây</span>
+                        </div>
+                    </div>
+                    <a href="event-detail?id=${bannerEvent.eventId}" class="btn btn-gradient rounded-pill px-4 hover-glow">
+                        <i class="fas fa-ticket-alt me-2"></i>Mua vé ngay
+                    </a>
                 </div>
-                <!-- Countdown -->
-                <div class="d-flex gap-2 mb-3" data-countdown="2026-06-15T19:00:00">
-                    <div class="countdown-box">
-                        <span class="countdown-number countdown-days">00</span>
-                        <span class="countdown-label">Ngày</span>
-                    </div>
-                    <div class="countdown-box">
-                        <span class="countdown-number countdown-hours">00</span>
-                        <span class="countdown-label">Giờ</span>
-                    </div>
-                    <div class="countdown-box">
-                        <span class="countdown-number countdown-minutes">00</span>
-                        <span class="countdown-label">Phút</span>
-                    </div>
-                    <div class="countdown-box">
-                        <span class="countdown-number countdown-seconds">00</span>
-                        <span class="countdown-label">Giây</span>
-                    </div>
-                </div>
-                <a href="event-detail?id=1" class="btn btn-gradient rounded-pill px-4 hover-glow">
-                    <i class="fas fa-ticket-alt me-2"></i>Mua vé ngay
-                </a>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+</c:if>
 
-<!-- Featured Events Grid -->
+<!-- Featured Events Grid - Dynamic from DB -->
+<c:if test="${not empty featuredEvents}">
 <section class="py-5">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4 animate-on-scroll">
@@ -234,122 +169,47 @@
         </div>
 
         <div class="row g-4" data-stagger-children="0.1">
-            <!-- Event Card 1 -->
-            <div class="col-md-6 col-lg-3 animate-on-scroll">
-                <div class="event-card-enhanced shadow-sm h-100">
-                    <div class="event-img-wrapper position-relative">
-                        <img src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400" alt="Concert" class="event-img">
-                        <span class="badge badge-hot position-absolute top-0 start-0 m-2">HOT</span>
-                        <div class="event-price">
-                            <i class="fas fa-ticket-alt me-1"></i>500.000 đ
+            <c:forEach var="event" items="${featuredEvents}" end="3">
+                <div class="col-md-6 col-lg-3 animate-on-scroll">
+                    <div class="event-card-enhanced shadow-sm h-100">
+                        <div class="event-img-wrapper position-relative">
+                            <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400'}" alt="${event.title}" class="event-img" loading="lazy">
+                            <c:if test="${event.featured}">
+                                <span class="badge badge-hot position-absolute top-0 start-0 m-2">HOT</span>
+                            </c:if>
+                            <div class="event-price">
+                                <c:choose>
+                                    <c:when test="${event.minPrice == 0}">Miễn phí</c:when>
+                                    <c:otherwise><i class="fas fa-ticket-alt me-1"></i><fmt:formatNumber value="${event.minPrice}" pattern="#,###"/> đ</c:otherwise>
+                                </c:choose>
+                            </div>
                         </div>
-                    </div>
-                    <div class="p-3">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge rounded-pill" style="background: rgba(147, 51, 234, 0.15); color: var(--primary);">
-                                <i class="fas fa-music me-1"></i>Âm nhạc
-                            </span>
-                        </div>
-                        <h5 class="fw-bold mb-2 text-truncate-2">
-                            <a href="event-detail?id=1" class="text-dark text-decoration-none stretched-link">
-                                Đêm nhạc Rock Việt - Live Concert 2026
-                            </a>
-                        </h5>
-                        <div class="text-muted small">
-                            <div class="mb-1"><i class="far fa-calendar text-primary me-2"></i>20/03/2026</div>
-                            <div><i class="fas fa-map-marker-alt text-primary me-2"></i>Nhà hát Hòa Bình</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Event Card 2 -->
-            <div class="col-md-6 col-lg-3 animate-on-scroll">
-                <div class="event-card-enhanced shadow-sm h-100">
-                    <div class="event-img-wrapper position-relative">
-                        <img src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400" alt="Workshop" class="event-img">
-                        <span class="badge badge-new position-absolute top-0 start-0 m-2">MỚI</span>
-                        <div class="event-price">
-                            <i class="fas fa-ticket-alt me-1"></i>350.000 đ
-                        </div>
-                    </div>
-                    <div class="p-3">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge rounded-pill" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
-                                <i class="fas fa-graduation-cap me-1"></i>Workshop
-                            </span>
-                        </div>
-                        <h5 class="fw-bold mb-2 text-truncate-2">
-                            <a href="event-detail?id=2" class="text-dark text-decoration-none stretched-link">
-                                Workshop Digital Marketing Pro 2026
-                            </a>
-                        </h5>
-                        <div class="text-muted small">
-                            <div class="mb-1"><i class="far fa-calendar text-primary me-2"></i>25/03/2026</div>
-                            <div><i class="fas fa-map-marker-alt text-primary me-2"></i>Dreamplex, Q.1</div>
+                        <div class="p-3">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge rounded-pill" style="background: rgba(147, 51, 234, 0.15); color: var(--primary);">
+                                    ${event.categoryName}
+                                </span>
+                            </div>
+                            <h5 class="fw-bold mb-2 text-truncate-2">
+                                <a href="event-detail?id=${event.eventId}" class="text-dark text-decoration-none stretched-link">
+                                    ${event.title}
+                                </a>
+                            </h5>
+                            <div class="text-muted small">
+                                <div class="mb-1"><i class="far fa-calendar text-primary me-2"></i><fmt:formatDate value="${event.startDate}" pattern="dd/MM/yyyy"/></div>
+                                <div><i class="fas fa-map-marker-alt text-primary me-2"></i>${event.location}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Event Card 3 -->
-            <div class="col-md-6 col-lg-3 animate-on-scroll">
-                <div class="event-card-enhanced shadow-sm h-100">
-                    <div class="event-img-wrapper position-relative">
-                        <img src="https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400" alt="Sports" class="event-img">
-                        <div class="event-price">
-                            <i class="fas fa-ticket-alt me-1"></i>200.000 đ
-                        </div>
-                    </div>
-                    <div class="p-3">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge rounded-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
-                                <i class="fas fa-running me-1"></i>Thể thao
-                            </span>
-                        </div>
-                        <h5 class="fw-bold mb-2 text-truncate-2">
-                            <a href="event-detail?id=3" class="text-dark text-decoration-none stretched-link">
-                                Marathon Mùa Xuân - Run For Health
-                            </a>
-                        </h5>
-                        <div class="text-muted small">
-                            <div class="mb-1"><i class="far fa-calendar text-primary me-2"></i>01/04/2026</div>
-                            <div><i class="fas fa-map-marker-alt text-primary me-2"></i>Phố đi bộ Nguyễn Huệ</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Event Card 4 -->
-            <div class="col-md-6 col-lg-3 animate-on-scroll">
-                <div class="event-card-enhanced shadow-sm h-100">
-                    <div class="event-img-wrapper position-relative">
-                        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400" alt="Food" class="event-img">
-                        <div class="event-price text-success fw-bold">Miễn phí</div>
-                    </div>
-                    <div class="p-3">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge rounded-pill" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
-                                <i class="fas fa-utensils me-1"></i>Ẩm thực
-                            </span>
-                        </div>
-                        <h5 class="fw-bold mb-2 text-truncate-2">
-                            <a href="event-detail?id=4" class="text-dark text-decoration-none stretched-link">
-                                Lễ hội Ẩm thực Quốc tế 2026
-                            </a>
-                        </h5>
-                        <div class="text-muted small">
-                            <div class="mb-1"><i class="far fa-calendar text-primary me-2"></i>10/04/2026</div>
-                            <div><i class="fas fa-map-marker-alt text-primary me-2"></i>SECC, Q.7</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </c:forEach>
         </div>
     </div>
 </section>
+</c:if>
 
-<!-- Upcoming Events -->
+<!-- Upcoming Events - Dynamic from DB -->
+<c:if test="${not empty upcomingEvents}">
 <section class="py-5 glass-gradient">
     <div class="container">
         <div class="text-center mb-5 animate-on-scroll">
@@ -360,79 +220,35 @@
         </div>
 
         <div class="row g-4">
-            <!-- Upcoming Event 1 -->
-            <div class="col-lg-4 animate-on-scroll">
-                <div class="glass-strong rounded-4 p-4 h-100 hover-lift">
-                    <div class="d-flex gap-3">
-                        <div class="text-center">
-                            <div class="rounded-3 bg-primary text-white p-3" style="min-width: 70px;">
-                                <div class="display-6 fw-bold lh-1">15</div>
-                                <div class="small text-uppercase">Tháng 3</div>
+            <c:forEach var="event" items="${upcomingEvents}" end="2">
+                <div class="col-lg-4 animate-on-scroll">
+                    <a href="event-detail?id=${event.eventId}" class="text-decoration-none">
+                        <div class="glass-strong rounded-4 p-4 h-100 hover-lift">
+                            <div class="d-flex gap-3">
+                                <div class="text-center">
+                                    <div class="rounded-3" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); min-width: 70px; padding: 1rem;">
+                                        <div class="display-6 fw-bold lh-1 text-white"><fmt:formatDate value="${event.startDate}" pattern="dd"/></div>
+                                        <div class="small text-uppercase text-white">Th<fmt:formatDate value="${event.startDate}" pattern="MM"/></div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="fw-bold mb-2 text-dark">${event.title}</h5>
+                                    <div class="text-muted small mb-2">
+                                        <i class="fas fa-clock me-1"></i><fmt:formatDate value="${event.startDate}" pattern="HH:mm"/>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-map-marker-alt me-1"></i>${event.location}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex-grow-1">
-                            <span class="badge badge-hot mb-2">SẮP HẾT VÉ</span>
-                            <h5 class="fw-bold mb-2">EDM Festival Night</h5>
-                            <div class="text-muted small mb-2">
-                                <i class="fas fa-clock me-1"></i>20:00 - 02:00
-                            </div>
-                            <div class="text-muted small">
-                                <i class="fas fa-map-marker-alt me-1"></i>White Palace Convention
-                            </div>
-                        </div>
-                    </div>
+                    </a>
                 </div>
-            </div>
-
-            <!-- Upcoming Event 2 -->
-            <div class="col-lg-4 animate-on-scroll">
-                <div class="glass-strong rounded-4 p-4 h-100 hover-lift">
-                    <div class="d-flex gap-3">
-                        <div class="text-center">
-                            <div class="rounded-3 bg-secondary text-white p-3" style="min-width: 70px;">
-                                <div class="display-6 fw-bold lh-1">22</div>
-                                <div class="small text-uppercase">Tháng 3</div>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <span class="badge badge-new mb-2">MỚI MỞ BÁN</span>
-                            <h5 class="fw-bold mb-2">Startup Summit Vietnam</h5>
-                            <div class="text-muted small mb-2">
-                                <i class="fas fa-clock me-1"></i>08:00 - 17:00
-                            </div>
-                            <div class="text-muted small">
-                                <i class="fas fa-map-marker-alt me-1"></i>GEM Center, Q.1
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Upcoming Event 3 -->
-            <div class="col-lg-4 animate-on-scroll">
-                <div class="glass-strong rounded-4 p-4 h-100 hover-lift">
-                    <div class="d-flex gap-3">
-                        <div class="text-center">
-                            <div class="rounded-3" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); min-width: 70px; padding: 1rem;">
-                                <div class="display-6 fw-bold lh-1 text-white">28</div>
-                                <div class="small text-uppercase text-white">Tháng 3</div>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h5 class="fw-bold mb-2">Stand-up Comedy Night</h5>
-                            <div class="text-muted small mb-2">
-                                <i class="fas fa-clock me-1"></i>19:30 - 22:00
-                            </div>
-                            <div class="text-muted small">
-                                <i class="fas fa-map-marker-alt me-1"></i>Saigon Opera House
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </c:forEach>
         </div>
     </div>
 </section>
+</c:if>
 
 <!-- Testimonials -->
 <section class="py-5">

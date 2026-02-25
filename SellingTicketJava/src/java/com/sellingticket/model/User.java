@@ -8,9 +8,23 @@ public class User {
     private String passwordHash;
     private String fullName;
     private String phone;
+    private String gender;
+    private Date dateOfBirth;
     private String role;
     private String avatar;
     private boolean isActive;
+
+    // Organizer profile
+    private String bio;
+    private String website;
+    private String socialFacebook;
+    private String socialInstagram;
+
+    // Security
+    private boolean emailVerified;
+    private Date lastLoginAt;
+    private String lastLoginIp;
+
     private Date createdAt;
     private Date updatedAt;
 
@@ -39,6 +53,12 @@ public class User {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+
+    public Date getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(Date dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
@@ -48,9 +68,35 @@ public class User {
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
 
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
+
+    public String getSocialFacebook() { return socialFacebook; }
+    public void setSocialFacebook(String socialFacebook) { this.socialFacebook = socialFacebook; }
+
+    public String getSocialInstagram() { return socialInstagram; }
+    public void setSocialInstagram(String socialInstagram) { this.socialInstagram = socialInstagram; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public Date getLastLoginAt() { return lastLoginAt; }
+    public void setLastLoginAt(Date lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+
+    public String getLastLoginIp() { return lastLoginIp; }
+    public void setLastLoginIp(String lastLoginIp) { this.lastLoginIp = lastLoginIp; }
+
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
 
     public Date getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+
+    @Override
+    public String toString() {
+        return "User{id=" + userId + ", email='" + email + "', role='" + role + "', name='" + fullName + "'}";
+    }
 }

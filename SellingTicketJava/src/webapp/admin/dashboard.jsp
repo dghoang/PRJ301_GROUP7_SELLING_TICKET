@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -40,9 +41,9 @@
                                 <i class="fas fa-calendar-alt fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="156">0</h3>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalEvents}">0</h3>
                                 <small class="text-muted">Tổng sự kiện</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +12 tháng này</small></div>
+                                <div class="mt-1"><small class="text-info fw-medium"><i class="fas fa-clock"></i> ${pendingEvents} chờ duyệt</small></div>
                             </div>
                         </div>
                     </div>
@@ -54,9 +55,9 @@
                                 <i class="fas fa-users fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="12458">0</h3>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalUsers}">0</h3>
                                 <small class="text-muted">Người dùng</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +20% growth</small></div>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-user-plus"></i> Đã đăng ký</small></div>
                             </div>
                         </div>
                     </div>
@@ -68,9 +69,9 @@
                                 <i class="fas fa-ticket-alt fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="45892">0</h3>
+                                <h3 class="fw-bold mb-0 counter" data-target="${paidOrders}">0</h3>
                                 <small class="text-muted">Vé bán ra</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +8% so kỳ trước</small></div>
+                                <div class="mt-1"><small class="text-warning fw-medium"><i class="fas fa-hourglass-half"></i> ${pendingOrders} chờ xử lý</small></div>
                             </div>
                         </div>
                     </div>
@@ -82,9 +83,9 @@
                                 <i class="fas fa-dollar-sign fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0"><span class="counter" data-target="2500">0</span>M</h3>
+                                <h3 class="fw-bold mb-0"><fmt:formatNumber value="${totalRevenue}" type="number" groupingUsed="true" /> đ</h3>
                                 <small class="text-muted">Doanh thu (VNĐ)</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +15% tháng này</small></div>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-chart-line"></i> Từ đơn đã thanh toán</small></div>
                             </div>
                         </div>
                     </div>
@@ -142,7 +143,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <c:forEach var="event" items="${pendingEvents}">
+                                        <c:forEach var="event" items="${pendingEventsList}">
                                         <tr class="hover-lift" style="transition: all 0.2s;">
                                             <td>
                                                 <div class="d-flex align-items-center gap-3">
@@ -162,42 +163,11 @@
                                             </td>
                                         </tr>
                                         </c:forEach>
-                                        <!-- Static fallback if no data -->
-                                        <c:if test="${empty pendingEvents}">
-                                        <tr class="hover-lift" style="transition: all 0.2s;">
-                                            <td>
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
-                                                    <span class="fw-medium">Đêm nhạc Rock</span>
-                                                </div>
-                                            </td>
-                                            <td class="text-muted">Live Nation</td>
-                                            <td class="text-muted">02/02/2026</td>
-                                            <td class="text-center">
-                                                <button class="btn btn-sm rounded-pill px-3 me-1" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">
-                                                    <i class="fas fa-check me-1"></i>Duyệt
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                                    <i class="fas fa-times me-1"></i>Từ chối
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr class="hover-lift" style="transition: all 0.2s;">
-                                            <td>
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=100" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
-                                                    <span class="fw-medium">Tech Conference 2026</span>
-                                                </div>
-                                            </td>
-                                            <td class="text-muted">TechVN</td>
-                                            <td class="text-muted">01/02/2026</td>
-                                            <td class="text-center">
-                                                <button class="btn btn-sm rounded-pill px-3 me-1" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">
-                                                    <i class="fas fa-check me-1"></i>Duyệt
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                                    <i class="fas fa-times me-1"></i>Từ chối
-                                                </button>
+                                        <c:if test="${empty pendingEventsList}">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">
+                                                <i class="fas fa-check-circle fa-2x mb-2 opacity-25"></i>
+                                                <p class="mb-0">Không có sự kiện chờ duyệt 🎉</p>
                                             </td>
                                         </tr>
                                         </c:if>
@@ -216,41 +186,21 @@
                         </div>
                         <div class="card-body px-4 pb-4">
                             <div class="activity-feed">
-                                <div class="activity-item d-flex gap-3 mb-4">
-                                    <div class="activity-dot" style="background: linear-gradient(135deg, #10b981, #06b6d4);"></div>
-                                    <div>
-                                        <p class="mb-0 small fw-medium">Đã duyệt sự kiện <strong>EDM Festival</strong></p>
-                                        <small class="text-muted">5 phút trước</small>
-                                    </div>
-                                </div>
-                                <div class="activity-item d-flex gap-3 mb-4">
-                                    <div class="activity-dot" style="background: linear-gradient(135deg, #3b82f6, #6366f1);"></div>
-                                    <div>
-                                        <p class="mb-0 small fw-medium">User mới đăng ký: <strong>nguyenvana@email.com</strong></p>
-                                        <small class="text-muted">15 phút trước</small>
-                                    </div>
-                                </div>
+                                <c:forEach var="pe" items="${pendingEventsList}" end="4">
                                 <div class="activity-item d-flex gap-3 mb-4">
                                     <div class="activity-dot" style="background: linear-gradient(135deg, #f59e0b, #f97316);"></div>
                                     <div>
-                                        <p class="mb-0 small fw-medium">1000 vé đã bán cho <strong>Music Show</strong></p>
-                                        <small class="text-muted">1 giờ trước</small>
+                                        <p class="mb-0 small fw-medium">Sự kiện chờ duyệt: <strong>${pe.title}</strong></p>
+                                        <small class="text-muted"><fmt:formatDate value="${pe.createdAt}" pattern="dd/MM HH:mm" /></small>
                                     </div>
                                 </div>
-                                <div class="activity-item d-flex gap-3 mb-4">
-                                    <div class="activity-dot" style="background: linear-gradient(135deg, #ef4444, #f97316);"></div>
-                                    <div>
-                                        <p class="mb-0 small fw-medium">Từ chối sự kiện <strong>Đêm vũ hội</strong></p>
-                                        <small class="text-muted">2 giờ trước</small>
-                                    </div>
+                                </c:forEach>
+                                <c:if test="${empty pendingEventsList}">
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-check-circle fa-2x mb-2 opacity-25"></i>
+                                    <p class="mb-0 small">Không có hoạt động mới</p>
                                 </div>
-                                <div class="activity-item d-flex gap-3">
-                                    <div class="activity-dot" style="background: linear-gradient(135deg, #9333ea, #a855f7);"></div>
-                                    <div>
-                                        <p class="mb-0 small fw-medium">Cập nhật danh mục <strong>Thể thao</strong></p>
-                                        <small class="text-muted">3 giờ trước</small>
-                                    </div>
-                                </div>
+                                </c:if>
                             </div>
                         </div>
                     </div>
@@ -281,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 16);
     });
 
-    // Revenue Chart
+    // Revenue Chart — fetch real data from API
     const ctx = document.getElementById('revenueChart').getContext('2d');
     const gradient1 = ctx.createLinearGradient(0, 0, 0, 280);
     gradient1.addColorStop(0, 'rgba(147, 51, 234, 0.3)');
@@ -290,76 +240,68 @@ document.addEventListener('DOMContentLoaded', () => {
     gradient2.addColorStop(0, 'rgba(6, 182, 212, 0.3)');
     gradient2.addColorStop(1, 'rgba(6, 182, 212, 0.01)');
 
+    const chartOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', weight: '500' } }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                titleColor: '#1e293b',
+                bodyColor: '#64748b',
+                borderColor: 'rgba(0,0,0,0.05)',
+                borderWidth: 1,
+                cornerRadius: 12,
+                padding: 12,
+                titleFont: { family: 'Inter', weight: '700' },
+                bodyFont: { family: 'Inter' },
+                boxPadding: 6
+            }
+        },
+        scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'Inter' } } },
+            y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'Inter' } }, beginAtZero: true }
+        }
+    };
+
     window.revenueChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+            labels: [],
             datasets: [{
-                label: 'Doanh thu (triệu)',
-                data: [120, 190, 150, 280, 220, 350, 310],
+                label: 'Doanh thu (VNĐ)',
+                data: [],
                 borderColor: '#9333ea',
                 backgroundColor: gradient1,
-                fill: true,
-                tension: 0.4,
-                borderWidth: 3,
-                pointBackgroundColor: '#9333ea',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 8
+                fill: true, tension: 0.4, borderWidth: 3,
+                pointBackgroundColor: '#9333ea', pointBorderColor: '#fff',
+                pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 8
             }, {
                 label: 'Vé bán',
-                data: [80, 120, 95, 180, 160, 250, 220],
+                data: [],
                 borderColor: '#06b6d4',
                 backgroundColor: gradient2,
-                fill: true,
-                tension: 0.4,
-                borderWidth: 3,
-                pointBackgroundColor: '#06b6d4',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 8
+                fill: true, tension: 0.4, borderWidth: 3,
+                pointBackgroundColor: '#06b6d4', pointBorderColor: '#fff',
+                pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 8
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', weight: '500' } }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    titleColor: '#1e293b',
-                    bodyColor: '#64748b',
-                    borderColor: 'rgba(0,0,0,0.05)',
-                    borderWidth: 1,
-                    cornerRadius: 12,
-                    padding: 12,
-                    titleFont: { family: 'Inter', weight: '700' },
-                    bodyFont: { family: 'Inter' },
-                    boxPadding: 6
-                }
-            },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { family: 'Inter' } } },
-                y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'Inter' } }, beginAtZero: true }
-            }
-        }
+        options: chartOpts
     });
 
-    // Category Doughnut
+    // Category Doughnut — fetch real data from API
     const ctx2 = document.getElementById('categoryChart').getContext('2d');
-    new Chart(ctx2, {
+    window.categoryChart = new Chart(ctx2, {
         type: 'doughnut',
         data: {
-            labels: ['Âm nhạc', 'Workshop', 'Thể thao', 'Nghệ thuật', 'Kinh doanh'],
+            labels: [],
             datasets: [{
-                data: [35, 25, 18, 12, 10],
-                backgroundColor: ['#9333ea', '#06b6d4', '#10b981', '#f59e0b', '#3b82f6'],
+                data: [],
+                backgroundColor: ['#9333ea', '#06b6d4', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6'],
                 borderWidth: 0,
                 hoverOffset: 8
             }]
@@ -372,34 +314,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 legend: {
                     position: 'bottom',
                     labels: { usePointStyle: true, padding: 15, font: { family: 'Inter', size: 12, weight: '500' } }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    titleColor: '#1e293b',
-                    bodyColor: '#64748b',
-                    borderColor: 'rgba(0,0,0,0.05)',
-                    borderWidth: 1,
-                    cornerRadius: 12,
-                    padding: 12,
-                    boxPadding: 6
                 }
             }
         }
     });
+
+    // Load real data
+    loadRevenueChart(7);
+    loadCategoryChart();
 });
 
+function loadRevenueChart(days) {
+    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    fetch(basePath + '/admin/dashboard/chart-data?type=revenue&days=' + days)
+        .then(r => r.json())
+        .then(data => {
+            const labels = data.map(d => {
+                const date = new Date(d.date);
+                return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+            });
+            window.revenueChart.data.labels = labels.length > 0 ? labels : ['Chưa có dữ liệu'];
+            window.revenueChart.data.datasets[0].data = data.map(d => d.revenue);
+            window.revenueChart.data.datasets[1].data = data.map(d => d.ticketCount);
+            window.revenueChart.update();
+        })
+        .catch(err => console.error('Failed to load revenue chart:', err));
+}
+
+function loadCategoryChart() {
+    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    fetch(basePath + '/admin/dashboard/chart-data?type=category')
+        .then(r => r.json())
+        .then(data => {
+            window.categoryChart.data.labels = data.map(d => d.name);
+            window.categoryChart.data.datasets[0].data = data.map(d => d.count);
+            window.categoryChart.update();
+        })
+        .catch(err => console.error('Failed to load category chart:', err));
+}
+
 function updateChart(period) {
-    const dataMap = {
-        week: { labels: ['T2','T3','T4','T5','T6','T7','CN'], d1: [120,190,150,280,220,350,310], d2: [80,120,95,180,160,250,220] },
-        month: { labels: ['Tuần 1','Tuần 2','Tuần 3','Tuần 4'], d1: [750,920,880,1100], d2: [500,650,600,780] },
-        year: { labels: ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'], d1: [1200,1500,1800,2100,2400,2200,2800,3100,2900,3400,3800,4200], d2: [800,1000,1200,1400,1600,1500,1900,2100,2000,2300,2600,2900] }
-    };
-    const d = dataMap[period];
-    window.revenueChart.data.labels = d.labels;
-    window.revenueChart.data.datasets[0].data = d.d1;
-    window.revenueChart.data.datasets[1].data = d.d2;
-    window.revenueChart.update();
-    
+    const daysMap = { 'week': 7, 'month': 30, 'year': 365 };
+    loadRevenueChart(daysMap[period] || 7);
+
     document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
 }

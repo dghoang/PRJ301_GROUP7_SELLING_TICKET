@@ -1,13 +1,15 @@
 package com.sellingticket.controller;
 
-import com.sellingticket.dao.EventDAO;
-import com.sellingticket.dao.TicketTypeDAO;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.TicketType;
+import com.sellingticket.service.EventService;
+import com.sellingticket.service.TicketService;
 import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,6 +18,10 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @WebServlet(name = "EventDetailServlet", urlPatterns = {"/event-detail"})
 public class EventDetailServlet extends HttpServlet {
+
+    private static final Logger LOGGER = Logger.getLogger(EventDetailServlet.class.getName());
+    private final EventService eventService = new EventService();
+    private final TicketService ticketService = new TicketService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -27,24 +33,27 @@ public class EventDetailServlet extends HttpServlet {
             return;
         }
 
-        EventDAO eventDAO = new EventDAO();
-        Event event = eventDAO.getEventById(eventId);
+        try {
+            Event event = eventService.getEventDetails(eventId);
 
-        if (event == null) {
+            if (event == null) {
+                response.sendRedirect("events");
+                return;
+            }
+
+            // Ticket types are already loaded by getEventDetails()
+            List<TicketType> ticketTypes = event.getTicketTypes();
+            List<Event> relatedEvents = eventService.getRelatedEvents(
+                    event.getCategoryId(), eventId, 3);
+
+            request.setAttribute("event", event);
+            request.setAttribute("ticketTypes", ticketTypes);
+            request.setAttribute("relatedEvents", relatedEvents);
+
+            request.getRequestDispatcher("event-detail.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error loading event detail for id=" + eventId, e);
             response.sendRedirect("events");
-            return;
         }
-
-        eventDAO.incrementViews(eventId);
-
-        TicketTypeDAO ticketTypeDAO = new TicketTypeDAO();
-        List<TicketType> ticketTypes = ticketTypeDAO.getTicketTypesByEventId(eventId);
-        List<Event> relatedEvents = eventDAO.getRelatedEvents(event.getCategoryId(), eventId, 3);
-
-        request.setAttribute("event", event);
-        request.setAttribute("ticketTypes", ticketTypes);
-        request.setAttribute("relatedEvents", relatedEvents);
-
-        request.getRequestDispatcher("event-detail.jsp").forward(request, response);
     }
 }

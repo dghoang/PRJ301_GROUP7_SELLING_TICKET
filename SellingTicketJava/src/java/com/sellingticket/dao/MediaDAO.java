@@ -5,8 +5,12 @@ import com.sellingticket.util.DBContext;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MediaDAO extends DBContext {
+
+    private static final Logger LOGGER = Logger.getLogger(MediaDAO.class.getName());
 
     private Media mapResultSet(ResultSet rs) throws SQLException {
         Media media = new Media();
@@ -64,7 +68,7 @@ public class MediaDAO extends DBContext {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return -1;
     }
@@ -80,7 +84,7 @@ public class MediaDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return mapResultSet(rs);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return null;
     }
@@ -98,7 +102,7 @@ public class MediaDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) list.add(mapResultSet(rs));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return list;
     }
@@ -117,7 +121,7 @@ public class MediaDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) list.add(mapResultSet(rs));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return list;
     }
@@ -135,7 +139,7 @@ public class MediaDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return mapResultSet(rs);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return null;
     }
@@ -150,7 +154,7 @@ public class MediaDAO extends DBContext {
             ps.setInt(1, mediaId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return false;
     }
@@ -166,7 +170,7 @@ public class MediaDAO extends DBContext {
             ps.setInt(2, entityId);
             return ps.executeUpdate();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return 0;
     }
@@ -184,7 +188,7 @@ public class MediaDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) ids.add(rs.getString("cloudinary_public_id"));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return ids;
     }
@@ -201,7 +205,7 @@ public class MediaDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in MediaDAO", e);
         }
         return 0;
     }

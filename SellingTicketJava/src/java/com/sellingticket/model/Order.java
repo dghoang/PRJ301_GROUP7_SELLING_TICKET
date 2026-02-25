@@ -77,4 +77,9 @@ public class Order {
 
     public List<OrderItem> getItems() { return items; }
     public void setItems(List<OrderItem> items) { this.items = items; }
+
+    @Override
+    public String toString() {
+        return "Order{id=" + orderId + ", code='" + orderCode + "', status='" + status + "', amount=" + finalAmount + "}";
+    }
 }

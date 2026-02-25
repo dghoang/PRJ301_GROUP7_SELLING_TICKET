@@ -169,6 +169,42 @@
     <!-- Spacer for fixed navbar -->
     <div style="height: 76px;"></div>
     
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999; margin-top: 80px;">
+        <div id="globalToast" class="toast align-items-center border-0 rounded-4 shadow-lg" role="alert" data-bs-delay="4000">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2 fw-medium" id="toastBody">
+                    <i id="toastIcon" class="fas"></i>
+                    <span id="toastText"></span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <c:if test="${not empty sessionScope.toastMessage}">
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toast = document.getElementById('globalToast');
+        var type = '${sessionScope.toastType}' || 'success';
+        var msg = '${sessionScope.toastMessage}';
+        var icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+        var bg = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-warning';
+        toast.className = 'toast align-items-center text-white border-0 rounded-4 shadow-lg ' + bg;
+        document.getElementById('toastIcon').className = 'fas ' + icon;
+        document.getElementById('toastText').textContent = msg;
+        new bootstrap.Toast(toast).show();
+    });
+    </script>
+    </c:if>
+    <%
+        // Clear toast after rendering
+        if (session.getAttribute("toastMessage") != null) {
+            session.removeAttribute("toastMessage");
+            session.removeAttribute("toastType");
+        }
+    %>
+
     <!-- Main Content Wrapper -->
     <main class="flex-grow-1">
 

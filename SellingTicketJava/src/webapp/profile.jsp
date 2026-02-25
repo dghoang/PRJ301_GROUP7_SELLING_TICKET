@@ -74,6 +74,7 @@
                             </button>
                         </div>
                         <form action="${pageContext.request.contextPath}/profile" method="POST">
+                            <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <label class="form-label fw-medium">Họ và tên</label>
@@ -208,6 +209,7 @@
                                 <i class="fas fa-lock text-primary"></i>Đổi mật khẩu
                             </h5>
                             <form action="${pageContext.request.contextPath}/change-password" method="POST">
+                                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label fw-medium">Mật khẩu hiện tại</label>

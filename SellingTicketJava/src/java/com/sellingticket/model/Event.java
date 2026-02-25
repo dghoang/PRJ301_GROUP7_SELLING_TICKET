@@ -99,4 +99,9 @@ public class Event {
     
     public List<TicketType> getTicketTypes() { return ticketTypes; }
     public void setTicketTypes(List<TicketType> ticketTypes) { this.ticketTypes = ticketTypes; }
+
+    @Override
+    public String toString() {
+        return "Event{id=" + eventId + ", title='" + title + "', status='" + status + "', location='" + location + "'}";
+    }
 }

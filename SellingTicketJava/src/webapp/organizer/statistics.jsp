@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -28,9 +29,9 @@
                                 <i class="fas fa-eye fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="28500">0</h3>
-                                <small class="text-muted">Lượt xem trang</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +22%</small></div>
+                                <h3 class="fw-bold mb-0"><fmt:formatNumber value="${totalRevenue}" type="number" groupingUsed="true" /> đ</h3>
+                                <small class="text-muted">Tổng doanh thu</small>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-chart-line"></i> Từ đơn đã thanh toán</small></div>
                             </div>
                         </div>
                     </div>
@@ -42,9 +43,9 @@
                                 <i class="fas fa-percentage fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0"><span class="counter" data-target="8">0</span>.<span class="counter" data-target="5">0</span>%</h3>
-                                <small class="text-muted">Tỷ lệ chuyển đổi</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +1.2%</small></div>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalOrders}">0</h3>
+                                <small class="text-muted">Tổng đơn hàng</small>
+                                <div class="mt-1"><small class="text-info fw-medium"><i class="fas fa-shopping-cart"></i> Tất cả trạng thái</small></div>
                             </div>
                         </div>
                     </div>
@@ -56,9 +57,9 @@
                                 <i class="fas fa-wallet fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0"><span class="counter" data-target="340">0</span>K</h3>
-                                <small class="text-muted">Giá vé trung bình</small>
-                                <div class="mt-1"><small class="text-danger fw-medium"><i class="fas fa-arrow-down"></i> -5%</small></div>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalEvents}">0</h3>
+                                <small class="text-muted">Tổng sự kiện</small>
+                                <div class="mt-1"><small class="text-info fw-medium"><i class="fas fa-calendar"></i> Đang quản lý</small></div>
                             </div>
                         </div>
                     </div>
@@ -70,9 +71,9 @@
                                 <i class="fas fa-star fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0"><span class="counter" data-target="4">0</span>.<span class="counter" data-target="8">0</span></h3>
-                                <small class="text-muted">Đánh giá trung bình</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +0.3</small></div>
+                                <h3 class="fw-bold mb-0"><fmt:formatNumber value="${totalRevenue / (totalOrders > 0 ? totalOrders : 1)}" type="number" maxFractionDigits="0" groupingUsed="true" /> đ</h3>
+                                <small class="text-muted">Giá trị đơn TB</small>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-star"></i> Trung bình mỗi đơn</small></div>
                             </div>
                         </div>
                     </div>
@@ -151,48 +152,32 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <c:forEach var="stat" items="${eventStats}">
+                                <c:set var="evt" value="${stat.event}" />
+                                <c:set var="pct" value="${evt.totalTickets > 0 ? (evt.soldTickets * 100 / evt.totalTickets) : 0}" />
                                 <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td class="fw-medium">Đêm nhạc Acoustic</td>
-                                    <td>8,500</td>
-                                    <td>450 / 500</td>
+                                    <td class="fw-medium">${evt.title}</td>
+                                    <td>${stat.orderCount}</td>
+                                    <td>${evt.soldTickets} / ${evt.totalTickets}</td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="progress flex-grow-1" style="height: 8px; border-radius: 4px; background: rgba(0,0,0,0.05);">
-                                                <div class="progress-bar" style="width: 90%; background: linear-gradient(90deg, #10b981, #06b6d4); border-radius: 4px;"></div>
+                                                <div class="progress-bar" style="width: ${pct}%; background: linear-gradient(90deg, ${pct >= 70 ? '#10b981, #06b6d4' : '#f59e0b, #f97316'}); border-radius: 4px;"></div>
                                             </div>
-                                            <small class="fw-bold text-success">90%</small>
+                                            <small class="fw-bold ${pct >= 70 ? 'text-success' : 'text-warning'}">${pct}%</small>
                                         </div>
                                     </td>
-                                    <td class="fw-bold text-primary">180M</td>
+                                    <td class="fw-bold text-primary"><fmt:formatNumber value="${stat.revenue}" type="number" groupingUsed="true" /> đ</td>
                                 </tr>
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td class="fw-medium">Workshop Marketing</td>
-                                    <td>3,200</td>
-                                    <td>80 / 100</td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="progress flex-grow-1" style="height: 8px; border-radius: 4px; background: rgba(0,0,0,0.05);">
-                                                <div class="progress-bar" style="width: 80%; background: linear-gradient(90deg, #10b981, #06b6d4); border-radius: 4px;"></div>
-                                            </div>
-                                            <small class="fw-bold text-success">80%</small>
-                                        </div>
+                                </c:forEach>
+                                <c:if test="${empty eventStats}">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-chart-bar fa-2x mb-2 opacity-25"></i>
+                                        <p class="mb-0">Chưa có dữ liệu thống kê</p>
                                     </td>
-                                    <td class="fw-bold text-primary">40M</td>
                                 </tr>
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td class="fw-medium">EDM Night Festival</td>
-                                    <td>15,000</td>
-                                    <td>1,200 / 2,000</td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="progress flex-grow-1" style="height: 8px; border-radius: 4px; background: rgba(0,0,0,0.05);">
-                                                <div class="progress-bar" style="width: 60%; background: linear-gradient(90deg, #f59e0b, #f97316); border-radius: 4px;"></div>
-                                            </div>
-                                            <small class="fw-bold text-warning">60%</small>
-                                        </div>
-                                    </td>
-                                    <td class="fw-bold text-primary">600M</td>
-                                </tr>
+                                </c:if>
                             </tbody>
                         </table>
                     </div>

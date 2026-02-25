@@ -3,9 +3,11 @@ package com.sellingticket.service;
 import com.sellingticket.dao.EventDAO;
 import com.sellingticket.dao.TicketTypeDAO;
 import com.sellingticket.dao.CategoryDAO;
+import com.sellingticket.dao.EventStaffDAO;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.TicketType;
 import com.sellingticket.model.Category;
+import com.sellingticket.model.EventStaff;
 import java.util.List;
 
 /**
@@ -17,11 +19,13 @@ public class EventService {
     private final EventDAO eventDAO;
     private final TicketTypeDAO ticketTypeDAO;
     private final CategoryDAO categoryDAO;
+    private final EventStaffDAO eventStaffDAO;
 
     public EventService() {
         this.eventDAO = new EventDAO();
         this.ticketTypeDAO = new TicketTypeDAO();
         this.categoryDAO = new CategoryDAO();
+        this.eventStaffDAO = new EventStaffDAO();
     }
 
     // ========================
@@ -175,5 +179,38 @@ public class EventService {
      */
     public List<Category> getAllCategories() {
         return categoryDAO.getAllCategories();
+    }
+
+    /**
+     * Check if a user can create more events (limit: 3 pending events)
+     */
+    public boolean canUserCreateEvent(int userId) {
+        return eventDAO.countPendingEventsByOrganizer(userId) < 3;
+    }
+
+    /**
+     * Check if a user has permission to manage an event (owner or manager/editor staff)
+     */
+    public boolean hasManagerPermission(int eventId, int userId) {
+        Event event = eventDAO.getEventById(eventId);
+        if (event == null) return false;
+        
+        // Owner always has permission
+        if (event.getOrganizerId() == userId) return true;
+        
+        // Check staff table
+        return eventStaffDAO.hasPermission(eventId, userId);
+    }
+
+    public List<EventStaff> getEventStaff(int eventId) {
+        return eventStaffDAO.getStaffByEvent(eventId);
+    }
+
+    public boolean addEventStaff(int eventId, String email, String role, int grantedBy) {
+        return eventStaffDAO.addStaffByEmail(eventId, email, role, grantedBy);
+    }
+
+    public boolean removeEventStaff(int eventId, int userId) {
+        return eventStaffDAO.removeStaff(eventId, userId);
     }
 }

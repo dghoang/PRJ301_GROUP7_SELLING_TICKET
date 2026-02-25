@@ -36,4 +36,9 @@ public class Category {
 
     public int getEventCount() { return eventCount; }
     public void setEventCount(int eventCount) { this.eventCount = eventCount; }
+
+    @Override
+    public String toString() {
+        return "Category{id=" + categoryId + ", name='" + name + "', slug='" + slug + "', eventCount=" + eventCount + "}";
+    }
 }

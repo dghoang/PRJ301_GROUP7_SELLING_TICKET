@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -38,9 +39,9 @@
                                 <i class="fas fa-calendar-alt fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="12">0</h3>
-                                <small class="text-muted">Sự kiện đang bán</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +3 tuần này</small></div>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalEvents}">0</h3>
+                                <small class="text-muted">Tổng sự kiện</small>
+                                <div class="mt-1"><small class="text-info fw-medium"><i class="fas fa-clock"></i> ${pendingEvents} chờ duyệt</small></div>
                             </div>
                         </div>
                     </div>
@@ -52,9 +53,9 @@
                                 <i class="fas fa-ticket-alt fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="2458">0</h3>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalTicketsSold}">0</h3>
                                 <small class="text-muted">Vé đã bán</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +12% tháng này</small></div>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-ticket-alt"></i> ${approvedEvents} đang bán</small></div>
                             </div>
                         </div>
                     </div>
@@ -66,9 +67,9 @@
                                 <i class="fas fa-dollar-sign fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0"><span class="counter" data-target="850">0</span>M</h3>
+                                <h3 class="fw-bold mb-0"><fmt:formatNumber value="${totalRevenue}" type="number" groupingUsed="true" /> đ</h3>
                                 <small class="text-muted">Doanh thu (VNĐ)</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +18% so kỳ trước</small></div>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-chart-line"></i> Từ đơn đã thanh toán</small></div>
                             </div>
                         </div>
                     </div>
@@ -80,9 +81,9 @@
                                 <i class="fas fa-users fa-lg text-white"></i>
                             </div>
                             <div>
-                                <h3 class="fw-bold mb-0 counter" data-target="1845">0</h3>
+                                <h3 class="fw-bold mb-0 counter" data-target="${totalTicketsSold}">0</h3>
                                 <small class="text-muted">Khách tham dự</small>
-                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-arrow-up"></i> +220 tuần này</small></div>
+                                <div class="mt-1"><small class="text-info fw-medium"><i class="fas fa-users"></i> Dựa trên vé bán</small></div>
                             </div>
                         </div>
                     </div>
@@ -172,10 +173,25 @@
                                             <span class="fw-medium">${event.title}</span>
                                         </div>
                                     </td>
-                                    <td class="text-muted">${event.eventDate}</td>
+                                    <td class="text-muted"><fmt:formatDate value="${event.startDate}" pattern="dd/MM/yyyy" /></td>
                                     <td><span class="fw-medium">${event.soldTickets}/${event.totalTickets}</span></td>
-                                    <td class="fw-bold text-success">${event.revenue}</td>
-                                    <td><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">Đang bán</span></td>
+                                    <td class="fw-bold text-success"><fmt:formatNumber value="${event.soldTickets * 100000}" type="number" groupingUsed="true" /> đ</td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${event.status == 'approved'}">
+                                                <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">Đang bán</span>
+                                            </c:when>
+                                            <c:when test="${event.status == 'pending'}">
+                                                <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Chờ duyệt</span>
+                                            </c:when>
+                                            <c:when test="${event.status == 'rejected'}">
+                                                <span class="badge bg-danger rounded-pill px-3 py-2">Bị từ chối</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-secondary rounded-pill px-3 py-2">${event.status}</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
                                     <td class="text-center">
                                         <a href="${pageContext.request.contextPath}/organizer/events?action=edit&id=${event.eventId}" class="btn btn-sm glass rounded-pill px-3">
                                             <i class="fas fa-edit text-primary"></i>
@@ -183,51 +199,16 @@
                                     </td>
                                 </tr>
                                 </c:forEach>
-                                <!-- Static fallback -->
                                 <c:if test="${empty recentEvents}">
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
-                                            <span class="fw-medium">Đêm nhạc Acoustic</span>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-calendar-plus fa-3x mb-3 opacity-25"></i>
+                                            <p class="mb-2 fw-medium">Chưa có sự kiện nào</p>
+                                            <a href="${pageContext.request.contextPath}/organizer/create-event" class="btn btn-sm btn-gradient rounded-pill px-4">
+                                                <i class="fas fa-plus me-1"></i>Tạo sự kiện đầu tiên
+                                            </a>
                                         </div>
-                                    </td>
-                                    <td class="text-muted">15/02/2026</td>
-                                    <td><span class="fw-medium">450/500</span></td>
-                                    <td class="fw-bold text-success">180M</td>
-                                    <td><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">Đang bán</span></td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-edit text-primary"></i></button>
-                                    </td>
-                                </tr>
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=100" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
-                                            <span class="fw-medium">Workshop Marketing</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-muted">20/02/2026</td>
-                                    <td><span class="fw-medium">80/100</span></td>
-                                    <td class="fw-bold text-success">40M</td>
-                                    <td><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">Đang bán</span></td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-edit text-primary"></i></button>
-                                    </td>
-                                </tr>
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <img src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=100" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
-                                            <span class="fw-medium">EDM Night Festival</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-muted">28/02/2026</td>
-                                    <td><span class="fw-medium">1200/2000</span></td>
-                                    <td class="fw-bold text-success">600M</td>
-                                    <td><span class="badge bg-warning text-dark rounded-pill px-3 py-2">Chờ duyệt</span></td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-edit text-primary"></i></button>
                                     </td>
                                 </tr>
                                 </c:if>

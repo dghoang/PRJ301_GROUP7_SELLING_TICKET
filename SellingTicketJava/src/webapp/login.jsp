@@ -159,6 +159,7 @@
                     </c:if>
 
                     <form action="${pageContext.request.contextPath}/login" method="POST">
+                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                         <!-- Email -->
                         <div class="mb-4 animate-fadeInUp stagger-1">
                             <label for="email" class="form-label fw-medium">Email</label>
@@ -201,17 +202,10 @@
                         </div>
 
                         <!-- Social Login -->
-                        <div class="row g-3 animate-fadeInUp stagger-6">
-                            <div class="col-6">
-                                <button type="button" class="btn btn-outline-secondary w-100 py-2 rounded-3 social-btn">
-                                    <i class="fab fa-google me-2 text-danger"></i> Google
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button type="button" class="btn btn-outline-secondary w-100 py-2 rounded-3 social-btn">
-                                    <i class="fab fa-facebook me-2 text-primary"></i> Facebook
-                                </button>
-                            </div>
+                        <div class="animate-fadeInUp stagger-6">
+                            <a href="${pageContext.request.contextPath}/auth/google" class="btn btn-outline-secondary w-100 py-2 rounded-3 social-btn text-decoration-none">
+                                <i class="fab fa-google me-2 text-danger"></i> Đăng nhập với Google
+                            </a>
                         </div>
                     </form>
                     

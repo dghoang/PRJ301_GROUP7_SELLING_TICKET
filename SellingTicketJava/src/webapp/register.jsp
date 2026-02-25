@@ -191,6 +191,7 @@
                     </c:if>
 
                     <form action="${pageContext.request.contextPath}/register" method="POST">
+                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
                         <div class="mb-3 animate-fadeInUp stagger-1">
                             <label for="fullName" class="form-label fw-medium">Họ và tên</label>
                             <div class="input-group">

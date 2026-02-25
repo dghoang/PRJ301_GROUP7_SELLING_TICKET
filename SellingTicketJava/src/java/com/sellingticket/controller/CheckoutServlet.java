@@ -13,6 +13,8 @@ import static com.sellingticket.util.ServletUtil.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -21,6 +23,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @WebServlet(name = "CheckoutServlet", urlPatterns = {"/checkout"})
 public class CheckoutServlet extends HttpServlet {
+
+    private static final Logger LOGGER = Logger.getLogger(CheckoutServlet.class.getName());
+    private static final int MAX_QUANTITY = 10;
 
     private final OrderService orderService = new OrderService();
     private final EventService eventService = new EventService();
@@ -43,6 +48,10 @@ public class CheckoutServlet extends HttpServlet {
 
         int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
         int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
+
+        // Bound quantity
+        quantity = Math.max(1, Math.min(quantity, MAX_QUANTITY));
+
         if (ticketTypeId > 0) {
             TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
             request.setAttribute("selectedTicket", ticket);
@@ -74,42 +83,47 @@ public class CheckoutServlet extends HttpServlet {
 
         try {
             Order order = buildOrderFromRequest(request, user);
-            if (order == null) return;
-
-            int orderId = orderService.createOrder(order);
-            if (orderId <= 0) {
-                showError(request, response, "Không thể tạo đơn hàng. Vui lòng thử lại.");
+            if (order == null) {
+                showError(request, response, "Dữ liệu đơn hàng không hợp lệ.");
                 return;
             }
 
+            int orderId = orderService.createOrder(order);
+            if (orderId <= 0) {
+                LOGGER.log(Level.WARNING, "Order creation failed for user={0}, event={1}",
+                        new Object[]{user.getUserId(), order.getEventId()});
+                showError(request, response, "Không thể tạo đơn hàng. Vé có thể đã hết.");
+                return;
+            }
+
+            LOGGER.log(Level.INFO, "Order created: id={0}, user={1}, amount={2}",
+                    new Object[]{orderId, user.getUserId(), order.getFinalAmount()});
+
             redirectAfterPayment(response, orderId, order.getPaymentMethod());
         } catch (Exception e) {
-            e.printStackTrace();
-            showError(request, response, "Đã xảy ra lỗi: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Checkout error for user=" + user.getUserId(), e);
+            showError(request, response, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.");
         }
     }
 
-    private Order buildOrderFromRequest(HttpServletRequest request, User user)
-            throws ServletException, IOException {
+    private Order buildOrderFromRequest(HttpServletRequest request, User user) {
 
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
         int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
 
-        Event event = eventService.getEventDetails(eventId);
-        if (event == null) {
-            showError(request, (HttpServletResponse) null, "Sự kiện không tồn tại");
+        // Validate bounds
+        if (eventId <= 0 || ticketTypeId <= 0 || quantity < 1 || quantity > MAX_QUANTITY) {
             return null;
         }
 
-        if (!ticketService.checkAvailability(ticketTypeId, quantity)) {
-            showError(request, null, "Số lượng vé không đủ");
-            return null;
-        }
+        Event event = eventService.getEventDetails(eventId);
+        if (event == null) return null;
 
         TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
-        if (ticket == null) {
-            showError(request, null, "Loại vé không hợp lệ");
+        if (ticket == null) return null;
+
+        if (!ticketService.checkAvailability(ticketTypeId, quantity)) {
             return null;
         }
 
@@ -156,9 +170,7 @@ public class CheckoutServlet extends HttpServlet {
     private void showError(HttpServletRequest request, HttpServletResponse response, String message)
             throws ServletException, IOException {
         request.setAttribute("error", message);
-        if (response != null) {
-            doGet(request, response);
-        }
+        doGet(request, response);
     }
 
     private String getParamOrDefault(HttpServletRequest request, String param, String defaultValue) {

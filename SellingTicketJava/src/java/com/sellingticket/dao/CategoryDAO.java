@@ -5,8 +5,12 @@ import com.sellingticket.util.DBContext;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class CategoryDAO extends DBContext {
+
+    private static final Logger LOGGER = Logger.getLogger(CategoryDAO.class.getName());
 
     public List<Category> getAllCategories() {
         List<Category> categories = new ArrayList<>();
@@ -27,7 +31,7 @@ public class CategoryDAO extends DBContext {
                 categories.add(cat);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
         }
         return categories;
     }
@@ -48,7 +52,7 @@ public class CategoryDAO extends DBContext {
                 return cat;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
         }
         return null;
     }
@@ -79,7 +83,7 @@ public class CategoryDAO extends DBContext {
                 return cat;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
         }
         return null;
     }
@@ -104,7 +108,7 @@ public class CategoryDAO extends DBContext {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
         }
         return false;
     }
@@ -123,7 +127,7 @@ public class CategoryDAO extends DBContext {
             ps.setInt(5, category.getCategoryId());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
         }
         return false;
     }
@@ -150,7 +154,7 @@ public class CategoryDAO extends DBContext {
                 return deletePs.executeUpdate() > 0;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
         }
         return false;
     }

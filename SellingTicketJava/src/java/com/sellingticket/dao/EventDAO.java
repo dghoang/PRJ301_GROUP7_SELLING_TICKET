@@ -5,8 +5,12 @@ import com.sellingticket.util.DBContext;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EventDAO extends DBContext {
+
+    private static final Logger LOGGER = Logger.getLogger(EventDAO.class.getName());
 
     private Event mapResultSetToEvent(ResultSet rs) throws SQLException {
         Event event = new Event();
@@ -60,7 +64,7 @@ public class EventDAO extends DBContext {
                 events.add(event);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return events;
     }
@@ -109,7 +113,7 @@ public class EventDAO extends DBContext {
                 events.add(event);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return events;
     }
@@ -136,7 +140,7 @@ public class EventDAO extends DBContext {
                 return event;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return null;
     }
@@ -161,7 +165,7 @@ public class EventDAO extends DBContext {
                 events.add(event);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return events;
     }
@@ -183,7 +187,7 @@ public class EventDAO extends DBContext {
                 events.add(event);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return events;
     }
@@ -217,7 +221,7 @@ public class EventDAO extends DBContext {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return false;
     }
@@ -230,7 +234,7 @@ public class EventDAO extends DBContext {
             ps.setInt(2, eventId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return false;
     }
@@ -242,7 +246,7 @@ public class EventDAO extends DBContext {
             ps.setInt(1, eventId);
             ps.executeUpdate();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
     }
 
@@ -253,7 +257,7 @@ public class EventDAO extends DBContext {
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) return rs.getInt(1);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return 0;
     }
@@ -275,7 +279,7 @@ public class EventDAO extends DBContext {
                 events.add(event);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return events;
     }
@@ -302,7 +306,7 @@ public class EventDAO extends DBContext {
             ps.setInt(12, event.getEventId());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return false;
     }
@@ -334,7 +338,7 @@ public class EventDAO extends DBContext {
                 events.add(event);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return events;
     }
@@ -347,7 +351,20 @@ public class EventDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
+        }
+        return 0;
+    }
+
+    public int countPendingEventsByOrganizer(int organizerId) {
+        String sql = "SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'pending'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, organizerId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
         }
         return 0;
     }
