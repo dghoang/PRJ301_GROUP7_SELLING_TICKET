@@ -32,6 +32,28 @@
                 <div class="floating-element" style="top: -20px; right: 60px;"><i class="fas fa-chart-line text-primary" style="font-size: 3rem; opacity: 0.1;"></i></div>
             </div>
 
+            <%-- Success/Error Alerts for Event Actions --%>
+            <c:if test="${param.success != null}">
+                <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
+                     style="background: rgba(16,185,129,0.1); border-left: 4px solid #10b981 !important;">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <c:choose>
+                        <c:when test="${param.success == 'approved'}">Sự kiện đã được duyệt thành công!</c:when>
+                        <c:when test="${param.success == 'rejected'}">Sự kiện đã bị từ chối!</c:when>
+                        <c:otherwise>Thao tác thành công!</c:otherwise>
+                    </c:choose>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
+            <c:if test="${param.error != null}">
+                <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
+                     style="background: rgba(239,68,68,0.1); border-left: 4px solid #ef4444 !important;">
+                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                    Thao tác thất bại! Vui lòng thử lại.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
+
             <!-- Stats Cards -->
             <div class="row g-4 mb-4">
                 <div class="col-md-6 col-xl-3 animate-on-scroll">
@@ -154,12 +176,23 @@
                                             <td class="text-muted">${event.organizerName}</td>
                                             <td class="text-muted">${event.createdAt}</td>
                                             <td class="text-center">
-                                                <button class="btn btn-sm rounded-pill px-3 me-1" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;" onclick="approveEvent(${event.eventId})">
-                                                    <i class="fas fa-check me-1"></i>Duyệt
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="rejectEvent(${event.eventId})">
-                                                    <i class="fas fa-times me-1"></i>Từ chối
-                                                </button>
+                                                <form method="POST" action="${pageContext.request.contextPath}/admin/events/approve" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+                                                    <input type="hidden" name="eventId" value="${event.eventId}"/>
+                                                    <button type="submit" class="btn btn-sm rounded-pill px-3 me-1" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">
+                                                        <i class="fas fa-check me-1"></i>Duyệt
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="${pageContext.request.contextPath}/admin/events/reject" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+                                                    <input type="hidden" name="eventId" value="${event.eventId}"/>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                        <i class="fas fa-times me-1"></i>Từ chối
+                                                    </button>
+                                                </form>
+                                                <a href="${pageContext.request.contextPath}/admin/events/${event.eventId}" class="btn btn-sm glass rounded-pill px-2 ms-1">
+                                                    <i class="fas fa-eye text-primary"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                         </c:forEach>
@@ -178,30 +211,36 @@
                     </div>
                 </div>
 
-                <!-- Activity Feed -->
+                <!-- Recent Orders Feed -->
                 <div class="col-lg-4 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
-                        <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0">⚡ Hoạt động gần đây</h5>
+                        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
+                            <h5 class="fw-bold mb-0">🛒 Đơn hàng gần đây</h5>
+                            <a href="${pageContext.request.contextPath}/admin/orders" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</a>
                         </div>
                         <div class="card-body px-4 pb-4">
-                            <div class="activity-feed">
-                                <c:forEach var="pe" items="${pendingEventsList}" end="4">
-                                <div class="activity-item d-flex gap-3 mb-4">
-                                    <div class="activity-dot" style="background: linear-gradient(135deg, #f59e0b, #f97316);"></div>
-                                    <div>
-                                        <p class="mb-0 small fw-medium">Sự kiện chờ duyệt: <strong>${pe.title}</strong></p>
-                                        <small class="text-muted"><fmt:formatDate value="${pe.createdAt}" pattern="dd/MM HH:mm" /></small>
-                                    </div>
+                            <c:forEach var="order" items="${recentOrders}">
+                            <div class="d-flex align-items-center gap-3 mb-3 p-2 rounded-3 hover-lift" style="transition: all 0.2s; background: rgba(0,0,0,0.015);">
+                                <div class="dash-icon-box" style="width:36px;height:36px;min-width:36px;border-radius:10px;
+                                    background:${order.status == 'paid' ? 'linear-gradient(135deg,#10b981,#06b6d4)' : order.status == 'pending' ? 'linear-gradient(135deg,#f59e0b,#f97316)' : 'linear-gradient(135deg,#ef4444,#f97316)'};">
+                                    <i class="fas ${order.status == 'paid' ? 'fa-check' : order.status == 'pending' ? 'fa-clock' : 'fa-times'} text-white" style="font-size:0.75rem;"></i>
                                 </div>
-                                </c:forEach>
-                                <c:if test="${empty pendingEventsList}">
-                                <div class="text-center text-muted py-3">
-                                    <i class="fas fa-check-circle fa-2x mb-2 opacity-25"></i>
-                                    <p class="mb-0 small">Không có hoạt động mới</p>
+                                <div class="flex-grow-1" style="min-width:0;">
+                                    <p class="mb-0 small fw-medium text-truncate">${order.buyerName}</p>
+                                    <small class="text-muted" style="font-family:monospace;font-size:0.7rem;">${order.orderCode}</small>
                                 </div>
-                                </c:if>
+                                <div class="text-end">
+                                    <p class="mb-0 small fw-bold text-success"><fmt:formatNumber value="${order.finalAmount}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</p>
+                                    <small class="text-muted"><fmt:formatDate value="${order.createdAt}" pattern="dd/MM HH:mm"/></small>
+                                </div>
                             </div>
+                            </c:forEach>
+                            <c:if test="${empty recentOrders}">
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-box-open fa-2x mb-2 opacity-25"></i>
+                                <p class="mb-0 small">Chưa có đơn hàng nào</p>
+                            </div>
+                            </c:if>
                         </div>
                     </div>
                 </div>

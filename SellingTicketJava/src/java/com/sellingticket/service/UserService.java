@@ -28,6 +28,11 @@ public class UserService {
         return userDAO.login(email.trim().toLowerCase(), password);
     }
 
+    /** Update last login timestamp and IP. Call after successful login. */
+    public void updateLastLogin(int userId, String ip) {
+        userDAO.updateLastLogin(userId, ip);
+    }
+
     // ========================
     // REGISTRATION
     // ========================
@@ -115,6 +120,10 @@ public class UserService {
         return userDAO.deactivateUser(userId);
     }
 
+    public boolean activateUser(int userId) {
+        return userDAO.activateUser(userId);
+    }
+
     public List<User> searchUsers(String keyword) {
         return userDAO.searchUsers(keyword);
     }
@@ -139,10 +148,12 @@ public class UserService {
     }
 
     private boolean isValidPassword(String password) {
-        if (password == null || password.length() < 8) {
+        if (password == null || password.length() < 8 || password.length() > 128) {
             return false;
         }
-        // At least 1 uppercase and 1 digit
-        return password.matches(".*[A-Z].*") && password.matches(".*[0-9].*");
+        // At least 1 uppercase, 1 digit, and 1 special character
+        return password.matches(".*[A-Z].*")
+                && password.matches(".*[0-9].*")
+                && password.matches(".*[^a-zA-Z0-9\\s].*");
     }
 }

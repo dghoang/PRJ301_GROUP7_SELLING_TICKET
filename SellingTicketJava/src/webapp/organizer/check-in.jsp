@@ -329,7 +329,7 @@
 <script>
 const eventId = '${event != null ? event.eventId : ""}';
 const contextPath = '${pageContext.request.contextPath}';
-let csrfToken = '${csrf_token}';
+var csrfToken = '${sessionScope.csrf_token}';
 let html5QrCode = null;
 let cameraOn = false;
 let checkedInCount = parseInt('${checkedInCount != null ? checkedInCount : 0}') || 0;
@@ -468,15 +468,12 @@ function showResult(type, title, subtitle) {
     };
     const cfg = configs[type];
 
-    area.innerHTML = `
-        <div class="result-card ${cfg.bg}">
-            <div class="result-icon" style="background: ${cfg.color}20; color: ${cfg.color};">
-                <i class="fas ${cfg.icon}"></i>
-            </div>
-            <h5 class="fw-bold mb-1">${escapeHTML(title)}</h5>
-            <p class="text-muted small mb-0">${escapeHTML(subtitle)}</p>
-        </div>
-    `;
+    area.innerHTML = '<div class="result-card ' + cfg.bg + '">'
+        + '<div class="result-icon" style="background:' + cfg.color + '20;color:' + cfg.color + ';">'
+        + '<i class="fas ' + cfg.icon + '"></i></div>'
+        + '<h5 class="fw-bold mb-1">' + escapeHTML(title) + '</h5>'
+        + '<p class="text-muted small mb-0">' + escapeHTML(subtitle) + '</p>'
+        + '</div>';
 
     if (type !== 'loading') {
         setTimeout(() => { area.classList.add('d-none'); }, 4000);
@@ -509,15 +506,12 @@ function addFeedItem(code, name, type) {
 
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.innerHTML = `
-        <div class="feed-icon" style="background: ${colors[type]}20; color: ${colors[type]};">
-            <i class="fas ${icons[type]}"></i>
-        </div>
-        <div class="flex-grow-1">
-            <div class="fw-medium small">${escapeHTML(name || code)}</div>
-            <div class="text-muted" style="font-size:0.7rem;">${labels[type]} • ${new Date().toLocaleTimeString('vi-VN')}</div>
-        </div>
-    `;
+    item.innerHTML = '<div class="feed-icon" style="background:' + colors[type] + '20;color:' + colors[type] + ';">'
+        + '<i class="fas ' + icons[type] + '"></i></div>'
+        + '<div class="flex-grow-1">'
+        + '<div class="fw-medium small">' + escapeHTML(name || code) + '</div>'
+        + '<div class="text-muted" style="font-size:0.7rem;">' + labels[type] + ' \u2022 ' + new Date().toLocaleTimeString('vi-VN') + '</div>'
+        + '</div>';
     feed.insertBefore(item, feed.firstChild);
 }
 

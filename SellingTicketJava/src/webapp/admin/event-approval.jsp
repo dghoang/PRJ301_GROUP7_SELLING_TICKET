@@ -112,7 +112,7 @@
 
                                     <div class="d-flex gap-2">
                                         <form method="POST" action="${pageContext.request.contextPath}/admin/events/approve" class="flex-grow-1">
-                                            <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                                            <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                                             <input type="hidden" name="eventId" value="${e.eventId}"/>
                                             <button type="submit" class="btn w-100 rounded-pill" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white; border: none;">
                                                 <i class="fas fa-check me-2"></i>Duyệt
@@ -123,7 +123,7 @@
                                                 onclick="document.getElementById('rejectEventId').value='${e.eventId}'; document.getElementById('rejectEventName').textContent='${e.title}'">
                                             <i class="fas fa-times me-2"></i>Từ chối
                                         </button>
-                                        <a href="${pageContext.request.contextPath}/event/${e.eventId}" class="btn glass rounded-pill">
+                                        <a href="${pageContext.request.contextPath}/admin/events/${e.eventId}" class="btn glass rounded-pill" title="Xem chi tiết">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </div>
@@ -138,12 +138,20 @@
     </div>
 </div>
 
-<%-- Reject Modal --%>
+<%-- Reject Modal with Rich Editor --%>
+<style>
+.approve-toolbar button { width:30px;height:30px;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:all 0.2s; }
+.approve-toolbar button:hover { background:rgba(147,51,234,0.1);color:var(--primary); }
+.approve-editor { border:1px solid rgba(0,0,0,0.08);border-radius:0 0 8px 8px;min-height:200px;padding:1.25rem;background:white;outline:none;font-size:1rem;line-height:1.6;overflow-y:auto;max-height:400px; }
+.approve-editor:focus { border-color:var(--primary);box-shadow:0 0 0 3px rgba(147,51,234,0.1); }
+</style>
 <div class="modal fade modal-glass" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content glass-strong border-0 rounded-4">
-            <form method="POST" action="${pageContext.request.contextPath}/admin/events/reject">
-                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+            <form method="POST" action="${pageContext.request.contextPath}/admin/event-approval"
+                  onsubmit="document.getElementById('approveRejectReason').value=document.getElementById('approveRejectEditor').innerHTML;">
+                <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+                <input type="hidden" name="action" value="reject"/>
                 <input type="hidden" name="eventId" id="rejectEventId"/>
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold"><i class="fas fa-times-circle text-danger me-2"></i>Từ chối sự kiện</h5>
@@ -151,10 +159,29 @@
                 </div>
                 <div class="modal-body">
                     <p>Bạn có chắc chắn muốn từ chối sự kiện <strong id="rejectEventName"></strong>?</p>
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Lý do từ chối <span class="text-danger">*</span></label>
-                        <textarea class="form-control glass-input rounded-3" name="reason" rows="3" placeholder="Nhập lý do từ chối..." required></textarea>
+                    <label class="form-label fw-medium">Lý do từ chối <span class="text-danger">*</span></label>
+                    <div class="approve-toolbar" style="display:flex;gap:0.25rem;flex-wrap:wrap;padding:0.5rem;background:rgba(0,0,0,0.02);border-radius:8px 8px 0 0;border:1px solid rgba(0,0,0,0.08);border-bottom:none;align-items:center;">
+                        <button type="button" onclick="appFmt('bold')" title="In đậm"><i class="fas fa-bold"></i></button>
+                        <button type="button" onclick="appFmt('italic')" title="In nghiêng"><i class="fas fa-italic"></i></button>
+                        <button type="button" onclick="appFmt('underline')" title="Gạch chân"><i class="fas fa-underline"></i></button>
+                        <button type="button" onclick="appFmt('strikethrough')" title="Gạch ngang"><i class="fas fa-strikethrough"></i></button>
+                        <span style="width:1px;background:rgba(0,0,0,0.1);margin:0 4px;height:20px;align-self:center;"></span>
+                        <button type="button" onclick="appFmt('insertUnorderedList')" title="Danh sách"><i class="fas fa-list-ul"></i></button>
+                        <button type="button" onclick="appFmt('insertOrderedList')" title="Số"><i class="fas fa-list-ol"></i></button>
+                        <span style="width:1px;background:rgba(0,0,0,0.1);margin:0 4px;height:20px;align-self:center;"></span>
+                        <select class="form-select form-select-sm" style="width:auto;background-color:transparent;border:none;font-size:0.85rem;"
+                                onchange="appFmt('formatBlock',this.value);this.selectedIndex=0;">
+                            <option value="" hidden>Tiêu đề</option>
+                            <option value="H3">Tiêu đề</option>
+                            <option value="P">Bình thường</option>
+                        </select>
+                        <button type="button" onclick="appFmt('foreColor','#ef4444')" title="Màu đỏ"><i class="fas fa-palette" style="color:#ef4444;"></i></button>
+                        <button type="button" onclick="appFmt('foreColor','#f59e0b')" title="Màu cam"><i class="fas fa-palette" style="color:#f59e0b;"></i></button>
+                        <button type="button" onclick="appFmt('removeFormat')" title="Xóa format"><i class="fas fa-eraser"></i></button>
                     </div>
+                    <div contenteditable="true" id="approveRejectEditor" spellcheck="false" class="approve-editor"
+                         placeholder="Nhập lý do từ chối chi tiết..."></div>
+                    <textarea name="reason" id="approveRejectReason" class="d-none" required></textarea>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
@@ -167,5 +194,8 @@
     </div>
 </div>
 
+<script>
+function appFmt(cmd, val) { document.execCommand(cmd, false, val); document.getElementById('approveRejectEditor').focus(); }
+</script>
 
 <jsp:include page="../footer.jsp" />

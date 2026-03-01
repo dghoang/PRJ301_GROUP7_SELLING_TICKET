@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="header.jsp" />
 
@@ -26,215 +27,298 @@
         </div>
     </div>
 
-    <div class="row g-4 g-lg-5">
-        <!-- Main Content -->
-        <div class="col-lg-8">
-            <!-- Delivery Method -->
-            <div class="glass-strong p-4 rounded-4 mb-4 animate-on-scroll">
-                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
-                    <i class="fas fa-shipping-fast text-primary"></i> Phương thức nhận vé
-                </h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="delivery-option glass p-4 rounded-4 text-center h-100 selected hover-lift" onclick="selectDelivery('email')" data-type="email" style="border: 2px solid var(--primary); cursor: pointer; transition: all 0.3s ease;">
-                            <div class="mb-3">
-                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(219, 39, 119, 0.1));">
-                                    <i class="fas fa-envelope text-primary fa-lg"></i>
-                                </div>
-                            </div>
-                            <h6 class="fw-bold mb-1">Vé điện tử</h6>
-                            <p class="text-muted small mb-2">Nhận qua email ngay sau thanh toán</p>
-                            <span class="badge rounded-pill px-3 py-1" style="background: linear-gradient(135deg, #10b981, #06b6d4);">Miễn phí</span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="delivery-option glass p-4 rounded-4 text-center h-100 hover-lift" onclick="selectDelivery('physical')" data-type="physical" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s ease;">
-                            <div class="mb-3">
-                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: rgba(245, 158, 11, 0.1);">
-                                    <i class="fas fa-ticket-alt text-warning fa-lg"></i>
-                                </div>
-                            </div>
-                            <h6 class="fw-bold mb-1">Vé giấy</h6>
-                            <p class="text-muted small mb-2">Giao đến địa chỉ trong 3-5 ngày</p>
-                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1">+ 30.000đ</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Payment Method -->
-            <div class="glass-strong p-4 rounded-4 mb-4 animate-on-scroll">
-                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
-                    <i class="fas fa-credit-card text-primary"></i> Phương thức thanh toán
-                </h5>
-                <div class="d-flex flex-column gap-3" data-stagger-children="0.1">
-                    <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 selected hover-lift" onclick="selectPayment('momo')" data-type="momo" style="border: 2px solid var(--primary); cursor: pointer; transition: all 0.3s ease;">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #a855f7, #ec4899);">
-                            <span class="fw-bold text-white">M</span>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-0">Ví MoMo</h6>
-                            <small class="text-muted">Thanh toán nhanh chóng qua ví điện tử</small>
-                        </div>
-                        <i class="fas fa-check-circle text-primary fs-5"></i>
-                    </div>
-                    <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 hover-lift" onclick="selectPayment('vnpay')" data-type="vnpay" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s ease;">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #06b6d4, #3b82f6);">
-                            <span class="fw-bold text-white">V</span>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-0">VNPay</h6>
-                            <small class="text-muted">Quét mã QR hoặc thẻ ngân hàng</small>
-                        </div>
-                        <i class="fas fa-check-circle text-muted fs-5"></i>
-                    </div>
-                    <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 hover-lift" onclick="selectPayment('card')" data-type="card" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s ease;">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #1e293b, #475569);">
-                            <i class="fab fa-cc-visa text-white"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-0">Thẻ quốc tế</h6>
-                            <small class="text-muted">Visa, MasterCard, JCB</small>
-                        </div>
-                        <i class="fas fa-check-circle text-muted fs-5"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Promo Code -->
-            <div class="glass-strong p-4 rounded-4 animate-on-scroll">
-                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
-                    <i class="fas fa-tag text-primary"></i> Mã giảm giá
-                </h5>
-                <div class="input-group">
-                    <input type="text" class="form-control py-3 rounded-start-4" placeholder="Nhập mã giảm giá" id="promoCode">
-                    <button class="btn btn-gradient px-4 rounded-end-4 hover-glow" onclick="applyPromo()">Áp dụng</button>
-                </div>
-                <div id="promoResult" class="mt-3"></div>
-            </div>
+    <!-- Error Message -->
+    <c:if test="${not empty error}">
+        <div class="alert alert-danger rounded-4 mb-4 d-flex align-items-center gap-2 animate-on-scroll">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>${error}</span>
         </div>
+    </c:if>
 
-        <!-- Order Summary - Sticky -->
-        <div class="col-lg-4">
-            <div class="position-sticky" style="top: 100px;">
+    <form method="POST" action="${pageContext.request.contextPath}/checkout" id="checkoutForm">
+        <input type="hidden" name="eventId" value="${event.eventId}">
+        <input type="hidden" name="ticketTypeId" value="${selectedTicket.ticketTypeId}">
+        <input type="hidden" name="quantity" value="${quantity}">
+        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+
+        <div class="row g-4 g-lg-5">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Buyer Info -->
+                <div class="glass-strong p-4 rounded-4 mb-4 animate-on-scroll">
+                    <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                        <i class="fas fa-user text-primary"></i> Thông tin người mua
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control py-2 rounded-3" name="buyerName"
+                                   value="${not empty user.fullName ? user.fullName : ''}" required
+                                   placeholder="Nguyễn Văn A">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control py-2 rounded-3" name="buyerEmail"
+                                   value="${not empty user.email ? user.email : ''}" required
+                                   placeholder="email@example.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control py-2 rounded-3" name="buyerPhone"
+                                   value="${not empty user.phone ? user.phone : ''}" required
+                                   placeholder="0901234567">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Ghi chú</label>
+                            <input type="text" class="form-control py-2 rounded-3" name="notes"
+                                   placeholder="Ghi chú cho ban tổ chức (tùy chọn)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Method -->
+                <div class="glass-strong p-4 rounded-4 mb-4 animate-on-scroll">
+                    <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                        <i class="fas fa-shipping-fast text-primary"></i> Phương thức nhận vé
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="delivery-option glass p-4 rounded-4 text-center h-100 selected hover-lift" onclick="selectDelivery('email')" data-type="email" style="border: 2px solid var(--primary); cursor: pointer; transition: all 0.3s;">
+                                <div class="mb-3">
+                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(147,51,234,0.1), rgba(219,39,119,0.1));">
+                                        <i class="fas fa-envelope text-primary fa-lg"></i>
+                                    </div>
+                                </div>
+                                <h6 class="fw-bold mb-1">Vé điện tử (E-Ticket)</h6>
+                                <p class="text-muted small mb-2">Nhận QR code qua email ngay sau thanh toán</p>
+                                <span class="badge rounded-pill px-3 py-1" style="background: linear-gradient(135deg, #10b981, #06b6d4);">Miễn phí · Tức thì</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="delivery-option glass p-4 rounded-4 text-center h-100 hover-lift" onclick="selectDelivery('physical')" data-type="physical" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s;">
+                                <div class="mb-3">
+                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: rgba(245,158,11,0.1);">
+                                        <i class="fas fa-ticket-alt text-warning fa-lg"></i>
+                                    </div>
+                                </div>
+                                <h6 class="fw-bold mb-1">Vé giấy</h6>
+                                <p class="text-muted small mb-2">Giao đến địa chỉ trong 3-5 ngày</p>
+                                <span class="badge bg-warning text-dark rounded-pill px-3 py-1">+ 30.000đ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="glass-strong p-4 rounded-4 mb-4 animate-on-scroll">
+                    <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                        <i class="fas fa-credit-card text-primary"></i> Phương thức thanh toán
+                    </h5>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 selected hover-lift" onclick="selectPayment('seepay')" data-type="seepay" style="border: 2px solid var(--primary); cursor: pointer; transition: all 0.3s;">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #10b981, #06b6d4);">
+                                <i class="fas fa-qrcode text-white"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-0">Chuyển khoản QR <span class="badge bg-success rounded-pill ms-1" style="font-size:10px;">Khuyên dùng</span></h6>
+                                <small class="text-muted">Quét mã QR VietQR qua app ngân hàng</small>
+                            </div>
+                            <i class="fas fa-check-circle text-primary fs-5"></i>
+                        </div>
+                        <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 hover-lift" onclick="selectPayment('momo')" data-type="momo" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s;">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #a855f7, #ec4899);">
+                                <span class="fw-bold text-white">M</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-0">Ví MoMo</h6>
+                                <small class="text-muted">Thanh toán qua ví điện tử</small>
+                            </div>
+                            <i class="fas fa-check-circle text-muted fs-5"></i>
+                        </div>
+                        <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 hover-lift" onclick="selectPayment('vnpay')" data-type="vnpay" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s;">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #06b6d4, #3b82f6);">
+                                <span class="fw-bold text-white">V</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-0">VNPay</h6>
+                                <small class="text-muted">Thẻ ngân hàng, Visa, MasterCard</small>
+                            </div>
+                            <i class="fas fa-check-circle text-muted fs-5"></i>
+                        </div>
+                    </div>
+                    <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="seepay">
+                </div>
+
+                <!-- Promo Code -->
                 <div class="glass-strong p-4 rounded-4 animate-on-scroll">
-                    <h5 class="fw-bold mb-4">Chi tiết đơn hàng</h5>
-
-                    <!-- Event Info -->
-                    <div class="d-flex gap-3 mb-4 pb-4 border-bottom">
-                        <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800" alt="Event" class="rounded-3" style="width: 80px; height: 80px; object-fit: cover;">
-                        <div>
-                            <h6 class="fw-bold mb-1">Đêm nhạc Acoustic</h6>
-                            <p class="small text-muted mb-0">
-                                <i class="far fa-calendar me-1"></i>15/02/2026
-                            </p>
-                            <p class="small text-muted mb-0">
-                                <i class="fas fa-map-marker-alt me-1"></i>Nhà hát Thành phố
-                            </p>
-                        </div>
+                    <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                        <i class="fas fa-tag text-primary"></i> Mã giảm giá
+                    </h5>
+                    <div class="input-group">
+                        <input type="text" class="form-control py-3 rounded-start-4" placeholder="Nhập mã giảm giá" id="promoCode" name="voucherCode">
+                        <button type="button" class="btn btn-gradient px-4 rounded-end-4 hover-glow" onclick="applyPromo()">Áp dụng</button>
                     </div>
+                    <div id="promoResult" class="mt-3"></div>
+                </div>
+            </div>
 
-                    <!-- Tickets -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-muted">Vé VIP x 2</span>
-                            <span>1.500.000 đ</span>
+            <!-- Order Summary - Sticky -->
+            <div class="col-lg-4">
+                <div class="position-sticky" style="top: 100px;">
+                    <div class="glass-strong p-4 rounded-4 animate-on-scroll">
+                        <h5 class="fw-bold mb-4">Chi tiết đơn hàng</h5>
+
+                        <!-- Event Info (Dynamic) -->
+                        <div class="d-flex gap-3 mb-4 pb-4 border-bottom">
+                            <c:choose>
+                                <c:when test="${not empty event.bannerImage}">
+                                    <img src="${event.bannerImage}" alt="${event.title}" class="rounded-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width:80px;height:80px;background:linear-gradient(135deg,#9333ea,#db2777);">
+                                        <i class="fas fa-calendar-alt text-white fa-2x"></i>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                            <div>
+                                <h6 class="fw-bold mb-1">
+                                    <c:out value="${event.title}" default="Sự kiện"/>
+                                </h6>
+                                <p class="small text-muted mb-0">
+                                    <i class="far fa-calendar me-1"></i>
+                                    <c:if test="${not empty event.startDate}">
+                                        <fmt:formatDate value="${event.startDate}" pattern="dd/MM/yyyy HH:mm"/>
+                                    </c:if>
+                                </p>
+                                <p class="small text-muted mb-0">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    <c:out value="${event.location}" default=""/>
+                                </p>
+                            </div>
                         </div>
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-muted">Vé thường x 1</span>
-                            <span>350.000 đ</span>
+
+                        <!-- Ticket Details (Dynamic) -->
+                        <div class="mb-4">
+                            <c:if test="${not empty selectedTicket}">
+                                <div class="d-flex justify-content-between small mb-2">
+                                    <span class="text-muted">${selectedTicket.name} x ${quantity}</span>
+                                    <span><fmt:formatNumber value="${subtotal}" pattern="#,###"/> đ</span>
+                                </div>
+                            </c:if>
                         </div>
+
+                        <!-- Pricing -->
+                        <div class="py-4 border-top border-bottom mb-4">
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-muted">Tạm tính</span>
+                                <span><fmt:formatNumber value="${subtotal}" pattern="#,###"/> đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-muted">Phí dịch vụ</span>
+                                <span>0 đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between small" id="discountRow" style="display: none !important;">
+                                <span class="text-success">Giảm giá</span>
+                                <span class="text-success" id="discountAmount">-0 đ</span>
+                            </div>
+                        </div>
+
+                        <!-- Total -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-5">Tổng cộng</span>
+                            <span class="fw-bold fs-4 text-primary" id="totalAmount">
+                                <fmt:formatNumber value="${subtotal}" pattern="#,###"/> đ
+                            </span>
+                        </div>
+
+                        <!-- Terms -->
+                        <div class="form-check mb-3 p-3 rounded-3" style="background: #f8f5ff; border: 1px solid rgba(147,51,234,0.1);">
+                            <input class="form-check-input" type="checkbox" id="checkoutTerms" required style="margin-top:0.35em;">
+                            <label class="form-check-label small" for="checkoutTerms">
+                                Tôi xác nhận thông tin trên là chính xác và đồng ý với
+                                <strong style="color:#9333ea;">điều khoản mua vé</strong>.
+                            </label>
+                        </div>
+
+                        <!-- Pay Button -->
+                        <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3 fw-bold hover-glow" id="payBtn">
+                            <span id="payBtnText"><i class="fas fa-lock me-2"></i>Thanh toán ngay</span>
+                            <span id="payBtnLoading" class="d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...
+                            </span>
+                        </button>
+
+                        <p class="text-muted small text-center mt-3 mb-0">
+                            <i class="fas fa-shield-alt text-success me-1"></i>Thanh toán an toàn 100% · SSL/TLS
+                        </p>
                     </div>
-
-                    <!-- Pricing -->
-                    <div class="py-4 border-top border-bottom mb-4">
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-muted">Tạm tính</span>
-                            <span>1.850.000 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-muted">Phí dịch vụ</span>
-                            <span>0 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between small" id="discountRow" style="display: none !important;">
-                            <span class="text-success">Giảm giá</span>
-                            <span class="text-success" id="discountAmount">-0 đ</span>
-                        </div>
-                    </div>
-
-                    <!-- Total -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <span class="fw-bold fs-5">Tổng cộng</span>
-                        <span class="fw-bold fs-4 text-primary" id="totalAmount">1.850.000 đ</span>
-                    </div>
-
-                    <!-- Pay Button -->
-                    <button class="btn btn-gradient w-100 py-3 rounded-3 fw-bold hover-glow" onclick="processPayment()">
-                        <span id="payBtnText">Thanh toán ngay</span>
-                        <span id="payBtnLoading" class="d-none">
-                            <span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...
-                        </span>
-                    </button>
-
-                    <p class="text-muted small text-center mt-3 mb-0">
-                        <i class="fas fa-lock me-1"></i>Thanh toán an toàn với SSL
-                    </p>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
 <script>
+var selectedPayment = 'bank_transfer';
+
 function selectDelivery(type) {
-    document.querySelectorAll('.delivery-option').forEach(el => {
+    document.querySelectorAll('.delivery-option').forEach(function(el) {
         el.style.borderColor = 'transparent';
         el.classList.remove('selected');
     });
-    const selected = document.querySelector('.delivery-option[data-type="' + type + '"]');
-    selected.style.borderColor = 'var(--primary)';
-    selected.classList.add('selected');
+    var sel = document.querySelector('.delivery-option[data-type="' + type + '"]');
+    sel.style.borderColor = 'var(--primary)';
+    sel.classList.add('selected');
 }
 
 function selectPayment(type) {
-    document.querySelectorAll('.payment-option').forEach(el => {
+    selectedPayment = type;
+    document.querySelectorAll('.payment-option').forEach(function(el) {
         el.style.borderColor = 'transparent';
         el.classList.remove('selected');
         el.querySelector('.fa-check-circle').classList.remove('text-primary');
         el.querySelector('.fa-check-circle').classList.add('text-muted');
     });
-    const selected = document.querySelector('.payment-option[data-type="' + type + '"]');
-    selected.style.borderColor = 'var(--primary)';
-    selected.classList.add('selected');
-    selected.querySelector('.fa-check-circle').classList.remove('text-muted');
-    selected.querySelector('.fa-check-circle').classList.add('text-primary');
+    var sel = document.querySelector('.payment-option[data-type="' + type + '"]');
+    sel.style.borderColor = 'var(--primary)';
+    sel.classList.add('selected');
+    sel.querySelector('.fa-check-circle').classList.remove('text-muted');
+    sel.querySelector('.fa-check-circle').classList.add('text-primary');
+    document.getElementById('paymentMethodInput').value = type;
 }
 
 function applyPromo() {
-    const code = document.getElementById('promoCode').value.trim();
-    const result = document.getElementById('promoResult');
-    
-    if (code === 'SALE10') {
-        result.innerHTML = '<div class="alert alert-success py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-check-circle"></i>Áp dụng thành công! Giảm 10%</div>';
-        document.getElementById('discountRow').style.display = 'flex';
-        document.getElementById('discountAmount').textContent = '-185.000 đ';
-        document.getElementById('totalAmount').textContent = '1.665.000 đ';
-    } else if (code) {
-        result.innerHTML = '<div class="alert alert-danger py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-times-circle"></i>Mã không hợp lệ hoặc đã hết hạn</div>';
-    }
+    var code = document.getElementById('promoCode').value.trim();
+    var result = document.getElementById('promoResult');
+    if (!code) return;
+    // In production, this would be an AJAX call to validate the voucher
+    result.innerHTML = '<div class="alert alert-info py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-spinner fa-spin"></i>Đang kiểm tra...</div>';
+    setTimeout(function() {
+        result.innerHTML = '<div class="alert alert-warning py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-info-circle"></i>Mã không hợp lệ hoặc đã hết hạn</div>';
+    }, 1000);
 }
 
-function processPayment() {
-    const btnText = document.getElementById('payBtnText');
-    const btnLoading = document.getElementById('payBtnLoading');
-    
-    btnText.classList.add('d-none');
-    btnLoading.classList.remove('d-none');
-    
-    setTimeout(function() {
-        window.location.href = '${pageContext.request.contextPath}/order-confirmation';
-    }, 2000);
-}
+document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+    var terms = document.getElementById('checkoutTerms');
+    if (!terms.checked) {
+        e.preventDefault();
+        terms.parentElement.style.animation = 'shake 0.5s';
+        setTimeout(function() { terms.parentElement.style.animation = ''; }, 500);
+        return;
+    }
+    var btn = document.getElementById('payBtn');
+    btn.disabled = true;
+    document.getElementById('payBtnText').classList.add('d-none');
+    document.getElementById('payBtnLoading').classList.remove('d-none');
+});
 </script>
+
+<style>
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+</style>
 
 <jsp:include page="footer.jsp" />

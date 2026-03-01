@@ -8,6 +8,8 @@ import com.sellingticket.model.User;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
 import com.sellingticket.service.TicketService;
+import com.sellingticket.service.payment.PaymentResult;
+import com.sellingticket.service.payment.SeepayProvider;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -104,10 +106,30 @@ public class CheckoutServlet extends HttpServlet {
                 return;
             }
 
+            order.setOrderId(orderId);
             LOGGER.log(Level.INFO, "Order created: id={0}, user={1}, amount={2}",
                     new Object[]{orderId, user.getUserId(), order.getFinalAmount()});
 
+            // SeePay flow: show QR → wait for IPN → then issue tickets
+            if ("seepay".equals(order.getPaymentMethod())) {
+                PaymentResult paymentResult = orderService.processPayment(order);
+                SeepayProvider sp = new SeepayProvider();
+
+                request.setAttribute("order", order);
+                request.setAttribute("paymentResult", paymentResult);
+                request.setAttribute("bankName", getBankDisplayName(sp.getBankId()));
+                request.setAttribute("accountNo", sp.getAccountNo());
+                request.setAttribute("accountName", sp.getAccountName());
+                request.setAttribute("timeoutMinutes", sp.getTimeoutMinutes());
+                request.getRequestDispatcher("/payment-pending.jsp").forward(request, response);
+                return;
+            }
+
+            // Non-SeePay: issue tickets immediately + redirect
+            int ticketsIssued = orderService.issueTickets(orderId, order.getBuyerName(), order.getBuyerEmail());
+            LOGGER.log(Level.INFO, "Tickets issued: orderId={0}, count={1}", new Object[]{orderId, ticketsIssued});
             redirectAfterPayment(response, orderId, order.getPaymentMethod());
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Checkout error for user=" + user.getUserId(), e);
             showError(request, response, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.");
@@ -184,5 +206,19 @@ public class CheckoutServlet extends HttpServlet {
     private String getParamOrDefault(HttpServletRequest request, String param, String defaultValue) {
         String value = request.getParameter(param);
         return (value != null && !value.isEmpty()) ? value : defaultValue;
+    }
+
+    private String getBankDisplayName(String bankId) {
+        switch (bankId) {
+            case "MB": return "MB Bank (Quân đội)";
+            case "VCB": return "Vietcombank";
+            case "TCB": return "Techcombank";
+            case "ACB": return "ACB";
+            case "VPB": return "VPBank";
+            case "TPB": return "TPBank";
+            case "BIDV": return "BIDV";
+            case "VTB": return "VietinBank";
+            default: return bankId;
+        }
     }
 }

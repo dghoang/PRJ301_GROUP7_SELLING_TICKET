@@ -591,11 +591,14 @@ BEGIN
 END
 GO
 
--- Default Users
+-- Default Users (passwords are BCrypt hashes, NOT plain text)
+-- admin@ticketbox.vn    / Admin@123
+-- organizer@ticketbox.vn / Organizer@123
+-- customer@ticketbox.vn  / Customer@123
 IF NOT EXISTS (SELECT 1 FROM Users WHERE email = 'admin@ticketbox.vn')
 BEGIN
     INSERT INTO Users (email, password_hash, full_name, phone, role, email_verified) VALUES
-    ('admin@ticketbox.vn', 'admin123', N'Admin Ticketbox', '0901234567', 'admin', 1);
+    ('admin@ticketbox.vn', '$2a$12$odAx650SUPsEauwOWzajb.FUMCDzKZWYPLeG2.NlCs3NBxH2N/Pg.', N'Admin Ticketbox', '0901234567', 'admin', 1);
     PRINT 'Admin user created.';
 END
 GO
@@ -603,7 +606,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM Users WHERE email = 'organizer@ticketbox.vn')
 BEGIN
     INSERT INTO Users (email, password_hash, full_name, phone, role, email_verified, bio) VALUES
-    ('organizer@ticketbox.vn', 'organizer123', N'Live Nation VN', '0909876543', 'organizer', 1, N'Nhà tổ chức sự kiện hàng đầu Việt Nam');
+    ('organizer@ticketbox.vn', '$2a$12$Bs2nPLu8UK8GZsy1flBiGewDcqwu4x/KqtksjeYEWRQtcBxgiyNVC', N'Live Nation VN', '0909876543', 'organizer', 1, N'Nhà tổ chức sự kiện hàng đầu Việt Nam');
     PRINT 'Organizer user created.';
 END
 GO
@@ -611,7 +614,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM Users WHERE email = 'customer@ticketbox.vn')
 BEGIN
     INSERT INTO Users (email, password_hash, full_name, phone, role, email_verified) VALUES
-    ('customer@ticketbox.vn', 'customer123', N'Nguyễn Văn A', '0912345678', 'customer', 1);
+    ('customer@ticketbox.vn', '$2a$12$07H.CL1nHx2kzH7oo1odGOClkIg/oK3s7.D/wxcRIL6xjhIo9sYhK', N'Nguyễn Văn A', '0912345678', 'customer', 1);
     PRINT 'Customer user created.';
 END
 GO

@@ -28,7 +28,7 @@
                                 <i class="fas fa-check-circle text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0 counter" data-target="1245">0</h4>
+                                <h4 class="fw-bold mb-0 counter" data-target="${totalPaid != null ? totalPaid : 0}">0</h4>
                                 <small class="text-muted">Đã thanh toán</small>
                             </div>
                         </div>
@@ -41,7 +41,7 @@
                                 <i class="fas fa-clock text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0 counter" data-target="23">0</h4>
+                                <h4 class="fw-bold mb-0 counter" data-target="${totalPending != null ? totalPending : 0}">0</h4>
                                 <small class="text-muted">Chờ thanh toán</small>
                             </div>
                         </div>
@@ -54,7 +54,7 @@
                                 <i class="fas fa-times-circle text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0 counter" data-target="8">0</h4>
+                                <h4 class="fw-bold mb-0 counter" data-target="${totalCanceled != null ? totalCanceled : 0}">0</h4>
                                 <small class="text-muted">Đã hủy</small>
                             </div>
                         </div>
@@ -67,7 +67,7 @@
                                 <i class="fas fa-dollar-sign text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0"><span class="counter" data-target="820">0</span>M</h4>
+                                <h4 class="fw-bold mb-0"><span class="counter" data-target="${totalRevenue != null ? totalRevenue : 0}">0</span>đ</h4>
                                 <small class="text-muted">Tổng doanh thu</small>
                             </div>
                         </div>
@@ -78,12 +78,14 @@
             <!-- Filters -->
             <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll">
                 <div class="card-body d-flex gap-3 flex-wrap align-items-center p-3">
-                    <select class="form-select glass border-0 rounded-3" style="max-width: 200px;">
-                        <option>Tất cả sự kiện</option>
-                        <option>Đêm nhạc Acoustic</option>
-                        <option>Workshop Marketing</option>
-                        <option>EDM Night Festival</option>
-                    </select>
+                    <form action="${pageContext.request.contextPath}/organizer/orders" method="GET" class="d-flex gap-3 align-items-center m-0 p-0" id="filterForm">
+                        <select name="eventId" class="form-select glass border-0 rounded-3" style="max-width: 250px;" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">-- Chọn sự kiện --</option>
+                            <c:forEach var="evt" items="${myEvents}">
+                                <option value="${evt.eventId}" ${selectedEventId == evt.eventId ? 'selected' : ''}>${evt.title}</option>
+                            </c:forEach>
+                        </select>
+                    </form>
                     <select class="form-select glass border-0 rounded-3" style="max-width: 170px;">
                         <option>Tất cả trạng thái</option>
                         <option>Đã thanh toán</option>
@@ -121,79 +123,48 @@
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--secondary)); font-size: 0.75rem;">
-                                                ${order.customerName.charAt(0)}
+                                                <c:out value="${order.buyerName != null && !order.buyerName.isEmpty() ? order.buyerName.substring(0,1).toUpperCase() : 'U'}" />
                                             </div>
                                             <div>
-                                                <span class="fw-medium">${order.customerName}</span>
-                                                <br><small class="text-muted">${order.customerEmail}</small>
+                                                <span class="fw-medium">${order.buyerName}</span>
+                                                <br><small class="text-muted">${order.buyerEmail}</small>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="fw-medium">${order.eventTitle}</td>
-                                    <td>${order.ticketInfo}</td>
-                                    <td class="fw-bold text-primary">${order.total}</td>
-                                    <td><span class="badge rounded-pill px-3 py-2 ${order.status == 'PAID' ? '' : order.status == 'PENDING' ? 'bg-warning text-dark' : 'bg-danger'}"
-                                              style="${order.status == 'PAID' ? 'background: linear-gradient(135deg,#10b981,#06b6d4); color: white;' : ''}">${order.statusText}</span></td>
-                                    <td class="text-muted">${order.createdAt}</td>
+                                    <td>
+                                        <c:forEach var="item" items="${order.items}">
+                                            ${item.ticketTypeName} x ${item.quantity}<br>
+                                        </c:forEach>
+                                    </td>
+                                    <td class="fw-bold text-primary">
+                                        <fmt:formatNumber value="${order.finalAmount}" type="number" maxFractionDigits="0"/>đ
+                                    </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${order.status == 'PAID'}">
+                                                <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg,#10b981,#06b6d4); color: transparent; background-clip: padding-box; -webkit-text-fill-color: white;">Đã thanh toán</span>
+                                            </c:when>
+                                            <c:when test="${order.status == 'PENDING'}">
+                                                <span class="badge rounded-pill px-3 py-2 bg-warning text-dark">Chờ thanh toán</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge rounded-pill px-3 py-2 bg-danger">Đã hủy</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td class="text-muted"><fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm" /></td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-eye text-primary"></i></button>
+                                        <a href="${pageContext.request.contextPath}/organizer/orders/${order.orderId}" class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-eye text-primary"></i></a>
                                     </td>
                                 </tr>
                                 </c:forEach>
                                 <c:if test="${empty orders}">
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td><code class="text-primary fw-bold">#TB20260215001</code></td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--secondary)); font-size: 0.75rem;">N</div>
-                                            <div>
-                                                <span class="fw-medium">Nguyễn Văn A</span>
-                                                <br><small class="text-muted">nguyenvana@email.com</small>
-                                            </div>
-                                        </div>
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <i class="fas fa-box-open fa-3x text-muted opacity-25 mb-3"></i>
+                                        <p class="text-muted mb-0">Chưa có đơn hàng nào.</p>
                                     </td>
-                                    <td class="fw-medium">Đêm nhạc Acoustic</td>
-                                    <td>VIP x 2</td>
-                                    <td class="fw-bold text-primary">1.500.000đ</td>
-                                    <td><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg,#10b981,#06b6d4); color: white;">Đã thanh toán</span></td>
-                                    <td class="text-muted">04/02/2026</td>
-                                    <td class="text-center"><button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-eye text-primary"></i></button></td>
-                                </tr>
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td><code class="text-primary fw-bold">#TB20260215002</code></td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 32px; height: 32px; background: linear-gradient(135deg, #3b82f6, #6366f1); font-size: 0.75rem;">T</div>
-                                            <div>
-                                                <span class="fw-medium">Trần Thị B</span>
-                                                <br><small class="text-muted">tranthib@email.com</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="fw-medium">Đêm nhạc Acoustic</td>
-                                    <td>Thường x 3</td>
-                                    <td class="fw-bold text-primary">1.050.000đ</td>
-                                    <td><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg,#10b981,#06b6d4); color: white;">Đã thanh toán</span></td>
-                                    <td class="text-muted">04/02/2026</td>
-                                    <td class="text-center"><button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-eye text-primary"></i></button></td>
-                                </tr>
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td><code class="text-primary fw-bold">#TB20260214005</code></td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981, #06b6d4); font-size: 0.75rem;">L</div>
-                                            <div>
-                                                <span class="fw-medium">Lê Văn C</span>
-                                                <br><small class="text-muted">levanc@email.com</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="fw-medium">Workshop Marketing</td>
-                                    <td>Standard x 1</td>
-                                    <td class="fw-bold text-primary">500.000đ</td>
-                                    <td><span class="badge bg-warning text-dark rounded-pill px-3 py-2">Chờ thanh toán</span></td>
-                                    <td class="text-muted">03/02/2026</td>
-                                    <td class="text-center"><button class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-eye text-primary"></i></button></td>
                                 </tr>
                                 </c:if>
                             </tbody>

@@ -39,7 +39,7 @@
             </ul>
 
             <form method="POST" action="${pageContext.request.contextPath}/organizer/settings">
-                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                 <%-- Tab Content --%>
                 <div class="tab-content" id="settingsTabContent">
                     <%-- Organization Tab --%>

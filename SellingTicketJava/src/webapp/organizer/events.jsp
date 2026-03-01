@@ -5,7 +5,27 @@
 <jsp:include page="../header.jsp" />
 
 <style>
-/* ======== EVENT GRID STYLES ======== */
+/* ======== STAT CARDS ======== */
+.stat-card {
+    border: none;
+    border-radius: var(--radius-lg);
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    padding: 1.25rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+}
+.stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+}
+
+/* ======== FILTER TABS ======== */
 .filter-tabs .btn {
     border-radius: 50rem;
     font-weight: 500;
@@ -28,6 +48,7 @@
     border-radius: 50rem;
 }
 
+/* ======== EVENT CARDS ======== */
 .event-manage-card {
     border: none;
     border-radius: var(--radius-lg);
@@ -45,7 +66,7 @@
 .event-manage-card .card-img-wrapper {
     position: relative;
     overflow: hidden;
-    height: 160px;
+    height: 170px;
 }
 .event-manage-card .card-img-wrapper img {
     width: 100%; height: 100%;
@@ -62,6 +83,16 @@
     font-size: 0.7rem;
     font-weight: 600;
     backdrop-filter: blur(8px);
+}
+.event-manage-card .category-badge {
+    position: absolute; bottom: 0.75rem; left: 0.75rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 50rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    backdrop-filter: blur(6px);
 }
 .progress-thin {
     height: 4px;
@@ -90,7 +121,7 @@
 }
 .action-dropdown .dropdown-item:hover { background: rgba(147, 51, 234, 0.08); }
 
-/* Empty state */
+/* ======== EMPTY STATE ======== */
 .empty-events {
     text-align: center;
     padding: 4rem 2rem;
@@ -104,13 +135,6 @@
     font-size: 3rem;
     color: var(--primary);
 }
-
-/* Search highlight */
-.search-highlight {
-    background: rgba(147, 51, 234, 0.2);
-    border-radius: 3px;
-    padding: 0 2px;
-}
 </style>
 
 <div class="container-fluid py-4">
@@ -123,6 +147,34 @@
 
         <div class="col-lg-10">
             <!-- Header -->
+            <c:if test="${param.error == 'unapproved_events'}">
+                <div class="alert alert-warning alert-dismissible fade show rounded-4 border-0 d-flex align-items-center mb-4 shadow-sm animate-fadeInDown" role="alert" style="background: rgba(245, 158, 11, 0.1); color: #b45309;">
+                    <i class="fas fa-lock fs-4 me-3"></i>
+                    <div>
+                        <strong>Tính năng bị khóa!</strong> Bạn cần tạo sự kiện và được Admin hệ thống duyệt để có thể sử dụng các chức năng vận hành bán vé (Đơn hàng, Vé, Check-in, Voucher...).
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
+            <c:if test="${param.error == 'no_events'}">
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 d-flex align-items-center mb-4 shadow-sm animate-fadeInDown" role="alert" style="background: rgba(239, 68, 68, 0.1); color: #b91c1c;">
+                    <i class="fas fa-ban fs-4 me-3"></i>
+                    <div>
+                        <strong>Bạn chưa có sự kiện nào!</strong> Để vào trang Tổng quan (Dashboard), vui lòng bấm "Tạo sự kiện" để bắt đầu thiết lập sự kiện đầu tiên của bạn.
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
+            <c:if test="${param.error == 'no_permission'}">
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 d-flex align-items-center mb-4 shadow-sm animate-fadeInDown" role="alert" style="background: rgba(239, 68, 68, 0.1); color: #b91c1c;">
+                    <i class="fas fa-shield-alt fs-4 me-3"></i>
+                    <div>
+                        <strong>Không có quyền truy cập!</strong> Bạn không phải là ban tổ chức hoặc nhân viên của sự kiện này. Vui lòng chỉ truy cập sự kiện mà bạn được phân quyền.
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
+
             <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
                 <div>
                     <h2 class="fw-bold mb-1">Sự kiện của tôi</h2>
@@ -147,15 +199,71 @@
                 </c:choose>
             </div>
 
+            <!-- Summary Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3 animate-on-scroll visible">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background: rgba(147,51,234,0.1); color: #9333ea;">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Tổng sự kiện</div>
+                                <div class="fw-bold fs-5">${countAll}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3 animate-on-scroll visible">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Đang bán</div>
+                                <div class="fw-bold fs-5">${countApproved}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3 animate-on-scroll visible">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background: rgba(6,182,212,0.1); color: #06b6d4;">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Vé đã bán</div>
+                                <div class="fw-bold fs-5"><fmt:formatNumber value="${totalSold}" pattern="#,###"/></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3 animate-on-scroll visible">
+                    <div class="stat-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Doanh thu</div>
+                                <div class="fw-bold fs-5"><fmt:formatNumber value="${totalRevenue}" type="currency" currencySymbol="" maxFractionDigits="0"/>đ</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filter + Search Bar -->
             <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll visible">
                 <div class="card-body d-flex gap-3 flex-wrap align-items-center p-3">
                     <div class="filter-tabs d-flex gap-2 flex-wrap">
-                        <button class="btn active" data-filter="all">Tất cả</button>
-                        <button class="btn" data-filter="approved">Đang bán</button>
-                        <button class="btn" data-filter="pending">Chờ duyệt</button>
-                        <button class="btn" data-filter="draft">Nháp</button>
-                        <button class="btn" data-filter="ended">Đã kết thúc</button>
+                        <button class="btn active" data-filter="all">Tất cả <span class="badge bg-light text-dark ms-1">${countAll}</span></button>
+                        <button class="btn" data-filter="approved">Đang bán <span class="badge bg-light text-dark ms-1">${countApproved}</span></button>
+                        <button class="btn" data-filter="pending">Chờ duyệt <span class="badge bg-light text-dark ms-1">${countPending}</span></button>
+                        <button class="btn" data-filter="draft">Nháp <span class="badge bg-light text-dark ms-1">${countDraft}</span></button>
+                        <button class="btn" data-filter="ended">Đã kết thúc <span class="badge bg-light text-dark ms-1">${countEnded}</span></button>
                     </div>
                     <div class="input-group ms-auto" style="max-width: 260px;">
                         <span class="input-group-text glass border-0 bg-transparent"><i class="fas fa-search text-muted"></i></span>
@@ -170,7 +278,7 @@
                     <div class="col-md-6 col-lg-4 event-item animate-on-scroll visible" data-status="${event.status}" data-title="${event.title}">
                         <div class="event-manage-card" onclick="window.location='${pageContext.request.contextPath}/organizer/events/${event.eventId}'">
                             <div class="card-img-wrapper">
-                                <img src="${event.bannerUrl != null ? event.bannerUrl : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400'}" alt="${event.title}">
+                                <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400'}" alt="${event.title}">
                                 <span class="status-badge
                                     ${event.status == 'approved' ? 'bg-success text-white' : ''}
                                     ${event.status == 'pending' ? 'bg-warning text-dark' : ''}
@@ -178,11 +286,14 @@
                                     ${event.status == 'ended' ? 'bg-dark text-white' : ''}">
                                     ${event.status == 'approved' ? 'Đang bán' : event.status == 'pending' ? 'Chờ duyệt' : event.status == 'draft' ? 'Nháp' : 'Đã kết thúc'}
                                 </span>
+                                <c:if test="${not empty event.categoryName}">
+                                    <span class="category-badge"><i class="fas fa-tag me-1"></i>${event.categoryName}</span>
+                                </c:if>
                             </div>
                             <div class="card-body p-3">
                                 <h6 class="fw-bold mb-2 event-title">${event.title}</h6>
                                 <p class="text-muted small mb-2">
-                                    <i class="far fa-calendar me-1"></i>${event.eventDate}
+                                    <i class="far fa-calendar me-1"></i><fmt:formatDate value="${event.startDate}" pattern="dd/MM/yyyy"/>
                                     <span class="mx-1">&bull;</span>
                                     <i class="fas fa-map-marker-alt me-1"></i>${event.location}
                                 </p>
@@ -201,21 +312,40 @@
                                     </div>
                                 </div>
 
-                                <!-- Actions -->
+                                <!-- Bottom Row: Revenue + Views + Actions -->
                                 <div class="d-flex justify-content-between align-items-center" onclick="event.stopPropagation()">
-                                    <span class="text-success fw-bold small">${event.revenue}</span>
+                                    <div>
+                                        <span class="text-success fw-bold small">
+                                            <fmt:formatNumber value="${event.revenue}" type="currency" currencySymbol="" maxFractionDigits="0"/>đ
+                                        </span>
+                                        <span class="text-muted small ms-2">
+                                            <i class="far fa-eye"></i> ${event.views}
+                                        </span>
+                                    </div>
                                     <div class="action-dropdown dropdown">
                                         <button class="btn btn-sm glass rounded-pill px-2" data-bs-toggle="dropdown">
                                             <i class="fas fa-ellipsis-h text-muted"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/edit"><i class="fas fa-edit me-2 text-primary"></i>Chỉnh sửa</a></li>
+                                            <c:set var="myRole" value="${eventRoles[event.eventId]}" />
+                                            
                                             <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}"><i class="fas fa-eye me-2 text-info"></i>Xem chi tiết</a></li>
-                                            <c:if test="${sessionScope.user.userId == event.organizerId}">
-                                                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/staff"><i class="fas fa-users me-2 text-purple"></i>Nhân sự</a></li>
+                                            
+                                            <!-- Edit: Admin, Owner, Manager, Editor -->
+                                            <c:if test="${myRole == 'admin' || myRole == 'owner' || myRole == 'manager' || myRole == 'editor'}">
+                                                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/edit"><i class="fas fa-edit me-2 text-primary"></i>Chỉnh sửa</a></li>
                                             </c:if>
-                                            <li><hr class="dropdown-divider my-1"></li>
-                                            <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete(${event.eventId}, '${event.title}')"><i class="fas fa-trash me-2"></i>Xóa</a></li>
+
+                                            <!-- Manage Staff: Admin, Owner, Manager -->
+                                            <c:if test="${myRole == 'admin' || myRole == 'owner' || myRole == 'manager'}">
+                                                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/staff"><i class="fas fa-users me-2" style="color:#9333ea;"></i>Nhân sự</a></li>
+                                            </c:if>
+                                            
+                                            <!-- Delete: Admin, Owner -->
+                                            <c:if test="${myRole == 'admin' || myRole == 'owner'}">
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li><a class="dropdown-item text-danger" href="#" data-event-id="${event.eventId}" data-event-title="${event.title}" onclick="confirmDelete(this)"><i class="fas fa-trash me-2"></i>Xóa</a></li>
+                                            </c:if>
                                         </ul>
                                     </div>
                                 </div>
@@ -263,7 +393,7 @@
                 <div class="d-flex gap-3 justify-content-center">
                     <button class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
                     <form id="deleteForm" method="POST">
-                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                         <button type="submit" class="btn btn-danger rounded-pill px-4"><i class="fas fa-trash me-2"></i>Xóa</button>
                     </form>
                 </div>
@@ -274,15 +404,15 @@
 
 <script>
 // ========== FILTER TABS ==========
-document.querySelectorAll('.filter-tabs .btn').forEach(btn => {
+document.querySelectorAll('.filter-tabs .btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-        document.querySelectorAll('.filter-tabs .btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-tabs .btn').forEach(function(b) { b.classList.remove('active'); });
         this.classList.add('active');
-        const filter = this.dataset.filter;
-        let visibleCount = 0;
-        document.querySelectorAll('.event-item').forEach(item => {
-            const status = item.dataset.status;
-            const show = filter === 'all' || status === filter;
+        var filter = this.dataset.filter;
+        var visibleCount = 0;
+        document.querySelectorAll('.event-item').forEach(function(item) {
+            var status = item.dataset.status;
+            var show = filter === 'all' || status === filter;
             item.style.display = show ? '' : 'none';
             if (show) visibleCount++;
         });
@@ -291,15 +421,15 @@ document.querySelectorAll('.filter-tabs .btn').forEach(btn => {
 });
 
 // ========== SEARCH ==========
-let searchTimeout;
+var searchTimeout;
 document.getElementById('eventSearchInput').addEventListener('input', function() {
     clearTimeout(searchTimeout);
-    const query = this.value.trim().toLowerCase();
-    searchTimeout = setTimeout(() => {
-        let visibleCount = 0;
-        document.querySelectorAll('.event-item').forEach(item => {
-            const title = item.dataset.title.toLowerCase();
-            const match = !query || title.includes(query);
+    var query = this.value.trim().toLowerCase();
+    searchTimeout = setTimeout(function() {
+        var visibleCount = 0;
+        document.querySelectorAll('.event-item').forEach(function(item) {
+            var title = item.dataset.title.toLowerCase();
+            var match = !query || title.indexOf(query) !== -1;
             item.style.display = match ? '' : 'none';
             if (match) visibleCount++;
         });
@@ -308,8 +438,10 @@ document.getElementById('eventSearchInput').addEventListener('input', function()
 });
 
 // ========== DELETE MODAL ==========
-function confirmDelete(eventId, eventName) {
-    event.preventDefault();
+function confirmDelete(el) {
+    if (window.event) window.event.preventDefault();
+    var eventId = el.getAttribute('data-event-id');
+    var eventName = el.getAttribute('data-event-title');
     document.getElementById('deleteEventName').textContent = eventName;
     document.getElementById('deleteForm').action = '${pageContext.request.contextPath}/organizer/events/' + eventId + '/delete';
     new bootstrap.Modal(document.getElementById('deleteModal')).show();

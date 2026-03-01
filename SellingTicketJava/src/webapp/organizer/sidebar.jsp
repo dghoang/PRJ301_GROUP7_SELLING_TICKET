@@ -93,7 +93,7 @@
 <div class="organizer-sidebar d-none d-lg-block">
     <div class="sidebar-section-title">Sự kiện</div>
     <nav class="sidebar-nav nav flex-column">
-        <a class="nav-link ${param.activePage == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/events">
+        <a class="nav-link ${param.activePage == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/dashboard">
             <span class="sidebar-icon"><i class="fas fa-th-large"></i></span>Dashboard
         </a>
         <a class="nav-link ${param.activePage == 'events' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/events">
@@ -148,7 +148,7 @@
     <div class="offcanvas-body p-2">
         <div class="sidebar-section-title">Sự kiện</div>
         <nav class="nav flex-column sidebar-nav">
-            <a class="nav-link ${param.activePage == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/events">
+            <a class="nav-link ${param.activePage == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/dashboard">
                 <span class="sidebar-icon"><i class="fas fa-th-large"></i></span>Dashboard
             </a>
             <a class="nav-link ${param.activePage == 'events' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/events">

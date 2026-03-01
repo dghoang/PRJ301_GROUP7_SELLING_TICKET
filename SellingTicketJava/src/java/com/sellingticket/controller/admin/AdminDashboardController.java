@@ -1,8 +1,10 @@
 package com.sellingticket.controller.admin;
 
 import com.sellingticket.model.Event;
+import com.sellingticket.model.Order;
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.EventService;
+import com.sellingticket.service.OrderService;
 import static com.sellingticket.util.ServletUtil.sendJson;
 
 import java.io.IOException;
@@ -27,12 +29,13 @@ import jakarta.servlet.http.HttpServletResponse;
  *   <li>GET /admin/dashboard/chart-data?type=category — JSON category distribution</li>
  * </ul>
  */
-@WebServlet(name = "AdminDashboardController", urlPatterns = {"/admin/dashboard", "/admin/dashboard/chart-data"})
+@WebServlet(name = "AdminDashboardController", urlPatterns = {"/admin", "/admin/dashboard", "/admin/dashboard/chart-data"})
 public class AdminDashboardController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(AdminDashboardController.class.getName());
     private final DashboardService dashboardService = new DashboardService();
     private final EventService eventService = new EventService();
+    private final OrderService orderService = new OrderService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -55,6 +58,11 @@ public class AdminDashboardController extends HttpServlet {
 
             List<Event> pendingEvents = eventService.getPendingEvents();
             request.setAttribute("pendingEventsList", pendingEvents);
+            request.setAttribute("pendingCount", pendingEvents.size());
+
+            // Recent orders for dashboard feed
+            List<Order> recentOrders = orderService.getAllOrders(null, 1, 5);
+            request.setAttribute("recentOrders", recentOrders);
 
             request.getRequestDispatcher("/admin/dashboard.jsp").forward(request, response);
         } catch (Exception e) {

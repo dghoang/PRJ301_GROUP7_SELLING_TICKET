@@ -38,14 +38,20 @@ public class OrganizerDashboardController extends HttpServlet {
             return;
         }
 
+        List<Event> myEvents = eventService.getEventsByOrganizer(user.getUserId());
+
+        // Dashboard Lockout: redirect to events page when user has 0 events
+        if (myEvents.isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/organizer/events?error=no_events");
+            return;
+        }
+
         Map<String, Object> stats = dashboardDAO.getOrganizerDashboardStats(user.getUserId());
 
         request.setAttribute("totalEvents", stats.getOrDefault("myEvents", 0));
         request.setAttribute("approvedEvents", stats.getOrDefault("approvedEvents", 0));
         request.setAttribute("pendingEvents", stats.getOrDefault("pendingEvents", 0));
         request.setAttribute("totalRevenue", stats.getOrDefault("myRevenue", 0.0));
-
-        List<Event> myEvents = eventService.getEventsByOrganizer(user.getUserId());
 
         int totalTicketsSold = 0;
         for (Event event : myEvents) {

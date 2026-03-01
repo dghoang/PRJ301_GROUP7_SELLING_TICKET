@@ -30,6 +30,8 @@ public class EventDAO extends DBContext {
         event.setPrivate(rs.getBoolean("is_private"));
         event.setViews(rs.getInt("views"));
         event.setCreatedAt(rs.getTimestamp("created_at"));
+        try { event.setRejectionReason(rs.getString("rejection_reason")); } catch (SQLException ignored) {}
+        try { event.setRejectedAt(rs.getTimestamp("rejected_at")); } catch (SQLException ignored) {}
         return event;
     }
 
@@ -51,10 +53,10 @@ public class EventDAO extends DBContext {
     public List<Event> getApprovedEvents(boolean featuredOnly, int limit) {
         List<Event> events = new ArrayList<>();
         String where = featuredOnly
-                ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND e.start_date > GETDATE() "
-                : "WHERE e.status = 'approved' AND e.start_date > GETDATE() ";
+                ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND e.start_date > GETDATE() AND (e.is_deleted = 0 OR e.is_deleted IS NULL) "
+                : "WHERE e.status = 'approved' AND e.start_date > GETDATE() AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ";
         String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) + where +
-                     "ORDER BY e.start_date ASC";
+                     "ORDER BY ISNULL(e.pin_order, 0) DESC, e.start_date ASC";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -82,7 +84,7 @@ public class EventDAO extends DBContext {
     public List<Event> searchEvents(String keyword, String category, String dateFilter, int page, int pageSize) {
         List<Event> events = new ArrayList<>();
         StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
-        sql.append("WHERE e.status = 'approved' ");
+        sql.append("WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
@@ -151,11 +153,18 @@ public class EventDAO extends DBContext {
         List<Event> events = new ArrayList<>();
         String sql = "SELECT e.*, c.name as category_name, " +
                      "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
-                     "ISNULL(ts.total_tickets, 0) as total_tickets " +
+                     "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                     "ISNULL(rev.revenue, 0) as revenue " +
                      "FROM Events e " +
                      "JOIN Categories c ON e.category_id = c.category_id " +
                      "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
                      "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                     "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                     "           FROM OrderItems oi " +
+                     "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                     "           JOIN Orders o ON oi.order_id = o.order_id " +
+                     "           WHERE o.status = 'completed' " +
+                     "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
                      "WHERE e.organizer_id = ? ORDER BY e.created_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -166,10 +175,48 @@ public class EventDAO extends DBContext {
                 event.setCategoryName(rs.getString("category_name"));
                 event.setSoldTickets(rs.getInt("sold_tickets"));
                 event.setTotalTickets(rs.getInt("total_tickets"));
+                event.setRevenue(rs.getDouble("revenue"));
                 events.add(event);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
+        }
+        return events;
+    }
+
+    /** Admin view: all events with stats and organizer info. */
+    public List<Event> getAllEventsWithStats() {
+        List<Event> events = new ArrayList<>();
+        String sql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
+                     "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                     "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                     "ISNULL(rev.revenue, 0) as revenue " +
+                     "FROM Events e " +
+                     "JOIN Categories c ON e.category_id = c.category_id " +
+                     "JOIN Users u ON e.organizer_id = u.user_id " +
+                     "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                     "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                     "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                     "           FROM OrderItems oi " +
+                     "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                     "           JOIN Orders o ON oi.order_id = o.order_id " +
+                     "           WHERE o.status = 'completed' " +
+                     "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
+                     "ORDER BY e.created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Event event = mapResultSetToEvent(rs);
+                event.setCategoryName(rs.getString("category_name"));
+                event.setOrganizerName(rs.getString("organizer_name"));
+                event.setSoldTickets(rs.getInt("sold_tickets"));
+                event.setTotalTickets(rs.getInt("total_tickets"));
+                event.setRevenue(rs.getDouble("revenue"));
+                events.add(event);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO.getAllEventsWithStats", e);
         }
         return events;
     }
@@ -239,6 +286,21 @@ public class EventDAO extends DBContext {
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Database error in EventDAO", e);
+        }
+        return false;
+    }
+
+    /** Reject event with a rich-HTML reason. */
+    public boolean updateEventStatusWithReason(int eventId, String status, String reason) {
+        String sql = "UPDATE Events SET status = ?, rejection_reason = ?, rejected_at = GETDATE(), updated_at = GETDATE() WHERE event_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setString(2, reason);
+            ps.setInt(3, eventId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Database error in EventDAO.updateEventStatusWithReason", e);
         }
         return false;
     }
@@ -316,7 +378,15 @@ public class EventDAO extends DBContext {
     }
 
     public boolean deleteEvent(int eventId) {
-        return updateEventStatus(eventId, "deleted");
+        String sql = "UPDATE Events SET is_deleted = 1, status = 'cancelled', updated_at = GETDATE() WHERE event_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, eventId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error soft-deleting event " + eventId, e);
+        }
+        return false;
     }
 
     public List<Event> getAllEvents(String status, int page, int pageSize) {
@@ -407,5 +477,24 @@ public class EventDAO extends DBContext {
             LOGGER.log(Level.SEVERE, "Database error in EventDAO.countSearchEvents", e);
         }
         return 0;
+    }
+
+    /** Pin event to homepage with given priority. Higher = more visible. */
+    public boolean pinEvent(int eventId, int pinOrder) {
+        String sql = "UPDATE Events SET pin_order = ?, updated_at = GETDATE() WHERE event_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pinOrder);
+            ps.setInt(2, eventId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error pinning event " + eventId, e);
+        }
+        return false;
+    }
+
+    /** Unpin event from homepage. */
+    public boolean unpinEvent(int eventId) {
+        return pinEvent(eventId, 0);
     }
 }

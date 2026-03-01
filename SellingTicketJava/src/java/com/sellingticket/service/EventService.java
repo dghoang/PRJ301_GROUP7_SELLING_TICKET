@@ -145,6 +145,16 @@ public class EventService {
     }
 
     /**
+     * Reject an event with rich-HTML reason
+     */
+    public boolean rejectEvent(int eventId, String reason) {
+        if (reason != null && !reason.trim().isEmpty()) {
+            return eventDAO.updateEventStatusWithReason(eventId, "rejected", reason);
+        }
+        return eventDAO.updateEventStatus(eventId, "rejected");
+    }
+
+    /**
      * Toggle featured status
      */
     public boolean setFeatured(int eventId, boolean featured) {
@@ -154,6 +164,16 @@ public class EventService {
             return eventDAO.updateEvent(event);
         }
         return false;
+    }
+
+    /** Pin event to homepage with given priority. */
+    public boolean pinEvent(int eventId, int pinOrder) {
+        return eventDAO.pinEvent(eventId, pinOrder);
+    }
+
+    /** Unpin event from homepage. */
+    public boolean unpinEvent(int eventId) {
+        return eventDAO.unpinEvent(eventId);
     }
 
     // ========================
@@ -195,19 +215,119 @@ public class EventService {
         return eventDAO.countPendingEventsByOrganizer(userId) < 3;
     }
 
+    // ========================
+    // PERMISSION ENGINE
+    // ========================
+
     /**
-     * Check if a user has permission to manage an event (owner or manager/editor staff)
+     * Returns the user's effective role for an event.
+     * Priority: owner > staff role > null
+     * Admin users get "admin" role for any event.
      */
+    public String getUserEventRole(int eventId, int userId, String userRole) {
+        if ("admin".equals(userRole)) return "admin";
+
+        Event event = eventDAO.getEventById(eventId);
+        if (event == null) return null;
+        if (event.getOrganizerId() == userId) return "owner";
+
+        String staffRole = eventStaffDAO.getStaffRole(eventId, userId);
+        return staffRole; // "manager", "editor", "checkin", or null
+    }
+
+    /** Owner + any staff + admin can view event details. */
     public boolean hasManagerPermission(int eventId, int userId) {
+        return hasManagerPermission(eventId, userId, null);
+    }
+
+    public boolean hasManagerPermission(int eventId, int userId, String userRole) {
+        if ("admin".equals(userRole)) return true;
         Event event = eventDAO.getEventById(eventId);
         if (event == null) return false;
-        
-        // Owner always has permission
         if (event.getOrganizerId() == userId) return true;
-        
-        // Check staff table
         return eventStaffDAO.hasPermission(eventId, userId);
     }
+
+    /** Owner + manager + editor + admin can edit event info and tickets. */
+    public boolean hasEditPermission(int eventId, int userId, String userRole) {
+        String role = getUserEventRole(eventId, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role)
+                || "manager".equals(role) || "editor".equals(role);
+    }
+
+    /** Owner + manager + checkin + admin can perform check-in. */
+    public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
+        String role = getUserEventRole(eventId, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role)
+                || "manager".equals(role) || "checkin".equals(role);
+    }
+
+    /** Only owner + admin can delete events. */
+    public boolean hasDeletePermission(int eventId, int userId, String userRole) {
+        String role = getUserEventRole(eventId, userId, userRole);
+        return "admin".equals(role) || "owner".equals(role);
+    }
+
+    /** Owner + manager + admin can manage vouchers and staff. */
+    public boolean hasVoucherPermission(int eventId, int userId, String userRole) {
+        String role = getUserEventRole(eventId, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
+    }
+
+    /** Owner + manager + editor + admin can view statistics. */
+    public boolean hasStatsPermission(int eventId, int userId, String userRole) {
+        return hasEditPermission(eventId, userId, userRole);
+    }
+
+    /**
+     * Checks if the user is associated with any approved events (as owner or staff).
+     * Used to block operational features if the user doesn't have an approved roster.
+     */
+    public boolean hasApprovedEvents(int userId, String role) {
+        if ("admin".equals(role)) return true;
+        List<Event> accessibleEvents = getAccessibleEvents(userId, role);
+        for (Event event : accessibleEvents) {
+            if ("approved".equals(event.getStatus())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns all events a user can access:
+     * - Admin: ALL events in the system
+     * - Others: own events + events where assigned as staff
+     */
+    public List<Event> getAccessibleEvents(int userId, String userRole) {
+        if ("admin".equals(userRole)) {
+            return eventDAO.getAllEventsWithStats();
+        }
+
+        List<Event> ownEvents = eventDAO.getEventsByOrganizer(userId);
+        List<Integer> staffEventIds = eventStaffDAO.getEventsWhereStaff(userId);
+
+        if (staffEventIds.isEmpty()) return ownEvents;
+
+        // Merge: add staff events that aren't already in own list
+        java.util.Set<Integer> ownIds = new java.util.HashSet<>();
+        for (Event e : ownEvents) ownIds.add(e.getEventId());
+
+        for (int staffEventId : staffEventIds) {
+            if (!ownIds.contains(staffEventId)) {
+                Event staffEvent = eventDAO.getEventById(staffEventId);
+                if (staffEvent != null) ownEvents.add(staffEvent);
+            }
+        }
+        return ownEvents;
+    }
+
+    // ========================
+    // EVENT STAFF MANAGEMENT
+    // ========================
 
     public List<EventStaff> getEventStaff(int eventId) {
         return eventStaffDAO.getStaffByEvent(eventId);

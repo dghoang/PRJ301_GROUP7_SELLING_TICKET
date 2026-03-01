@@ -109,7 +109,41 @@ public class OrganizerEventController extends HttpServlet {
 
     private void listEvents(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        request.setAttribute("events", eventService.getEventsByOrganizer(user.getUserId()));
+        String userRole = user.getRole();
+        boolean isAdmin = "admin".equals(userRole);
+        List<Event> events = eventService.getAccessibleEvents(user.getUserId(), userRole);
+        request.setAttribute("events", events);
+        request.setAttribute("isAdmin", isAdmin);
+
+        // Compute user's specific role for each event (to control UI buttons)
+        java.util.Map<Integer, String> eventRoles = new java.util.HashMap<>();
+        for (Event e : events) {
+            eventRoles.put(e.getEventId(), eventService.getUserEventRole(e.getEventId(), user.getUserId(), userRole));
+        }
+        request.setAttribute("eventRoles", eventRoles);
+
+        // Summary stats computed from events list
+        int totalSold = 0;
+        double totalRevenue = 0;
+        int countApproved = 0, countPending = 0, countDraft = 0, countEnded = 0;
+        for (Event e : events) {
+            totalSold += e.getSoldTickets();
+            totalRevenue += e.getRevenue();
+            switch (e.getStatus() != null ? e.getStatus() : "") {
+                case "approved": countApproved++; break;
+                case "pending":  countPending++;  break;
+                case "draft":    countDraft++;     break;
+                default:         countEnded++;     break;
+            }
+        }
+        request.setAttribute("totalSold", totalSold);
+        request.setAttribute("totalRevenue", totalRevenue);
+        request.setAttribute("countAll", events.size());
+        request.setAttribute("countApproved", countApproved);
+        request.setAttribute("countPending", countPending);
+        request.setAttribute("countDraft", countDraft);
+        request.setAttribute("countEnded", countEnded);
+
         request.getRequestDispatcher("/organizer/events.jsp").forward(request, response);
     }
 
@@ -215,8 +249,8 @@ public class OrganizerEventController extends HttpServlet {
 
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         Event existing = (eventId > 0) ? eventService.getEventDetails(eventId) : null;
-        if (existing == null || existing.getOrganizerId() != user.getUserId()) {
-            setToast(request, "Cập nhật thất bại", "error");
+        if (existing == null || !eventService.hasEditPermission(eventId, user.getUserId(), user.getRole())) {
+            setToast(request, "Cập nhật thất bại hoặc không có quyền", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/events");
             return;
         }
@@ -252,12 +286,12 @@ public class OrganizerEventController extends HttpServlet {
             throws IOException {
 
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        Event existing = (eventId > 0) ? eventService.getEventDetails(eventId) : null;
 
-        if (existing != null && existing.getOrganizerId() == user.getUserId() && eventService.deleteEvent(eventId)) {
+        if (eventId > 0 && eventService.hasDeletePermission(eventId, user.getUserId(), user.getRole())
+                && eventService.deleteEvent(eventId)) {
             setToast(request, "Đã xóa sự kiện", "success");
         } else {
-            setToast(request, "Xóa thất bại", "error");
+            setToast(request, "Xóa thất bại hoặc không có quyền", "error");
         }
 
         response.sendRedirect(request.getContextPath() + "/organizer/events");
@@ -271,7 +305,7 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
 
         Event event = getAccessibleEvent(request.getPathInfo(), user);
-        if (event == null || event.getOrganizerId() != user.getUserId()) {
+        if (event == null || !eventService.hasVoucherPermission(event.getEventId(), user.getUserId(), user.getRole())) {
             setToast(request, "Bạn không có quyền quản lý nhân sự", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/events");
             return;
@@ -289,7 +323,7 @@ public class OrganizerEventController extends HttpServlet {
         String email = request.getParameter("email");
         String role = request.getParameter("role");
 
-        if (eventService.hasManagerPermission(eventId, user.getUserId())
+        if (eventService.hasVoucherPermission(eventId, user.getUserId(), user.getRole())
                 && eventService.addEventStaff(eventId, email, role, user.getUserId())) {
             setToast(request, "Đã thêm cộng tác viên!", "success");
         } else {
@@ -305,7 +339,7 @@ public class OrganizerEventController extends HttpServlet {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         int userId = parseIntOrDefault(request.getParameter("userId"), -1);
 
-        if (eventService.hasManagerPermission(eventId, user.getUserId())
+        if (eventService.hasVoucherPermission(eventId, user.getUserId(), user.getRole())
                 && eventService.removeEventStaff(eventId, userId)) {
             setToast(request, "Đã xóa cộng tác viên!", "success");
         } else {
@@ -319,11 +353,11 @@ public class OrganizerEventController extends HttpServlet {
     // UTILITY METHODS
     // ========================
 
-    /** Get event only if the current user has manager permission. */
+    /** Get event only if the current user has manager permission (includes admin bypass). */
     private Event getAccessibleEvent(String pathInfo, User user) {
         int eventId = getIdFromPath(pathInfo);
         if (eventId <= 0) return null;
-        if (!eventService.hasManagerPermission(eventId, user.getUserId())) return null;
+        if (!eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) return null;
         return eventService.getEventDetails(eventId);
     }
 

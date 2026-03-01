@@ -53,13 +53,30 @@ public class UserDAO extends DBContext {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
             ResultSet rs = ps.executeQuery();
-            if (rs.next() && PasswordUtil.checkPassword(password, rs.getString("password_hash"))) {
-                return mapResultSetToUser(rs);
+            if (rs.next()) {
+                String hash = rs.getString("password_hash");
+                if (PasswordUtil.checkPassword(password, hash)) {
+                    return mapResultSetToUser(rs);
+                }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in UserDAO.login", e);
         }
         return null;
+    }
+
+    /** Update last login timestamp and IP address for audit/security. */
+    public boolean updateLastLogin(int userId, String ip) {
+        String sql = "UPDATE Users SET last_login_at = GETDATE(), last_login_ip = ? WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, ip);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to update last login for userId: " + userId, e);
+        }
+        return false;
     }
 
     public boolean register(String email, String password, String fullName, String phone) {
@@ -256,6 +273,18 @@ public class UserDAO extends DBContext {
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to deactivate user: " + userId, e);
+        }
+        return false;
+    }
+
+    public boolean activateUser(int userId) {
+        String sql = "UPDATE Users SET is_active = 1, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to activate user: " + userId, e);
         }
         return false;
     }

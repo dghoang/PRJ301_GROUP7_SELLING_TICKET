@@ -55,6 +55,14 @@ public class DBContext {
             throw new RuntimeException("Failed to load db.properties", e);
         }
 
+        // Load SQL Server JDBC driver explicitly
+        try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("SQL Server JDBC driver not found! "
+                    + "Add mssql-jdbc-*.jar to WEB-INF/lib/", e);
+        }
+
         String server = props.getProperty("db.server", "localhost");
         String port = props.getProperty("db.port", "1433");
         String dbName = props.getProperty("db.name", "SellingTicketDB");

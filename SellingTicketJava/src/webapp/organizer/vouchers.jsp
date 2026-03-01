@@ -94,7 +94,7 @@
                                                 <i class="fas fa-edit me-1"></i>Sửa
                                             </a>
                                             <form method="POST" action="${pageContext.request.contextPath}/organizer/vouchers" style="display:inline;">
-                                                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                                                <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                                                 <input type="hidden" name="action" value="delete"/>
                                                 <input type="hidden" name="voucherId" value="${v.voucherId}"/>
                                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill"
@@ -123,7 +123,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-strong border-0 rounded-4">
             <form method="POST" action="${pageContext.request.contextPath}/organizer/vouchers">
-                <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                 <input type="hidden" name="action" value="create"/>
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold"><i class="fas fa-tags text-primary me-2"></i>Tạo Voucher mới</h5>

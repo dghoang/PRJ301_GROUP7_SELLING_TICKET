@@ -133,28 +133,25 @@ public class CategoryDAO extends DBContext {
     }
 
     /**
-     * Delete a category (only if no events are linked)
+     * Soft-delete a category (only if no active events are linked)
      */
     public boolean deleteCategory(int categoryId) {
-        // First check if there are any events using this category
-        String checkSql = "SELECT COUNT(*) FROM Events WHERE category_id = ?";
-        String deleteSql = "DELETE FROM Categories WHERE category_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM Events WHERE category_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
+        String softDeleteSql = "UPDATE Categories SET is_deleted = 1 WHERE category_id = ?";
         try (Connection conn = getConnection()) {
-            // Check for linked events
             try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
                 checkPs.setInt(1, categoryId);
                 ResultSet rs = checkPs.executeQuery();
                 if (rs.next() && rs.getInt(1) > 0) {
-                    return false; // Cannot delete - events exist
+                    return false; // Cannot delete — active events exist
                 }
             }
-            // Safe to delete
-            try (PreparedStatement deletePs = conn.prepareStatement(deleteSql)) {
+            try (PreparedStatement deletePs = conn.prepareStatement(softDeleteSql)) {
                 deletePs.setInt(1, categoryId);
                 return deletePs.executeUpdate() > 0;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in CategoryDAO", e);
+            LOGGER.log(Level.SEVERE, "Error soft-deleting category", e);
         }
         return false;
     }

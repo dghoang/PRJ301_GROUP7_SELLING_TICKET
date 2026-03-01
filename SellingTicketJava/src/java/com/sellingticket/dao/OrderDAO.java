@@ -221,6 +221,20 @@ public class OrderDAO extends DBContext {
         return false;
     }
 
+    /** Store bank transaction reference from payment gateway webhook. */
+    public boolean updateTransactionId(int orderId, String transactionId) {
+        String sql = "UPDATE Orders SET transaction_id = ?, updated_at = GETDATE() WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, transactionId);
+            ps.setInt(2, orderId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to update transaction_id: id=" + orderId, e);
+        }
+        return false;
+    }
+
     /**
      * Cancel an order and atomically restore ticket quantities.
      */
@@ -269,7 +283,7 @@ public class OrderDAO extends DBContext {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
                      "JOIN Events e ON o.event_id = e.event_id " +
-                     "WHERE o.user_id = ? ORDER BY o.created_at DESC " +
+                     "WHERE o.user_id = ? AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ORDER BY o.created_at DESC " +
                      "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -292,7 +306,7 @@ public class OrderDAO extends DBContext {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
                      "JOIN Events e ON o.event_id = e.event_id " +
-                     "WHERE o.event_id = ? ORDER BY o.created_at DESC " +
+                     "WHERE o.event_id = ? AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ORDER BY o.created_at DESC " +
                      "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

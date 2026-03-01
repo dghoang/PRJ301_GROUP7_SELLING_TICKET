@@ -23,14 +23,20 @@
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'events' ? 'active' : ''}">
                 <i class="fas fa-calendar" style="width: 20px; text-align: center;"></i>Sự kiện
             </a>
-            <a href="${pageContext.request.contextPath}/admin/events/pending" 
+            <a href="${pageContext.request.contextPath}/admin/event-approval" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'event-approval' ? 'active' : ''}">
                 <i class="fas fa-check-circle" style="width: 20px; text-align: center;"></i>Duyệt sự kiện
-                <span class="badge rounded-pill ms-auto" style="background: linear-gradient(135deg, #ef4444, #f97316); font-size: 0.65rem;">3</span>
+                <c:if test="${pendingCount != null && pendingCount > 0}">
+                    <span class="badge rounded-pill ms-auto" style="background: linear-gradient(135deg, #ef4444, #f97316); font-size: 0.65rem;">${pendingCount}</span>
+                </c:if>
             </a>
             <a href="${pageContext.request.contextPath}/admin/categories" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'categories' ? 'active' : ''}">
                 <i class="fas fa-tags" style="width: 20px; text-align: center;"></i>Danh mục
+            </a>
+            <a href="${pageContext.request.contextPath}/admin/orders" 
+               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'orders' ? 'active' : ''}">
+                <i class="fas fa-shopping-bag" style="width: 20px; text-align: center;"></i>Đơn hàng
             </a>
             <a href="${pageContext.request.contextPath}/admin/reports" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'reports' ? 'active' : ''}">

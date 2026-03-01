@@ -51,7 +51,7 @@
                     <ul class="list-unstyled small">
                         <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/create-event" class="text-muted text-decoration-none hover-primary" onclick="return requireLogin(this)">Tạo sự kiện</a></li>
                         <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/events" class="text-muted text-decoration-none hover-primary" onclick="return requireLogin(this)">Quản lý sự kiện</a></li>
-                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none hover-primary">Tính năng</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary">Tính năng</a></li>
                     </ul>
                 </div>
                 
@@ -60,8 +60,8 @@
                     <h6 class="fw-bold mb-3">Hỗ trợ</h6>
                     <ul class="list-unstyled small">
                         <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Trung tâm trợ giúp</a></li>
-                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none hover-primary">Điều khoản</a></li>
-                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none hover-primary">Chính sách</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Điều khoản</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Chính sách</a></li>
                     </ul>
                 </div>
                 
@@ -88,9 +88,9 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <p class="small text-muted mb-0">&copy; 2026 Ticketbox. All rights reserved.</p>
                 <div class="d-flex gap-3">
-                    <a href="#" class="small text-muted text-decoration-none hover-primary">Privacy</a>
-                    <a href="#" class="small text-muted text-decoration-none hover-primary">Terms</a>
-                    <a href="#" class="small text-muted text-decoration-none hover-primary">Cookies</a>
+                    <a href="${pageContext.request.contextPath}/faq" class="small text-muted text-decoration-none hover-primary">Privacy</a>
+                    <a href="${pageContext.request.contextPath}/faq" class="small text-muted text-decoration-none hover-primary">Terms</a>
+                    <a href="javascript:void(0)" onclick="showInfo('Trang web sử dụng cookies để cải thiện trải nghiệm.')" class="small text-muted text-decoration-none hover-primary">Cookies</a>
                 </div>
             </div>
         </div>

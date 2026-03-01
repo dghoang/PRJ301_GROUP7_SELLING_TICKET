@@ -1,6 +1,7 @@
 package com.sellingticket.controller.admin;
 
 import com.sellingticket.model.User;
+import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.UserService;
 import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
 
@@ -18,6 +19,7 @@ public class AdminUserController extends HttpServlet {
 
     private static final Set<String> VALID_ROLES = Set.of("customer", "organizer", "admin");
     private final UserService userService = new UserService();
+    private final DashboardService dashboardService = new DashboardService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -41,6 +43,7 @@ public class AdminUserController extends HttpServlet {
         switch (action) {
             case "update-role": updateRole(request, response); break;
             case "deactivate":  deactivateUser(request, response); break;
+            case "activate":    activateUser(request, response); break;
             default: response.sendRedirect(request.getContextPath() + "/admin/users");
         }
     }
@@ -54,8 +57,20 @@ public class AdminUserController extends HttpServlet {
     private void listUsers(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        request.setAttribute("users", userService.getAllUsers());
-        request.setAttribute("totalUsers", userService.getTotalUsers());
+        List<User> users = userService.getAllUsers();
+        request.setAttribute("users", users);
+        request.setAttribute("totalUsers", users.size());
+        request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
+
+        int active = 0, organizers = 0, locked = 0;
+        for (User u : users) {
+            if (u.isActive()) active++; else locked++;
+            if ("ORGANIZER".equalsIgnoreCase(u.getRole())) organizers++;
+        }
+        request.setAttribute("activeUsers", active);
+        request.setAttribute("organizerCount", organizers);
+        request.setAttribute("lockedUsers", locked);
+
         request.getRequestDispatcher("/admin/users.jsp").forward(request, response);
     }
 
@@ -103,6 +118,12 @@ public class AdminUserController extends HttpServlet {
     private void deactivateUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int userId = parseIntOrDefault(request.getParameter("userId"), -1);
         String result = (userId > 0 && userService.deactivateUser(userId)) ? "success=deactivated" : "error=deactivate_failed";
+        response.sendRedirect(request.getContextPath() + "/admin/users?" + result);
+    }
+
+    private void activateUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        int userId = parseIntOrDefault(request.getParameter("userId"), -1);
+        String result = (userId > 0 && userService.activateUser(userId)) ? "success=activated" : "error=activate_failed";
         response.sendRedirect(request.getContextPath() + "/admin/users?" + result);
     }
 }

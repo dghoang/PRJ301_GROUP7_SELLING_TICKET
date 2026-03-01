@@ -776,9 +776,9 @@
                     </div>
                     
                     <!-- CTA Button -->
-                    <a href="${pageContext.request.contextPath}/ticket-selection?id=${event.eventId}" class="btn-book-ticket">
+                    <a href="#ticket-section" class="btn-book-ticket" onclick="document.getElementById('ticket-section').scrollIntoView({behavior:'smooth'}); return false;">
                         <i class="fas fa-ticket-alt"></i>
-                        Chọn lịch diễn
+                        Chọn vé & Mua ngay
                     </a>
                 </div>
             </div>
@@ -835,8 +835,8 @@
                             <i class="fas fa-info-circle"></i>
                             Giới thiệu sự kiện
                         </h5>
-                        <div class="text-muted lh-lg" style="white-space: pre-line;">
-                            <c:out value="${event.description}" default="Thông tin chi tiết về sự kiện sẽ được cập nhật. Đây là một sự kiện đặc biệt với nhiều hoạt động hấp dẫn, mang đến cho khán giả những trải nghiệm tuyệt vời và đáng nhớ."/>
+                        <div class="text-muted lh-lg event-html-content" style="white-space: normal; overflow-wrap: break-word;">
+                            <c:out value="${event.description}" escapeXml="false" default="Thông tin chi tiết về sự kiện sẽ được cập nhật. Đây là một sự kiện đặc biệt với nhiều hoạt động hấp dẫn, mang đến cho khán giả những trải nghiệm tuyệt vời và đáng nhớ."/>
                         </div>
                     </div>
                     
@@ -861,7 +861,7 @@
                     </div>
                     
                     <!-- Tickets -->
-                    <div class="p-4 p-lg-5">
+                    <div class="p-4 p-lg-5" id="ticket-section">
                         <h5 class="section-title">
                             <i class="fas fa-ticket-alt"></i>
                             Chọn loại vé
@@ -941,21 +941,44 @@
                                         </div>
                                     </c:forEach>
                                     
-                                    <!-- Total -->
-                                    <div class="d-flex justify-content-between align-items-center p-4 mt-2" style="background: white; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6b7280;">
-                                                <i class="fas fa-shopping-cart"></i>
+                                    <!-- Total + Terms + Buy Button -->
+                                    <div class="p-4 mt-2" style="background: white; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6b7280;">
+                                                    <i class="fas fa-shopping-cart"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-muted small">Tổng số lượng</div>
+                                                    <div class="fw-bold fs-5" id="total-tickets">0 vé</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div class="text-muted small">Tổng số lượng</div>
-                                                <div class="fw-bold fs-5" id="total-tickets">0 vé</div>
+                                            <div class="text-end">
+                                                <div class="text-muted small">Tạm tính</div>
+                                                <div class="fw-bold fs-3" style="color: #9333ea;" id="total-price">0đ</div>
                                             </div>
                                         </div>
-                                        <div class="text-end">
-                                            <div class="text-muted small">Tạm tính</div>
-                                            <div class="fw-bold fs-3" style="color: #9333ea;" id="total-price">0đ</div>
+
+                                        <!-- Terms Agreement -->
+                                        <div class="form-check mb-3 p-3" style="background: #f8f5ff; border-radius: 12px; border: 1px solid rgba(147,51,234,0.1);">
+                                            <input class="form-check-input" type="checkbox" id="agreeTerms" style="margin-top: 0.35em;">
+                                            <label class="form-check-label small" for="agreeTerms">
+                                                Tôi đồng ý với <a href="#" class="fw-bold" style="color: #9333ea;" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';">Điều khoản sử dụng</a>,
+                                                <a href="#" class="fw-bold" style="color: #9333ea;" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';">Chính sách bảo mật</a>
+                                                và xác nhận thông tin mua vé là chính xác.
+                                            </label>
                                         </div>
+
+                                        <!-- Buy Button -->
+                                        <button type="button" class="btn w-100 py-3 fw-bold rounded-pill" id="buyBtn"
+                                                style="background: linear-gradient(135deg, #9333ea, #db2777); color: white; font-size: 1.1rem; border: none; box-shadow: 0 8px 25px rgba(147,51,234,0.3); transition: all 0.3s ease;"
+                                                onclick="proceedToCheckout()" disabled>
+                                            <i class="fas fa-lock me-2"></i>Chọn vé để tiếp tục
+                                        </button>
+                                        <p class="text-center text-muted small mt-2 mb-0">
+                                            <i class="fas fa-shield-alt text-success me-1"></i>
+                                            Thanh toán an toàn & bảo mật 100% · Không hoàn vé
+                                        </p>
                                     </div>
                                 </c:when>
                                 <c:otherwise>
@@ -1010,7 +1033,7 @@
                     </div>
                     
                     <!-- Book Button -->
-                    <a href="${pageContext.request.contextPath}/ticket-selection?id=${event.eventId}" class="sidebar-book-btn">
+                    <a href="#ticket-section" class="sidebar-book-btn" onclick="document.getElementById('ticket-section').scrollIntoView({behavior:'smooth'}); return false;">
                         <i class="fas fa-ticket-alt me-2"></i>Mua vé ngay
                     </a>
                     
@@ -1115,36 +1138,138 @@ function updateTotal() {
     
     const totalTicketsEl = document.getElementById('total-tickets');
     const totalPriceEl = document.getElementById('total-price');
+    const buyBtn = document.getElementById('buyBtn');
+    const agreeTerms = document.getElementById('agreeTerms');
     
     if (totalTicketsEl) totalTicketsEl.textContent = totalQty + ' vé';
     if (totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
+    
+    if (buyBtn) {
+        const termsOk = agreeTerms ? agreeTerms.checked : false;
+        if (totalQty > 0 && termsOk) {
+            buyBtn.disabled = false;
+            buyBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Mua ' + totalQty + ' vé — ' + totalPrice.toLocaleString('vi-VN') + 'đ';
+            buyBtn.style.opacity = '1';
+            buyBtn.style.cursor = 'pointer';
+        } else if (totalQty > 0) {
+            buyBtn.disabled = true;
+            buyBtn.innerHTML = '<i class="fas fa-check-square me-2"></i>Vui lòng chấp nhận điều khoản';
+            buyBtn.style.opacity = '0.6';
+        } else {
+            buyBtn.disabled = true;
+            buyBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Chọn vé để tiếp tục';
+            buyBtn.style.opacity = '0.6';
+        }
+    }
 }
 
-// Countdown
-document.addEventListener('DOMContentLoaded', function() {
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 9);
-    
-    function updateCountdown() {
-        const now = new Date();
-        const diff = targetDate - now;
-        
-        if (diff <= 0) return;
-        
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const secs = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        document.getElementById('days').textContent = String(days).padStart(2, '0');
-        document.getElementById('hours').textContent = String(hours).padStart(2, '0');
-        document.getElementById('minutes').textContent = String(mins).padStart(2, '0');
-        document.getElementById('seconds').textContent = String(secs).padStart(2, '0');
+function proceedToCheckout() {
+    var agreeTerms = document.getElementById('agreeTerms');
+    if (!agreeTerms || !agreeTerms.checked) {
+        agreeTerms.parentElement.style.animation = 'shake 0.5s';
+        setTimeout(function() { agreeTerms.parentElement.style.animation = ''; }, 500);
+        return;
     }
     
+    var selectedTicketId = null;
+    var selectedQty = 0;
+    for (var tid in ticketCart) {
+        if (ticketCart[tid].qty > 0) {
+            selectedTicketId = tid;
+            selectedQty = ticketCart[tid].qty;
+            break;
+        }
+    }
+    
+    if (!selectedTicketId) {
+        if (typeof showToast === 'function') showToast('Vui lòng chọn ít nhất 1 vé', 'error');
+        return;
+    }
+    
+    var ctx = document.querySelector('meta[name="ctx"]');
+    var ctxPath = ctx ? ctx.content : '';
+    var checkoutUrl = ctxPath + '/checkout?eventId=${event.eventId}&ticketTypeId=' + selectedTicketId + '&quantity=' + selectedQty;
+    window.location.href = checkoutUrl;
+}
+
+// Terms checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    var agreeEl = document.getElementById('agreeTerms');
+    if (agreeEl) agreeEl.addEventListener('change', updateTotal);
+});
+
+// Countdown using real event date
+document.addEventListener('DOMContentLoaded', function() {
+    var targetDate = new Date('${event.startDate}');
+    if (isNaN(targetDate.getTime())) { targetDate = new Date(); targetDate.setDate(targetDate.getDate() + 9); }
+    
+    function updateCountdown() {
+        var now = new Date();
+        var diff = targetDate - now;
+        if (diff <= 0) { 
+            ['days','hours','minutes','seconds'].forEach(function(id) { document.getElementById(id).textContent = '00'; });
+            return;
+        }
+        document.getElementById('days').textContent = String(Math.floor(diff / 86400000)).padStart(2, '0');
+        document.getElementById('hours').textContent = String(Math.floor((diff % 86400000) / 3600000)).padStart(2, '0');
+        document.getElementById('minutes').textContent = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        document.getElementById('seconds').textContent = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    }
     updateCountdown();
     setInterval(updateCountdown, 1000);
 });
 </script>
 
+<!-- Context Path Meta -->
+<meta name="ctx" content="${pageContext.request.contextPath}">
+
+<!-- Terms & Conditions Modal -->
+<div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);">
+    <div style="display:flex; align-items:center; justify-content:center; height:100%; padding:1rem;">
+        <div style="background:white; border-radius:24px; max-width:600px; width:100%; max-height:80vh; overflow-y:auto; box-shadow:0 25px 60px rgba(0,0,0,0.2);">
+            <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="fas fa-file-contract me-2" style="color:#9333ea;"></i>Điều khoản & Điều kiện</h5>
+                <button type="button" class="btn-close" onclick="document.getElementById('termsModal').style.display='none';"></button>
+            </div>
+            <div class="p-4">
+                <h6 class="fw-bold">1. Điều khoản mua vé</h6>
+                <ul class="small text-muted mb-3">
+                    <li>Vé đã mua <strong>không được hoàn lại</strong> trừ khi sự kiện bị hủy bởi ban tổ chức.</li>
+                    <li>Mỗi giao dịch giới hạn tối đa <strong>10 vé</strong>.</li>
+                    <li>Vé chỉ hợp lệ khi xuất trình mã QR tại cổng check-in.</li>
+                    <li>Mỗi vé chỉ sử dụng <strong>một lần duy nhất</strong>. Không chuyển nhượng, sao chép.</li>
+                </ul>
+                <h6 class="fw-bold">2. Chính sách bảo mật</h6>
+                <ul class="small text-muted mb-3">
+                    <li>Thông tin cá nhân chỉ dùng để xử lý đơn hàng và liên hệ khi cần.</li>
+                    <li>Dữ liệu được mã hóa và bảo vệ theo tiêu chuẩn SSL/TLS.</li>
+                    <li>Chúng tôi không chia sẻ thông tin với bên thứ ba không liên quan.</li>
+                </ul>
+                <h6 class="fw-bold">3. Quy định tham dự</h6>
+                <ul class="small text-muted mb-3">
+                    <li>Khách tham dự cần tuân thủ nội quy của địa điểm tổ chức.</li>
+                    <li>Ban tổ chức có quyền từ chối khách vi phạm nội quy.</li>
+                    <li>Chương trình có thể thay đổi không báo trước.</li>
+                </ul>
+            </div>
+            <div class="p-4 border-top text-end">
+                <button type="button" class="btn rounded-pill px-4 py-2 fw-bold" 
+                        style="background:linear-gradient(135deg,#9333ea,#db2777);color:white;"
+                        onclick="document.getElementById('termsModal').style.display='none'; document.getElementById('agreeTerms').checked=true; updateTotal();">
+                    <i class="fas fa-check me-2"></i>Tôi đồng ý
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+</style>
+
 <jsp:include page="footer.jsp" />
+

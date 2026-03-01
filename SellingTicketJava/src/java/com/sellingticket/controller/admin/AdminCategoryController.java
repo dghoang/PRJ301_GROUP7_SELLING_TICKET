@@ -2,6 +2,7 @@ package com.sellingticket.controller.admin;
 
 import com.sellingticket.model.Category;
 import com.sellingticket.service.CategoryService;
+import com.sellingticket.service.DashboardService;
 import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AdminCategoryController extends HttpServlet {
 
     private final CategoryService categoryService = new CategoryService();
+    private final DashboardService dashboardService = new DashboardService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -47,6 +49,7 @@ public class AdminCategoryController extends HttpServlet {
 
         List<Category> categories = categoryService.getAllCategories();
         request.setAttribute("categories", categories);
+        request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
 
         String editId = request.getParameter("edit");
         if (editId != null) {

@@ -27,6 +27,11 @@ public class Event {
     private double minPrice;
     private int totalTickets;
     private int soldTickets;
+    private double revenue;
+    
+    // Rejection info
+    private String rejectionReason;
+    private Date rejectedAt;
     
     // Associated ticket types (for event detail view)
     private List<TicketType> ticketTypes;
@@ -96,6 +101,15 @@ public class Event {
 
     public int getSoldTickets() { return soldTickets; }
     public void setSoldTickets(int soldTickets) { this.soldTickets = soldTickets; }
+
+    public double getRevenue() { return revenue; }
+    public void setRevenue(double revenue) { this.revenue = revenue; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public Date getRejectedAt() { return rejectedAt; }
+    public void setRejectedAt(Date rejectedAt) { this.rejectedAt = rejectedAt; }
     
     public List<TicketType> getTicketTypes() { return ticketTypes; }
     public void setTicketTypes(List<TicketType> ticketTypes) { this.ticketTypes = ticketTypes; }

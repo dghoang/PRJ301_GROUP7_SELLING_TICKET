@@ -159,7 +159,8 @@
                     </c:if>
 
                     <form action="${pageContext.request.contextPath}/login" method="POST">
-                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+                        <input type="hidden" name="returnUrl" value="${param.returnUrl}"/>
                         <!-- Email -->
                         <div class="mb-4 animate-fadeInUp stagger-1">
                             <label for="email" class="form-label fw-medium">Email</label>
@@ -173,7 +174,7 @@
                         <div class="mb-4 animate-fadeInUp stagger-2">
                             <div class="d-flex justify-content-between">
                                 <label for="password" class="form-label fw-medium">Mật khẩu</label>
-                                <a href="#" class="small text-primary text-decoration-none">Quên mật khẩu?</a>
+                                <a href="javascript:void(0)" onclick="showInfo('Tính năng đặt lại mật khẩu sẽ sớm ra mắt!')" class="small text-primary text-decoration-none">Quên mật khẩu?</a>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
@@ -237,5 +238,6 @@
             }
         }
     </script>
+    <script src="${pageContext.request.contextPath}/assets/js/toast.js"></script>
 </body>
 </html>

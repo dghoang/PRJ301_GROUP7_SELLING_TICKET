@@ -1,7 +1,11 @@
 package com.sellingticket.service;
 
 import com.sellingticket.dao.OrderDAO;
+import com.sellingticket.dao.TicketDAO;
 import com.sellingticket.model.Order;
+import com.sellingticket.service.payment.PaymentFactory;
+import com.sellingticket.service.payment.PaymentProvider;
+import com.sellingticket.service.payment.PaymentResult;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -9,15 +13,17 @@ import java.util.logging.Logger;
 
 /**
  * OrderService - Business logic layer for Order operations.
- * Handles order creation, payment processing, and ticket inventory management.
+ * Uses PaymentFactory for OOP payment routing and TicketDAO for ticket issuance.
  */
 public class OrderService {
 
     private static final Logger LOGGER = Logger.getLogger(OrderService.class.getName());
     private final OrderDAO orderDAO;
+    private final TicketDAO ticketDAO;
 
     public OrderService() {
         this.orderDAO = new OrderDAO();
+        this.ticketDAO = new TicketDAO();
     }
 
     // ========================
@@ -72,8 +78,18 @@ public class OrderService {
     // ========================
 
     /**
-     * Process payment (simulated).
-     * In production, integrate with VNPay, Momo, Stripe, etc.
+     * Process payment using the OOP PaymentFactory.
+     * Routes to the correct PaymentProvider based on paymentMethod.
+     */
+    public PaymentResult processPayment(Order order) {
+        PaymentProvider provider = PaymentFactory.getProvider(order.getPaymentMethod());
+        LOGGER.log(Level.INFO, "Processing payment: order={0}, method={1}, provider={2}",
+                new Object[]{order.getOrderCode(), order.getPaymentMethod(), provider.getMethodName()});
+        return provider.initiatePayment(order);
+    }
+
+    /**
+     * Process payment by orderId (legacy compatibility).
      */
     public boolean processPayment(int orderId, String paymentMethod) {
         LOGGER.log(Level.INFO, "Processing payment for order={0}, method={1}",
@@ -81,8 +97,28 @@ public class OrderService {
         return orderDAO.updateOrderStatus(orderId, "paid");
     }
 
+    /**
+     * Issue individual tickets with JWT QR codes for a paid order.
+     */
+    public int issueTickets(int orderId, String buyerName, String buyerEmail) {
+        return ticketDAO.createTicketsForOrder(orderId, buyerName, buyerEmail);
+    }
+
     public boolean markAsPaid(int orderId) {
         return orderDAO.updateOrderStatus(orderId, "paid");
+    }
+
+    /**
+     * Confirm payment from IPN webhook — mark paid + store bank transaction reference.
+     */
+    public boolean confirmPayment(int orderId, String transactionId) {
+        LOGGER.log(Level.INFO, "Confirming payment: orderId={0}, txRef={1}",
+                new Object[]{orderId, transactionId});
+        boolean statusOk = orderDAO.updateOrderStatus(orderId, "paid");
+        if (statusOk && transactionId != null) {
+            orderDAO.updateTransactionId(orderId, transactionId);
+        }
+        return statusOk;
     }
 
     public boolean cancelOrder(int orderId) {

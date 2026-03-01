@@ -62,8 +62,13 @@ public class OrganizerOrderController extends HttpServlet {
     private void listAllOrders(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
 
-        List<Event> myEvents = eventService.getEventsByOrganizer(user.getUserId());
+        List<Event> myEvents = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
         request.setAttribute("myEvents", myEvents);
+
+        int totalPaid = 0;
+        int totalPending = 0;
+        int totalCanceled = 0;
+        double totalRevenueStr = 0;
 
         String eventIdStr = request.getParameter("eventId");
         if (eventIdStr != null && !eventIdStr.isEmpty()) {
@@ -71,10 +76,29 @@ public class OrganizerOrderController extends HttpServlet {
             boolean ownsEvent = myEvents.stream().anyMatch(e -> e.getEventId() == eventId);
             if (ownsEvent) {
                 int page = parseIntOrDefault(request.getParameter("page"), 1);
-                request.setAttribute("orders", orderService.getOrdersByEvent(eventId, page, 20));
+                
+                // Get all orders for stats (page 1, large size just for stats, this could be optimized later with a DAO count method)
+                List<Order> allOrders = orderService.getOrdersByEvent(eventId, 1, 9999);
+                for (Order o : allOrders) {
+                    if ("PAID".equals(o.getStatus())) {
+                        totalPaid++;
+                        totalRevenueStr += o.getFinalAmount();
+                    } else if ("PENDING".equals(o.getStatus())) {
+                        totalPending++;
+                    } else if ("CANCELED".equals(o.getStatus())) {
+                        totalCanceled++;
+                    }
+                }
+
+                request.setAttribute("orders", orderService.getOrdersByEvent(eventId, page, 50));
                 request.setAttribute("selectedEventId", eventId);
             }
         }
+
+        request.setAttribute("totalPaid", totalPaid);
+        request.setAttribute("totalPending", totalPending);
+        request.setAttribute("totalCanceled", totalCanceled);
+        request.setAttribute("totalRevenue", totalRevenueStr);
 
         request.getRequestDispatcher("/organizer/orders.jsp").forward(request, response);
     }
@@ -83,14 +107,14 @@ public class OrganizerOrderController extends HttpServlet {
             throws ServletException, IOException {
 
         int eventId = getIdFromPath(request.getPathInfo());
-        if (eventId <= 0) {
+        if (eventId <= 0 || !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
             response.sendRedirect(request.getContextPath() + "/organizer/orders?error=access_denied");
             return;
         }
 
         Event event = eventService.getEventDetails(eventId);
-        if (event == null || event.getOrganizerId() != user.getUserId()) {
-            response.sendRedirect(request.getContextPath() + "/organizer/orders?error=access_denied");
+        if (event == null) {
+            response.sendRedirect(request.getContextPath() + "/organizer/orders?error=not_found");
             return;
         }
 
@@ -112,7 +136,7 @@ public class OrganizerOrderController extends HttpServlet {
         }
 
         Event event = eventService.getEventDetails(eventId);
-        if (event == null || event.getOrganizerId() != user.getUserId()) {
+        if (event == null || !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
             response.sendRedirect(request.getContextPath() + "/organizer/orders?error=action_failed");
             return;
         }

@@ -63,6 +63,9 @@ migrate.php
 *.agent
 *.md
 .agent/
+.agents
+.agent
+.agents
 .github/
 .cursor/
 .context

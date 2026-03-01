@@ -191,7 +191,7 @@
                     </c:if>
 
                     <form action="${pageContext.request.contextPath}/register" method="POST">
-                        <input type="hidden" name="csrf_token" value="${csrf_token}"/>
+                        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                         <div class="mb-3 animate-fadeInUp stagger-1">
                             <label for="fullName" class="form-label fw-medium">Họ và tên</label>
                             <div class="input-group">
@@ -212,7 +212,7 @@
                             <label for="phone" class="form-label fw-medium">Số điện thoại</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-phone text-muted"></i></span>
-                                <input type="tel" id="phone" name="phone" required placeholder="0901234567" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                <input type="tel" id="phone" name="phone" placeholder="0901234567" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
                             </div>
                         </div>
 
@@ -221,12 +221,12 @@
                                 <label for="birthDate" class="form-label fw-medium">Ngày sinh</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-calendar text-muted"></i></span>
-                                    <input type="date" id="birthDate" name="birthDate" required class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                    <input type="date" id="birthDate" name="birthDate" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <label for="gender" class="form-label fw-medium">Giới tính</label>
-                                <select id="gender" name="gender" required class="form-select bg-light rounded-3">
+                                <select id="gender" name="gender" class="form-select bg-light rounded-3">
                                     <option value="">Chọn</option>
                                     <option value="male">Nam</option>
                                     <option value="female">Nữ</option>
@@ -289,6 +289,7 @@
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/animations.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/toast.js"></script>
     <script>
         function togglePassword(inputId, iconId) {
             const input = document.getElementById(inputId);

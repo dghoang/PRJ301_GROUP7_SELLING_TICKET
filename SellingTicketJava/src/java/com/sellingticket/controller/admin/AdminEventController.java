@@ -46,6 +46,9 @@ public class AdminEventController extends HttpServlet {
             case "reject":  rejectEvent(request, response); break;
             case "delete":  deleteEvent(request, response); break;
             case "feature": toggleFeatured(request, response); break;
+            case "pin":     pinEvent(request, response); break;
+            case "unpin":   unpinEvent(request, response); break;
+            case "update":  updateEvent(request, response); break;
             default: response.sendRedirect(request.getContextPath() + "/admin/events");
         }
     }
@@ -117,7 +120,9 @@ public class AdminEventController extends HttpServlet {
 
     private void rejectEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        String result = (eventId > 0 && eventService.rejectEvent(eventId)) ? "success=rejected" : "error=reject_failed";
+        String reason = request.getParameter("reason");
+        boolean ok = eventId > 0 && eventService.rejectEvent(eventId, reason);
+        String result = ok ? "success=rejected" : "error=reject_failed";
         response.sendRedirect(request.getContextPath() + "/admin/events?" + result);
     }
 
@@ -132,5 +137,47 @@ public class AdminEventController extends HttpServlet {
         boolean featured = "true".equals(request.getParameter("featured"));
         String result = (eventId > 0 && eventService.setFeatured(eventId, featured)) ? "success=updated" : "error=update_failed";
         response.sendRedirect(request.getContextPath() + "/admin/events?" + result);
+    }
+
+    private void pinEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        int priority = parseIntOrDefault(request.getParameter("priority"), 10);
+        boolean ok = eventId > 0 && eventService.pinEvent(eventId, priority);
+        response.setStatus(ok ? 200 : 400);
+    }
+
+    private void unpinEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        boolean ok = eventId > 0 && eventService.unpinEvent(eventId);
+        response.setStatus(ok ? 200 : 400);
+    }
+
+    private void updateEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        request.setCharacterEncoding("UTF-8");
+        int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        if (eventId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/admin/events?error=invalid");
+            return;
+        }
+
+        Event event = eventService.getEventDetails(eventId);
+        if (event == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/events?error=notfound");
+            return;
+        }
+
+        String title = request.getParameter("title");
+        String location = request.getParameter("location");
+        String status = request.getParameter("status");
+        boolean featured = request.getParameter("featured") != null;
+
+        if (title != null && !title.trim().isEmpty()) event.setTitle(title.trim());
+        if (location != null) event.setLocation(location.trim());
+        if (status != null) event.setStatus(status);
+        event.setFeatured(featured);
+
+        boolean ok = eventService.updateEvent(event);
+        String result = ok ? "success=updated" : "error=update_failed";
+        response.sendRedirect(request.getContextPath() + "/admin/events/" + eventId + "?" + result);
     }
 }

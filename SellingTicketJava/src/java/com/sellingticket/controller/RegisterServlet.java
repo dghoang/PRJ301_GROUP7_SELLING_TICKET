@@ -74,9 +74,13 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // Password strength: min 8 chars, 1 uppercase, 1 digit
+        // Password strength: min 8 chars, max 128, 1 uppercase, 1 digit, 1 special char
         if (password.length() < 8) {
             showError(request, response, "Mật khẩu phải có ít nhất 8 ký tự!");
+            return;
+        }
+        if (password.length() > 128) {
+            showError(request, response, "Mật khẩu tối đa 128 ký tự!");
             return;
         }
         if (!password.matches(".*[A-Z].*")) {
@@ -85,6 +89,10 @@ public class RegisterServlet extends HttpServlet {
         }
         if (!password.matches(".*[0-9].*")) {
             showError(request, response, "Mật khẩu phải có ít nhất 1 chữ số!");
+            return;
+        }
+        if (!password.matches(".*[^a-zA-Z0-9\\s].*")) {
+            showError(request, response, "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%...)!");
             return;
         }
 
