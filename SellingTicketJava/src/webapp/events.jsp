@@ -568,7 +568,7 @@
                                 <div class="event-content">
                                     <span class="event-category">${event.categoryName}</span>
                                     <h3 class="event-title">
-                                        <a href="${pageContext.request.contextPath}/event-detail?id=${event.eventId}">${event.title}</a>
+                                        <a href="${pageContext.request.contextPath}/event/${event.slug}">${event.title}</a>
                                     </h3>
                                     <div class="event-meta">
                                         <div class="event-meta-item">

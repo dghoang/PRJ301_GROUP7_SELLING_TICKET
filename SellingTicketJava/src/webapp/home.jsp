@@ -143,7 +143,7 @@
                             <span class="countdown-label">Giây</span>
                         </div>
                     </div>
-                    <a href="event-detail?id=${bannerEvent.eventId}" class="btn btn-gradient rounded-pill px-4 hover-glow">
+                    <a href="${pageContext.request.contextPath}/event/${bannerEvent.slug}" class="btn btn-gradient rounded-pill px-4 hover-glow">
                         <i class="fas fa-ticket-alt me-2"></i>Mua vé ngay
                     </a>
                 </div>
@@ -191,7 +191,7 @@
                                 </span>
                             </div>
                             <h5 class="fw-bold mb-2 text-truncate-2">
-                                <a href="event-detail?id=${event.eventId}" class="text-dark text-decoration-none stretched-link">
+                                <a href="${pageContext.request.contextPath}/event/${event.slug}" class="text-dark text-decoration-none stretched-link">
                                     ${event.title}
                                 </a>
                             </h5>
@@ -222,7 +222,7 @@
         <div class="row g-4">
             <c:forEach var="event" items="${upcomingEvents}" end="2">
                 <div class="col-lg-4 animate-on-scroll">
-                    <a href="event-detail?id=${event.eventId}" class="text-decoration-none">
+                    <a href="${pageContext.request.contextPath}/event/${event.slug}" class="text-decoration-none">
                         <div class="glass-strong rounded-4 p-4 h-100 hover-lift">
                             <div class="d-flex gap-3">
                                 <div class="text-center">

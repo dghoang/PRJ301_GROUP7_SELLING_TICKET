@@ -287,7 +287,7 @@
                                 <i class="fas fa-lightbulb text-white"></i>
                             </div>
                             <div>
-                                <strong class="d-block mb-1">💡 Mẹo tạo sự kiện thu hút</strong>
+                                <strong class="d-block mb-1"><i class="fas fa-lightbulb text-warning me-1"></i>Mẹo tạo sự kiện thu hút</strong>
                                 <small class="text-muted">Tên sự kiện rõ ràng + ảnh bìa đẹp + mô tả chi tiết = tăng 3x lượt mua vé. Sự kiện sau khi tạo sẽ ở trạng thái <strong>Chờ duyệt</strong> — Admin sẽ xem và phê duyệt trước khi đăng bán.</small>
                             </div>
                         </div>

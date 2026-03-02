@@ -198,9 +198,9 @@
                                                 <td>
                                                     <span class="fw-bold ${loop.index == 0 ? 'text-warning' : loop.index == 1 ? 'text-secondary' : loop.index == 2 ? 'text-danger' : 'text-muted'}">
                                                         <c:choose>
-                                                            <c:when test="${loop.index == 0}">🥇</c:when>
-                                                            <c:when test="${loop.index == 1}">🥈</c:when>
-                                                            <c:when test="${loop.index == 2}">🥉</c:when>
+                                                            <c:when test="${loop.index == 0}"><span class="badge rounded-circle" style="width:24px;height:24px;line-height:24px;background:linear-gradient(135deg,#f59e0b,#f97316);color:white;font-size:0.7rem;">1</span></c:when>
+                                                            <c:when test="${loop.index == 1}"><span class="badge rounded-circle" style="width:24px;height:24px;line-height:24px;background:linear-gradient(135deg,#94a3b8,#64748b);color:white;font-size:0.7rem;">2</span></c:when>
+                                                            <c:when test="${loop.index == 2}"><span class="badge rounded-circle" style="width:24px;height:24px;line-height:24px;background:linear-gradient(135deg,#b45309,#a16207);color:white;font-size:0.7rem;">3</span></c:when>
                                                             <c:otherwise>${loop.count}</c:otherwise>
                                                         </c:choose>
                                                     </span>

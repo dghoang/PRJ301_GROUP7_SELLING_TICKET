@@ -199,7 +199,7 @@
                             <div class="card-body p-4">
                                 <h5 class="fw-bold mb-4"><i class="fas fa-tv text-primary me-2"></i>Cài đặt hiển thị sự kiện</h5>
 
-                                <h6 class="fw-bold mb-3">📌 Sắp xếp & Ghim sự kiện</h6>
+                                <h6 class="fw-bold mb-3"><i class="fas fa-thumbtack text-primary me-2"></i>Sắp xếp & Ghim sự kiện</h6>
                                 <p class="text-muted small mb-3">Kéo thả để thay đổi thứ tự ưu tiên hiển thị trên trang chủ</p>
 
                                 <ul id="sortableList" class="list-unstyled mb-3" style="max-width: 600px;">
@@ -207,7 +207,7 @@
                                         <i class="fas fa-grip-vertical text-muted"></i>
                                         <span class="badge rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:linear-gradient(135deg,#9333ea,#db2777);color:white;font-size:11px;">1</span>
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold small">📌 Ghim trước</div>
+                                            <div class="fw-bold small"><i class="fas fa-thumbtack text-primary me-1"></i>Ghim trước</div>
                                             <div class="text-muted" style="font-size:0.75rem;">Sự kiện admin ghim sẽ luôn ở trên cùng</div>
                                         </div>
                                         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked style="width:2rem;height:1rem;"></div>
@@ -216,7 +216,7 @@
                                         <i class="fas fa-grip-vertical text-muted"></i>
                                         <span class="badge rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:linear-gradient(135deg,#ef4444,#f97316);color:white;font-size:11px;">2</span>
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold small">🔥 Bán chạy nhất</div>
+                                            <div class="fw-bold small"><i class="fas fa-fire text-danger me-1"></i>Bán chạy nhất</div>
                                             <div class="text-muted" style="font-size:0.75rem;">Ưu tiên sự kiện có tỉ lệ bán cao</div>
                                         </div>
                                         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked style="width:2rem;height:1rem;"></div>
@@ -243,7 +243,7 @@
                                         <i class="fas fa-grip-vertical text-muted"></i>
                                         <span class="badge rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;font-size:11px;">5</span>
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold small">💰 Giá thấp → cao</div>
+                                            <div class="fw-bold small"><i class="fas fa-sort-amount-up me-1"></i>Giá thấp → cao</div>
                                             <div class="text-muted" style="font-size:0.75rem;">Hiển thị theo giá tăng dần</div>
                                         </div>
                                         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" style="width:2rem;height:1rem;"></div>
@@ -267,7 +267,7 @@
                                 </div>
 
                                 <hr style="border-color: rgba(0,0,0,0.06);">
-                                <h6 class="fw-bold mb-3">🔧 Quy tắc hiển thị</h6>
+                                <h6 class="fw-bold mb-3"><i class="fas fa-cog text-primary me-2"></i>Quy tắc hiển thị</h6>
 
                                 <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: rgba(0,0,0,0.06) !important;">
                                     <div>

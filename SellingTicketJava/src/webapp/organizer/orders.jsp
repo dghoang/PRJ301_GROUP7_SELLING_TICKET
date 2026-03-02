@@ -13,7 +13,7 @@
 
         <div class="col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
-                <h2 class="fw-bold mb-0">🛒 Đơn hàng</h2>
+                <h2 class="fw-bold mb-0"><i class="fas fa-shopping-cart text-primary me-2"></i>Đơn hàng</h2>
                 <button class="btn glass rounded-pill px-4 hover-lift fw-medium">
                     <i class="fas fa-download me-2 text-success"></i>Xuất Excel
                 </button>

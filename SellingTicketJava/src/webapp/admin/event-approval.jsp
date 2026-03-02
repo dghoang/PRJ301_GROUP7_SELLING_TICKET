@@ -84,9 +84,9 @@
                         <c:forEach var="e" items="${pendingEvents}" varStatus="loop">
                         <div class="col-lg-6 animate-on-scroll stagger-${loop.index % 4}">
                             <div class="card glass-strong border-0 rounded-4 hover-lift overflow-hidden" style="transition: all 0.3s;">
-                                <c:if test="${not empty e.bannerUrl}">
-                                    <div class="position-relative">
-                                        <img src="${e.bannerUrl}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="${e.title}">
+                                <c:if test="${not empty e.bannerImage}">
+                                    <div class="card-img-wrapper" style="position: relative; overflow: hidden; border-radius: var(--radius-xl) var(--radius-xl) 0 0;">
+                                        <img src="${e.bannerImage}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="${e.title}">
                                         <span class="badge position-absolute top-0 end-0 m-3 px-3 py-2 rounded-pill" style="background: linear-gradient(135deg, #f59e0b, #f97316); color: white;">
                                             <i class="fas fa-clock me-1"></i>Chờ duyệt
                                         </span>

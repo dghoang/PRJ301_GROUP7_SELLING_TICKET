@@ -26,30 +26,17 @@
             </div>
 
             <%-- Success/Error Alerts --%>
-            <c:if test="${param.success != null}">
+            <c:if test="${not empty flashSuccess}">
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
                      style="background: rgba(16,185,129,0.1); border-left: 4px solid #10b981 !important;">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <c:choose>
-                        <c:when test="${param.success == 'created'}">Danh mục đã được tạo thành công!</c:when>
-                        <c:when test="${param.success == 'updated'}">Danh mục đã được cập nhật!</c:when>
-                        <c:when test="${param.success == 'deleted'}">Danh mục đã được xóa!</c:when>
-                        <c:otherwise>Thao tác thành công!</c:otherwise>
-                    </c:choose>
+                    <i class="fas fa-check-circle text-success me-2"></i>${flashSuccess}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
-            <c:if test="${param.error != null}">
+            <c:if test="${not empty flashError}">
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
                      style="background: rgba(239,68,68,0.1); border-left: 4px solid #ef4444 !important;">
-                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
-                    <c:choose>
-                        <c:when test="${param.error == 'has_events'}">Không thể xóa danh mục đang có sự kiện!</c:when>
-                        <c:when test="${param.error == 'create_failed'}">Tạo danh mục thất bại. Kiểm tra lại thông tin!</c:when>
-                        <c:when test="${param.error == 'update_failed'}">Cập nhật danh mục thất bại!</c:when>
-                        <c:when test="${param.error == 'delete_failed'}">Xóa danh mục thất bại!</c:when>
-                        <c:otherwise>Có lỗi xảy ra!</c:otherwise>
-                    </c:choose>
+                    <i class="fas fa-exclamation-circle text-danger me-2"></i>${flashError}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>

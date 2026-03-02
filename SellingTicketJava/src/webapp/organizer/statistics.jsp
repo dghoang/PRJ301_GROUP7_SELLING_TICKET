@@ -14,7 +14,7 @@
 
         <div class="col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
-                <h2 class="fw-bold mb-0">📊 Thống kê chi tiết</h2>
+                <h2 class="fw-bold mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Thống kê chi tiết</h2>
                 <button class="btn glass rounded-pill px-4 hover-lift fw-medium">
                     <i class="fas fa-download me-2 text-primary"></i>Xuất báo cáo
                 </button>
@@ -85,7 +85,7 @@
                 <div class="col-lg-8 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
-                            <h5 class="fw-bold mb-0">📈 Doanh thu & Chi phí</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-chart-line text-primary me-2"></i>Doanh thu & Chi phí</h5>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary rounded-start-pill active" onclick="updateStatsChart('7d')">7 ngày</button>
                                 <button class="btn btn-outline-primary" onclick="updateStatsChart('30d')">30 ngày</button>
@@ -100,7 +100,7 @@
                 <div class="col-lg-4 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0">🎫 Tỷ lệ bán theo loại vé</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-ticket-alt text-primary me-2"></i>Tỷ lệ bán theo loại vé</h5>
                         </div>
                         <div class="card-body d-flex align-items-center justify-content-center px-4 pb-4">
                             <canvas id="ticketRatioChart" height="260"></canvas>
@@ -114,7 +114,7 @@
                 <div class="col-lg-6 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0">🕐 Giờ mua vé phổ biến</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-clock text-primary me-2"></i>Giờ mua vé phổ biến</h5>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <canvas id="hourlyChart" height="250"></canvas>
@@ -125,7 +125,7 @@
                 <div class="col-lg-6 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0">📱 Nguồn truy cập</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-mobile-alt text-primary me-2"></i>Nguồn truy cập</h5>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <canvas id="sourceChart" height="250"></canvas>
@@ -137,7 +137,7 @@
             <!-- Event Performance Table -->
             <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0">🏆 Hiệu suất sự kiện</h5>
+                    <h5 class="fw-bold mb-0"><i class="fas fa-trophy text-warning me-2"></i>Hiệu suất sự kiện</h5>
                 </div>
                 <div class="card-body px-4 pb-4">
                     <div class="table-responsive">

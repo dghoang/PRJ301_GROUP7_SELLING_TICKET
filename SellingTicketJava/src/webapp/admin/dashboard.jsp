@@ -19,7 +19,7 @@
             <div class="glass-gradient rounded-4 p-4 mb-4 position-relative overflow-hidden animate-fadeInDown">
                 <div class="row align-items-center">
                     <div class="col-md-8">
-                        <h2 class="fw-bold mb-1">Xin chào, Admin 👋</h2>
+                        <h2 class="fw-bold mb-1">Xin chào, Admin <i class="fas fa-hand-peace text-warning"></i></h2>
                         <p class="text-muted mb-0">Đây là tổng quan hệ thống của bạn hôm nay.</p>
                     </div>
                     <div class="col-md-4 text-end d-none d-md-block">
@@ -33,23 +33,17 @@
             </div>
 
             <%-- Success/Error Alerts for Event Actions --%>
-            <c:if test="${param.success != null}">
+            <c:if test="${not empty flashSuccess}">
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
                      style="background: rgba(16,185,129,0.1); border-left: 4px solid #10b981 !important;">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <c:choose>
-                        <c:when test="${param.success == 'approved'}">Sự kiện đã được duyệt thành công!</c:when>
-                        <c:when test="${param.success == 'rejected'}">Sự kiện đã bị từ chối!</c:when>
-                        <c:otherwise>Thao tác thành công!</c:otherwise>
-                    </c:choose>
+                    <i class="fas fa-check-circle text-success me-2"></i>${flashSuccess}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
-            <c:if test="${param.error != null}">
+            <c:if test="${not empty flashError}">
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
                      style="background: rgba(239,68,68,0.1); border-left: 4px solid #ef4444 !important;">
-                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
-                    Thao tác thất bại! Vui lòng thử lại.
+                    <i class="fas fa-exclamation-circle text-danger me-2"></i>${flashError}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
@@ -57,7 +51,8 @@
             <!-- Stats Cards -->
             <div class="row g-4 mb-4">
                 <div class="col-md-6 col-xl-3 animate-on-scroll">
-                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/events" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift" style="cursor:pointer;">
                         <div class="card-body d-flex align-items-center gap-3 p-4">
                             <div class="dash-icon-box" style="background: linear-gradient(135deg, #9333ea, #a855f7);">
                                 <i class="fas fa-calendar-alt fa-lg text-white"></i>
@@ -69,9 +64,11 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
                 <div class="col-md-6 col-xl-3 animate-on-scroll stagger-1">
-                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/users" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift" style="cursor:pointer;">
                         <div class="card-body d-flex align-items-center gap-3 p-4">
                             <div class="dash-icon-box" style="background: linear-gradient(135deg, #10b981, #06b6d4);">
                                 <i class="fas fa-users fa-lg text-white"></i>
@@ -83,9 +80,11 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
                 <div class="col-md-6 col-xl-3 animate-on-scroll stagger-2">
-                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/orders" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift" style="cursor:pointer;">
                         <div class="card-body d-flex align-items-center gap-3 p-4">
                             <div class="dash-icon-box" style="background: linear-gradient(135deg, #f59e0b, #f97316);">
                                 <i class="fas fa-ticket-alt fa-lg text-white"></i>
@@ -97,9 +96,11 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
                 <div class="col-md-6 col-xl-3 animate-on-scroll stagger-3">
-                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/orders" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift" style="cursor:pointer;">
                         <div class="card-body d-flex align-items-center gap-3 p-4">
                             <div class="dash-icon-box" style="background: linear-gradient(135deg, #3b82f6, #6366f1);">
                                 <i class="fas fa-dollar-sign fa-lg text-white"></i>
@@ -111,6 +112,7 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
             </div>
 
@@ -120,7 +122,7 @@
                 <div class="col-lg-8 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
-                            <h5 class="fw-bold mb-0">📊 Doanh thu & Vé bán</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-chart-area text-primary me-2"></i>Doanh thu & Vé bán</h5>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary rounded-start-pill active" onclick="updateChart('week')">Tuần</button>
                                 <button class="btn btn-outline-primary" onclick="updateChart('month')">Tháng</button>
@@ -136,7 +138,7 @@
                 <div class="col-lg-4 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0">🎯 Phân bổ danh mục</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-bullseye text-primary me-2"></i>Phân bổ danh mục</h5>
                         </div>
                         <div class="card-body d-flex align-items-center justify-content-center px-4 pb-4">
                             <canvas id="categoryChart" height="250"></canvas>
@@ -150,8 +152,8 @@
                 <div class="col-lg-8 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
-                            <h5 class="fw-bold mb-0">🔔 Sự kiện chờ duyệt</h5>
-                            <a href="${pageContext.request.contextPath}/admin/event-approval" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</a>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-bell text-warning me-2"></i>Sự kiện chờ duyệt</h5>
+                            <a href="${pageContext.request.contextPath}/admin/events?status=pending" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</a>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <div class="table-responsive">
@@ -169,7 +171,7 @@
                                         <tr class="hover-lift" style="transition: all 0.2s;">
                                             <td>
                                                 <div class="d-flex align-items-center gap-3">
-                                                    <img src="${event.bannerUrl != null ? event.bannerUrl : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100'}" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
+                                                    <img src="${event.bannerImage != null ? event.bannerImage : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100'}" class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
                                                     <span class="fw-medium">${event.title}</span>
                                                 </div>
                                             </td>
@@ -200,7 +202,7 @@
                                         <tr>
                                             <td colspan="4" class="text-center py-4 text-muted">
                                                 <i class="fas fa-check-circle fa-2x mb-2 opacity-25"></i>
-                                                <p class="mb-0">Không có sự kiện chờ duyệt 🎉</p>
+                                                <p class="mb-0">Không có sự kiện chờ duyệt</p>
                                             </td>
                                         </tr>
                                         </c:if>
@@ -215,7 +217,7 @@
                 <div class="col-lg-4 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
-                            <h5 class="fw-bold mb-0">🛒 Đơn hàng gần đây</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-shopping-cart text-primary me-2"></i>Đơn hàng gần đây</h5>
                             <a href="${pageContext.request.contextPath}/admin/orders" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</a>
                         </div>
                         <div class="card-body px-4 pb-4">

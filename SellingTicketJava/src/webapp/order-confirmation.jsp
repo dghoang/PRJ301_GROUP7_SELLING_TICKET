@@ -74,7 +74,7 @@
 
                 <h1 class="display-5 fw-bold mb-3 animate-fadeInUp stagger-2">Đặt vé thành công!</h1>
                 <p class="text-muted lead mb-5 animate-fadeInUp stagger-3">
-                    Mã QR bên dưới chính là vé điện tử của bạn. Xuất trình khi check-in tại sự kiện! 🎉
+                    Mã QR bên dưới chính là vé điện tử của bạn. Xuất trình khi check-in tại sự kiện! <i class="fas fa-gift text-primary"></i>
                 </p>
 
                 <!-- Order Info Card -->
@@ -210,6 +210,9 @@
                     </a>
                     <a href="${pageContext.request.contextPath}/events" class="btn btn-lg glass rounded-pill px-5 py-3 hover-lift">
                         <i class="fas fa-search me-2"></i> Khám phá thêm
+                    </a>
+                    <a href="${pageContext.request.contextPath}/support/new?orderId=${order.orderId}" class="btn btn-lg btn-outline-warning rounded-pill px-4 py-3 hover-lift">
+                        <i class="fas fa-flag me-2"></i> Báo cáo vấn đề
                     </a>
                 </div>
             </div>

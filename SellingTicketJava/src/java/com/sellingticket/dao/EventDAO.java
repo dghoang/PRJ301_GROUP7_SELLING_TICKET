@@ -149,6 +149,23 @@ public class EventDAO extends DBContext {
         return null;
     }
 
+    public Event getEventBySlug(String slug) {
+        String sql = BASE_SELECT_WITH_JOINS + "WHERE e.slug = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, slug);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                Event event = mapResultSetToEvent(rs);
+                enrichWithJoinedFields(event, rs);
+                return event;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Database error in getEventBySlug", e);
+        }
+        return null;
+    }
+
     public List<Event> getEventsByOrganizer(int organizerId) {
         List<Event> events = new ArrayList<>();
         String sql = "SELECT e.*, c.name as category_name, " +

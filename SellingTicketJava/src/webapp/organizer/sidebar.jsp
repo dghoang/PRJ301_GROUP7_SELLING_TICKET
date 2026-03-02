@@ -133,6 +133,9 @@
         <a class="nav-link ${param.activePage == 'settings' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/settings">
             <span class="sidebar-icon"><i class="fas fa-cog"></i></span>Cài đặt
         </a>
+        <a class="nav-link ${param.activePage == 'support' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/support">
+            <span class="sidebar-icon"><i class="fas fa-headset"></i></span>Hỗ trợ
+        </a>
     </nav>
 </div>
 
@@ -185,6 +188,9 @@
             </a>
             <a class="nav-link ${param.activePage == 'settings' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/settings">
                 <span class="sidebar-icon"><i class="fas fa-cog"></i></span>Cài đặt
+            </a>
+            <a class="nav-link ${param.activePage == 'support' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/support">
+                <span class="sidebar-icon"><i class="fas fa-headset"></i></span>Hỗ trợ
             </a>
         </nav>
     </div>

@@ -3,10 +3,14 @@ package com.sellingticket.controller.admin;
 import com.sellingticket.model.Category;
 import com.sellingticket.service.CategoryService;
 import com.sellingticket.service.DashboardService;
+import com.sellingticket.util.InputValidator;
 import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
+import com.sellingticket.util.FlashUtil;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,12 +20,15 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "AdminCategoryController", urlPatterns = {"/admin/categories", "/admin/categories/*"})
 public class AdminCategoryController extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(AdminCategoryController.class.getName());
+
     private final CategoryService categoryService = new CategoryService();
     private final DashboardService dashboardService = new DashboardService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        FlashUtil.apply(request);
         listCategories(request, response);
     }
 
@@ -29,13 +36,19 @@ public class AdminCategoryController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String action = getAction(request.getPathInfo());
+        try {
+            String action = getAction(request.getPathInfo());
 
-        switch (action) {
-            case "create": createCategory(request, response); break;
-            case "update": updateCategory(request, response); break;
-            case "delete": deleteCategory(request, response); break;
-            default: response.sendRedirect(request.getContextPath() + "/admin/categories");
+            switch (action) {
+                case "create": createCategory(request, response); break;
+                case "update": updateCategory(request, response); break;
+                case "delete": deleteCategory(request, response); break;
+                default: response.sendRedirect(request.getContextPath() + "/admin/categories");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error in AdminCategoryController.doPost", e);
+            FlashUtil.error(request, "Đã xảy ra lỗi, vui lòng thử lại");
+            response.sendRedirect(request.getContextPath() + "/admin/categories");
         }
     }
 
@@ -46,26 +59,31 @@ public class AdminCategoryController extends HttpServlet {
 
     private void listCategories(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        try {
+            List<Category> categories = categoryService.getAllCategories();
+            request.setAttribute("categories", categories);
+            request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
 
-        List<Category> categories = categoryService.getAllCategories();
-        request.setAttribute("categories", categories);
-        request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
-
-        String editId = request.getParameter("edit");
-        if (editId != null) {
-            int categoryId = parseIntOrDefault(editId, -1);
-            if (categoryId > 0) {
-                request.setAttribute("editCategory", categoryService.getCategoryById(categoryId));
+            String editId = request.getParameter("edit");
+            if (editId != null) {
+                int categoryId = parseIntOrDefault(editId, -1);
+                if (categoryId > 0) {
+                    request.setAttribute("editCategory", categoryService.getCategoryById(categoryId));
+                }
             }
-        }
 
-        request.getRequestDispatcher("/admin/categories.jsp").forward(request, response);
+            request.getRequestDispatcher("/admin/categories.jsp").forward(request, response);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load categories", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 
     private void createCategory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String name = request.getParameter("name");
-        if (name == null || name.isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/admin/categories?error=create_failed");
+        if (!InputValidator.isValidCategoryName(name)) {
+            FlashUtil.error(request, "Tên danh mục phải từ 1-100 ký tự!");
+            response.sendRedirect(request.getContextPath() + "/admin/categories");
             return;
         }
 
@@ -74,16 +92,21 @@ public class AdminCategoryController extends HttpServlet {
         category.setIcon(request.getParameter("icon"));
         category.setDescription(request.getParameter("description"));
 
-        String result = categoryService.createCategory(category) ? "success=created" : "error=create_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/categories?" + result);
+        if (categoryService.createCategory(category)) {
+            FlashUtil.success(request, "Danh mục đã được tạo!");
+        } else {
+            FlashUtil.error(request, "Tạo danh mục thất bại!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/categories");
     }
 
     private void updateCategory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int categoryId = parseIntOrDefault(request.getParameter("categoryId"), -1);
         String name = request.getParameter("name");
 
-        if (categoryId <= 0 || name == null || name.isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/admin/categories?error=update_failed");
+        if (categoryId <= 0 || !InputValidator.isValidCategoryName(name)) {
+            FlashUtil.error(request, "Tên danh mục phải từ 1-100 ký tự!");
+            response.sendRedirect(request.getContextPath() + "/admin/categories");
             return;
         }
 
@@ -94,18 +117,27 @@ public class AdminCategoryController extends HttpServlet {
         category.setIcon(request.getParameter("icon"));
         category.setDescription(request.getParameter("description"));
 
-        String result = categoryService.updateCategory(category) ? "success=updated" : "error=update_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/categories?" + result);
+        if (categoryService.updateCategory(category)) {
+            FlashUtil.success(request, "Danh mục đã được cập nhật!");
+        } else {
+            FlashUtil.error(request, "Cập nhật danh mục thất bại!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/categories");
     }
 
     private void deleteCategory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int categoryId = parseIntOrDefault(request.getParameter("categoryId"), -1);
         if (categoryId <= 0) {
-            response.sendRedirect(request.getContextPath() + "/admin/categories?error=delete_failed");
+            FlashUtil.error(request, "Xóa danh mục thất bại!");
+            response.sendRedirect(request.getContextPath() + "/admin/categories");
             return;
         }
 
-        String result = categoryService.deleteCategory(categoryId) ? "success=deleted" : "error=has_events";
-        response.sendRedirect(request.getContextPath() + "/admin/categories?" + result);
+        if (categoryService.deleteCategory(categoryId)) {
+            FlashUtil.success(request, "Danh mục đã được xóa!");
+        } else {
+            FlashUtil.error(request, "Không thể xóa danh mục đang có sự kiện!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/categories");
     }
 }

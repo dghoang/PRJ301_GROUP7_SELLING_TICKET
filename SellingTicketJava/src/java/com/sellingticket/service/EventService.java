@@ -46,6 +46,19 @@ public class EventService {
     }
 
     /**
+     * Get event by slug with all related data.
+     */
+    public Event getEventBySlug(String slug) {
+        Event event = eventDAO.getEventBySlug(slug);
+        if (event != null) {
+            List<TicketType> tickets = ticketTypeDAO.getTicketTypesByEventId(event.getEventId());
+            event.setTicketTypes(tickets);
+            eventDAO.incrementViews(event.getEventId());
+        }
+        return event;
+    }
+
+    /**
      * Get featured events for homepage
      */
     public List<Event> getFeaturedEvents(int limit) {

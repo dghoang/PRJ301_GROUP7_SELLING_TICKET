@@ -5,9 +5,12 @@ import com.sellingticket.model.OrderItem;
 import com.sellingticket.util.DBContext;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class OrderDAO extends DBContext {
 
@@ -165,6 +168,47 @@ public class OrderDAO extends DBContext {
         return items;
     }
 
+    /**
+     * Batch-load order items for multiple orders in a single query.
+     * Eliminates N+1 problem when loading order lists.
+     */
+    private void loadOrderItemsBatch(List<Order> orders) {
+        if (orders.isEmpty()) return;
+
+        String placeholders = orders.stream()
+                .map(o -> "?")
+                .collect(Collectors.joining(","));
+        String sql = "SELECT oi.*, t.name as ticket_name FROM OrderItems oi " +
+                     "JOIN TicketTypes t ON oi.ticket_type_id = t.ticket_type_id " +
+                     "WHERE oi.order_id IN (" + placeholders + ")";
+
+        Map<Integer, List<OrderItem>> itemsByOrderId = new HashMap<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < orders.size(); i++) {
+                ps.setInt(i + 1, orders.get(i).getOrderId());
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                OrderItem item = new OrderItem();
+                item.setOrderItemId(rs.getInt("order_item_id"));
+                item.setOrderId(rs.getInt("order_id"));
+                item.setTicketTypeId(rs.getInt("ticket_type_id"));
+                item.setQuantity(rs.getInt("quantity"));
+                item.setUnitPrice(rs.getDouble("unit_price"));
+                item.setSubtotal(rs.getDouble("subtotal"));
+                item.setTicketTypeName(rs.getString("ticket_name"));
+                itemsByOrderId.computeIfAbsent(item.getOrderId(), k -> new ArrayList<>()).add(item);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to batch-load order items", e);
+        }
+
+        for (Order order : orders) {
+            order.setItems(itemsByOrderId.getOrDefault(order.getOrderId(), new ArrayList<>()));
+        }
+    }
+
     public Order getOrderByCode(String orderCode) {
         String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
                      "JOIN Events e ON o.event_id = e.event_id WHERE o.order_code = ?";
@@ -292,12 +336,14 @@ public class OrderDAO extends DBContext {
             ps.setInt(3, pageSize);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                Order order = mapResultSetToOrder(rs);
-                order.setItems(getOrderItems(order.getOrderId()));
-                orders.add(order);
+                orders.add(mapResultSetToOrder(rs));
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to get orders for userId=" + userId, e);
+        }
+        // Batch-load items in a single query instead of N+1
+        if (!orders.isEmpty()) {
+            loadOrderItemsBatch(orders);
         }
         return orders;
     }

@@ -23,14 +23,13 @@ import jakarta.servlet.http.HttpSession;
 /**
  * Authentication filter — checks session first, then JWT cookies.
  *
- * <p>Flow:
- * <ol>
- *   <li>Check session for logged-in user</li>
- *   <li>If no session → try access token from HttpOnly cookie</li>
- *   <li>If access token expired → try refresh via refresh token cookie</li>
- *   <li>If JWT restored → recreate session automatically</li>
- *   <li>If all fail → redirect to login with returnUrl</li>
- * </ol>
+ * <p>Role-based access:
+ * <ul>
+ *   <li><b>admin</b>: full access to /admin/*</li>
+ *   <li><b>support_agent</b>: restricted to /admin/support and /admin/support/* only</li>
+ *   <li><b>organizer</b>: /organizer/* (handled by OrganizerAccessFilter)</li>
+ *   <li><b>user</b>: /checkout, /tickets, /profile, etc.</li>
+ * </ul>
  */
 @WebFilter(filterName = "AuthFilter", urlPatterns = {
     "/organizer/*", "/admin/*",
@@ -61,12 +60,10 @@ public class AuthFilter implements Filter {
             user = authTokenService.validateAccessToken(httpRequest);
 
             if (user == null) {
-                // Access token expired or missing — try refresh
                 user = authTokenService.refreshAccessToken(httpRequest, httpResponse);
             }
 
             if (user != null) {
-                // Restore session from JWT
                 HttpSession session = httpRequest.getSession(true);
                 session.setAttribute("user", user);
                 session.setAttribute("account", user);
@@ -89,10 +86,39 @@ public class AuthFilter implements Filter {
 
         String role = user.getRole();
 
-        // --- Admin-only area ---
-        if (uri.startsWith(contextPath + "/admin") && !"admin".equals(role)) {
+        // --- Admin area access control ---
+        if (uri.startsWith(contextPath + "/admin")) {
+            if ("admin".equals(role)) {
+                // Admin has full access
+                chain.doFilter(request, response);
+                return;
+            }
+            if ("support_agent".equals(role)) {
+                // Support agent: only /admin/support and /admin/chat-dashboard
+                String adminPath = uri.substring((contextPath + "/admin").length());
+                if (adminPath.equals("/support") || adminPath.startsWith("/support/") ||
+                    adminPath.equals("/support-detail") || adminPath.startsWith("/support-detail/") ||
+                    adminPath.equals("/chat-dashboard") || adminPath.startsWith("/chat-dashboard/")) {
+                    chain.doFilter(request, response);
+                    return;
+                }
+                // Block all other admin pages
+                LOGGER.log(Level.WARNING, "Support agent {0} blocked from {1}", new Object[]{user.getEmail(), uri});
+                httpResponse.sendRedirect(contextPath + "/admin/chat-dashboard");
+                return;
+            }
+            // All other roles: no admin access
             httpResponse.sendRedirect(contextPath + "/home?error=unauthorized");
             return;
+        }
+
+        // --- Organizer area access control ---
+        if (uri.startsWith(contextPath + "/organizer")) {
+            if ("support_agent".equals(role)) {
+                LOGGER.log(Level.WARNING, "Support agent {0} blocked from {1}", new Object[]{user.getEmail(), uri});
+                httpResponse.sendRedirect(contextPath + "/admin/chat-dashboard");
+                return;
+            }
         }
 
         chain.doFilter(request, response);
@@ -101,4 +127,3 @@ public class AuthFilter implements Filter {
     @Override
     public void destroy() {}
 }
-

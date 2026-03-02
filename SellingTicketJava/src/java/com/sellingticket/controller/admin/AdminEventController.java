@@ -5,6 +5,7 @@ import com.sellingticket.model.Event;
 import com.sellingticket.service.CategoryService;
 import com.sellingticket.service.EventService;
 import static com.sellingticket.util.ServletUtil.*;
+import com.sellingticket.util.FlashUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,6 +28,7 @@ public class AdminEventController extends HttpServlet {
             throws ServletException, IOException {
 
         String action = getAction(request.getPathInfo());
+        FlashUtil.apply(request);
 
         switch (action) {
             case "pending": listPendingEvents(request, response); break;
@@ -62,24 +64,38 @@ public class AdminEventController extends HttpServlet {
     private void listEvents(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String status = request.getParameter("status");
-        int page = parseIntOrDefault(request.getParameter("page"), 1);
+        try {
+            String status = request.getParameter("status");
+            int page = parseIntOrDefault(request.getParameter("page"), 1);
 
-        List<Event> events = eventService.getAllEvents(status, page, 20);
+            List<Event> events = eventService.getAllEvents(status, page, 20);
 
-        request.setAttribute("events", events);
-        request.setAttribute("currentPage", page);
-        request.setAttribute("statusFilter", status);
-        request.setAttribute("categories", categoryService.getAllCategories());
+            request.setAttribute("events", events);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("statusFilter", status);
+            request.setAttribute("categories", categoryService.getAllCategories());
 
-        // Single query for all counts (was 3 separate countEventsByStatus calls)
-        Map<String, Object> stats = dashboardDAO.getAdminDashboardStats();
-        int approved = ((Number) stats.getOrDefault("approvedEvents", 0)).intValue();
-        int pending = ((Number) stats.getOrDefault("pendingEvents", 0)).intValue();
-        int total = ((Number) stats.getOrDefault("totalEvents", 0)).intValue();
-        request.setAttribute("approvedCount", approved);
-        request.setAttribute("pendingCount", pending);
-        request.setAttribute("rejectedCount", total - approved - pending);
+            // Single query for all counts — wrapped in try-catch to prevent page crash
+            try {
+                Map<String, Object> stats = dashboardDAO.getAdminDashboardStats();
+                int approved = ((Number) stats.getOrDefault("approvedEvents", 0)).intValue();
+                int pending = ((Number) stats.getOrDefault("pendingEvents", 0)).intValue();
+                int total = ((Number) stats.getOrDefault("totalEvents", 0)).intValue();
+                request.setAttribute("approvedCount", approved);
+                request.setAttribute("pendingCount", pending);
+                request.setAttribute("rejectedCount", total - approved - pending);
+            } catch (Exception e) {
+                request.setAttribute("approvedCount", 0);
+                request.setAttribute("pendingCount", 0);
+                request.setAttribute("rejectedCount", 0);
+            }
+        } catch (Exception e) {
+            request.setAttribute("events", new java.util.ArrayList<>());
+            request.setAttribute("currentPage", 1);
+            request.setAttribute("approvedCount", 0);
+            request.setAttribute("pendingCount", 0);
+            request.setAttribute("rejectedCount", 0);
+        }
 
         request.getRequestDispatcher("/admin/events.jsp").forward(request, response);
     }
@@ -109,34 +125,46 @@ public class AdminEventController extends HttpServlet {
             }
         }
 
-        response.sendRedirect(request.getContextPath() + "/admin/events?error=notfound");
+        response.sendRedirect(request.getContextPath() + "/admin/events");
     }
 
     private void approveEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        String result = (eventId > 0 && eventService.approveEvent(eventId)) ? "success=approved" : "error=approve_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/events?" + result);
+        if (eventId > 0 && eventService.approveEvent(eventId)) {
+            FlashUtil.success(request, "Sự kiện đã được duyệt thành công!");
+        } else {
+            FlashUtil.error(request, "Duyệt sự kiện thất bại!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/events");
     }
 
     private void rejectEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         String reason = request.getParameter("reason");
         boolean ok = eventId > 0 && eventService.rejectEvent(eventId, reason);
-        String result = ok ? "success=rejected" : "error=reject_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/events?" + result);
+        if (ok) {
+            FlashUtil.success(request, "Sự kiện đã bị từ chối!");
+        } else {
+            FlashUtil.error(request, "Từ chối sự kiện thất bại!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/events");
     }
 
     private void deleteEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        String result = (eventId > 0 && eventService.deleteEvent(eventId)) ? "success=deleted" : "error=delete_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/events?" + result);
+        if (eventId > 0 && eventService.deleteEvent(eventId)) {
+            FlashUtil.success(request, "Sự kiện đã được xóa!");
+        } else {
+            FlashUtil.error(request, "Xóa sự kiện thất bại!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/events");
     }
 
     private void toggleFeatured(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         boolean featured = "true".equals(request.getParameter("featured"));
         String result = (eventId > 0 && eventService.setFeatured(eventId, featured)) ? "success=updated" : "error=update_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/events?" + result);
+        response.sendRedirect(request.getContextPath() + "/admin/events");
     }
 
     private void pinEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -156,13 +184,15 @@ public class AdminEventController extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         if (eventId <= 0) {
-            response.sendRedirect(request.getContextPath() + "/admin/events?error=invalid");
+            FlashUtil.error(request, "Dữ liệu không hợp lệ!");
+            response.sendRedirect(request.getContextPath() + "/admin/events");
             return;
         }
 
         Event event = eventService.getEventDetails(eventId);
         if (event == null) {
-            response.sendRedirect(request.getContextPath() + "/admin/events?error=notfound");
+            FlashUtil.error(request, "Không tìm thấy sự kiện!");
+            response.sendRedirect(request.getContextPath() + "/admin/events");
             return;
         }
 
@@ -177,7 +207,11 @@ public class AdminEventController extends HttpServlet {
         event.setFeatured(featured);
 
         boolean ok = eventService.updateEvent(event);
-        String result = ok ? "success=updated" : "error=update_failed";
-        response.sendRedirect(request.getContextPath() + "/admin/events/" + eventId + "?" + result);
+        if (ok) {
+            FlashUtil.success(request, "Cập nhật sự kiện thành công!");
+        } else {
+            FlashUtil.error(request, "Cập nhật sự kiện thất bại!");
+        }
+        response.sendRedirect(request.getContextPath() + "/admin/events/" + eventId);
     }
 }

@@ -11,10 +11,6 @@
             <span class="fw-bold text-primary">Admin Panel</span>
         </div>
         <nav class="nav flex-column sidebar-nav gap-1">
-            <a href="${pageContext.request.contextPath}/admin" 
-               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'dashboard' ? 'active' : ''}">
-                <i class="fas fa-tachometer-alt" style="width: 20px; text-align: center;"></i>Dashboard
-            </a>
             <a href="${pageContext.request.contextPath}/admin/users" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'users' ? 'active' : ''}">
                 <i class="fas fa-users" style="width: 20px; text-align: center;"></i>Người dùng
@@ -22,10 +18,6 @@
             <a href="${pageContext.request.contextPath}/admin/events" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'events' ? 'active' : ''}">
                 <i class="fas fa-calendar" style="width: 20px; text-align: center;"></i>Sự kiện
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/event-approval" 
-               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'event-approval' ? 'active' : ''}">
-                <i class="fas fa-check-circle" style="width: 20px; text-align: center;"></i>Duyệt sự kiện
                 <c:if test="${pendingCount != null && pendingCount > 0}">
                     <span class="badge rounded-pill ms-auto" style="background: linear-gradient(135deg, #ef4444, #f97316); font-size: 0.65rem;">${pendingCount}</span>
                 </c:if>
@@ -37,6 +29,17 @@
             <a href="${pageContext.request.contextPath}/admin/orders" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'orders' ? 'active' : ''}">
                 <i class="fas fa-shopping-bag" style="width: 20px; text-align: center;"></i>Đơn hàng
+            </a>
+            <a href="${pageContext.request.contextPath}/admin/support" 
+               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'support' ? 'active' : ''}">
+                <i class="fas fa-headset" style="width: 20px; text-align: center;"></i>Hỗ trợ
+                <c:if test="${openTickets > 0}">
+                    <span class="badge rounded-pill ms-auto" style="background: linear-gradient(135deg, #f59e0b, #f97316); font-size: 0.65rem;">${openTickets}</span>
+                </c:if>
+            </a>
+            <a href="${pageContext.request.contextPath}/admin/chat-dashboard" 
+               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'chat' ? 'active' : ''}">
+                <i class="fas fa-comments" style="width: 20px; text-align: center;"></i>Chat
             </a>
             <a href="${pageContext.request.contextPath}/admin/reports" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'reports' ? 'active' : ''}">

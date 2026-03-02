@@ -14,33 +14,20 @@
 
         <div class="col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
-                <h2 class="fw-bold mb-0">👥 Quản lý người dùng</h2>
+                <h2 class="fw-bold mb-0"><i class="fas fa-users text-primary me-2"></i>Quản lý người dùng</h2>
             </div>
 
-            <%-- Success/Error Alerts --%>
-            <c:if test="${param.success != null}">
+            <c:if test="${not empty flashSuccess}">
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
                      style="background: rgba(16,185,129,0.1); border-left: 4px solid #10b981 !important;">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <c:choose>
-                        <c:when test="${param.success == 'deactivated'}">Người dùng đã bị khóa!</c:when>
-                        <c:when test="${param.success == 'activated'}">Người dùng đã được mở khóa!</c:when>
-                        <c:when test="${param.success == 'role_updated'}">Cập nhật vai trò thành công!</c:when>
-                        <c:otherwise>Thao tác thành công!</c:otherwise>
-                    </c:choose>
+                    <i class="fas fa-check-circle text-success me-2"></i>${flashSuccess}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
-            <c:if test="${param.error != null}">
+            <c:if test="${not empty flashError}">
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
                      style="background: rgba(239,68,68,0.1); border-left: 4px solid #ef4444 !important;">
-                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
-                    <c:choose>
-                        <c:when test="${param.error == 'deactivate_failed'}">Khóa tài khoản thất bại!</c:when>
-                        <c:when test="${param.error == 'activate_failed'}">Mở khóa tài khoản thất bại!</c:when>
-                        <c:when test="${param.error == 'update_failed'}">Cập nhật vai trò thất bại!</c:when>
-                        <c:otherwise>Có lỗi xảy ra!</c:otherwise>
-                    </c:choose>
+                    <i class="fas fa-exclamation-circle text-danger me-2"></i>${flashError}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </c:if>
@@ -48,7 +35,8 @@
             <!-- Stats -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3 animate-on-scroll">
-                    <div class="card glass-strong border-0 rounded-4 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/users" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #3b82f6, #6366f1);">
                                 <i class="fas fa-users text-white"></i>
@@ -59,9 +47,11 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
                 <div class="col-md-3 animate-on-scroll stagger-1">
-                    <div class="card glass-strong border-0 rounded-4 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/users?filter=active" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #06b6d4);">
                                 <i class="fas fa-user-check text-white"></i>
@@ -72,22 +62,26 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
                 <div class="col-md-3 animate-on-scroll stagger-2">
-                    <div class="card glass-strong border-0 rounded-4 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/users?filter=support_agent" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #9333ea, #a855f7);">
-                                <i class="fas fa-microphone-alt text-white"></i>
+                                <i class="fas fa-headset text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0">${organizerCount != null ? organizerCount : 0}</h4>
-                                <small class="text-muted">Organizer</small>
+                                <h4 class="fw-bold mb-0">${supportAgentCount != null ? supportAgentCount : 0}</h4>
+                                <small class="text-muted">Hỗ trợ viên</small>
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
                 <div class="col-md-3 animate-on-scroll stagger-3">
-                    <div class="card glass-strong border-0 rounded-4 hover-lift">
+                    <a href="${pageContext.request.contextPath}/admin/users?filter=locked" class="text-decoration-none">
+                    <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #f59e0b, #f97316);">
                                 <i class="fas fa-user-slash text-white"></i>
@@ -98,6 +92,7 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
             </div>
 
@@ -171,7 +166,7 @@
                                                         <c:when test="${user.role == 'ADMIN'}">
                                                             <c:set var="roleStyle" value="background: linear-gradient(135deg,#ef4444,#f97316); color: white;" />
                                                         </c:when>
-                                                        <c:when test="${user.role == 'ORGANIZER'}">
+                                                        <c:when test="${user.role == 'SUPPORT_AGENT'}">
                                                             <c:set var="roleStyle" value="background: linear-gradient(135deg,#9333ea,#a855f7); color: white;" />
                                                         </c:when>
                                                         <c:otherwise>
@@ -199,14 +194,20 @@
                                                                 <form action="${pageContext.request.contextPath}/admin/users/update-role" method="POST" class="d-flex gap-1 align-items-center">
                                                                     <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
                                                                     <input type="hidden" name="userId" value="${user.userId}">
-                                                                    <select name="role" class="form-select form-select-sm rounded-3" style="font-size:0.75rem; width:110px;"
-                                                                            onchange="if(confirm('Đổi vai trò người dùng này?')) this.form.submit();">
+                                                                    <select name="role" class="form-select form-select-sm rounded-3" style="font-size:0.75rem; width:120px;"
+                                                                            id="roleSelect_${user.userId}"
+                                                                            onchange="handleRoleChange(this, ${user.userId})">
                                                                         <option value="customer" ${user.role == 'CUSTOMER' ? 'selected' : ''}>Khách hàng</option>
-                                                                        <option value="organizer" ${user.role == 'ORGANIZER' ? 'selected' : ''}>Organizer</option>
-                                                                        <c:if test="${sessionScope.adminUser.role == 'ADMIN'}">
+                                                                        <option value="support_agent" ${user.role == 'SUPPORT_AGENT' ? 'selected' : ''}>Hỗ trợ viên</option>
+                                                                        <c:if test="${sessionScope.user.role == 'ADMIN'}">
                                                                             <option value="admin" ${user.role == 'ADMIN' ? 'selected' : ''}>Admin</option>
                                                                         </c:if>
                                                                     </select>
+                                                                    <input type="password" name="adminKey" class="form-control form-control-sm rounded-3 d-none" 
+                                                                           id="adminKey_${user.userId}" style="font-size:0.75rem;width:120px;" placeholder="Mật khẩu admin">
+                                                                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-2 d-none" id="submitRole_${user.userId}">
+                                                                        <i class="fas fa-check"></i>
+                                                                    </button>
                                                                 </form>
                                                                 <%-- Lock/Unlock --%>
                                                                 <c:choose>
@@ -248,4 +249,25 @@
     </div>
 </div>
 
+<script>
+function handleRoleChange(select, userId) {
+    const keyInput = document.getElementById('adminKey_' + userId);
+    const submitBtn = document.getElementById('submitRole_' + userId);
+    
+    if (select.value === 'admin') {
+        keyInput.classList.remove('d-none');
+        submitBtn.classList.remove('d-none');
+        keyInput.focus();
+    } else {
+        keyInput.classList.add('d-none');
+        submitBtn.classList.add('d-none');
+        keyInput.value = '';
+        if (confirm('Đổi vai trò người dùng này?')) {
+            select.form.submit();
+        }
+    }
+}
+</script>
+
 <jsp:include page="../footer.jsp" />
+

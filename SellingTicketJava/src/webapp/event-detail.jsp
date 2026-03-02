@@ -1051,7 +1051,7 @@
                         <c:choose>
                             <c:when test="${not empty relatedEvents}">
                                 <c:forEach var="related" items="${relatedEvents}" end="2">
-                                    <a href="${pageContext.request.contextPath}/event-detail?id=${related.eventId}" class="related-event-card">
+                                    <a href="${pageContext.request.contextPath}/event/${related.slug}" class="related-event-card">
                                         <img src="${not empty related.bannerImage ? related.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=200'}" 
                                              alt="${related.title}" class="related-event-img">
                                         <div>

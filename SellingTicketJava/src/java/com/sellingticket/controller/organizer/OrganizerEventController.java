@@ -13,6 +13,8 @@ import com.sellingticket.util.InputValidator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.List;
 import java.util.Map;
 import jakarta.servlet.ServletException;
@@ -40,6 +42,7 @@ import jakarta.servlet.http.Part;
 )
 public class OrganizerEventController extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(OrganizerEventController.class.getName());
     private final EventService eventService = new EventService();
     private final CategoryService categoryService = new CategoryService();
     private final TicketService ticketService = new TicketService();
@@ -58,19 +61,24 @@ public class OrganizerEventController extends HttpServlet {
         User user = getSessionUser(request);
         if (user == null) { response.sendRedirect(request.getContextPath() + "/login"); return; }
 
-        String path = request.getServletPath();
-        String pathInfo = request.getPathInfo();
+        try {
+            String path = request.getServletPath();
+            String pathInfo = request.getPathInfo();
 
-        if ("/organizer/create-event".equals(path)) {
-            showCreateForm(request, response, user);
-        } else if (pathInfo != null && pathInfo.matches("/\\d+/edit")) {
-            showEditForm(request, response, user);
-        } else if (pathInfo != null && pathInfo.matches("/\\d+/staff")) {
-            manageStaff(request, response, user);
-        } else if (pathInfo != null && pathInfo.matches("/\\d+")) {
-            viewEvent(request, response, user);
-        } else {
-            listEvents(request, response, user);
+            if ("/organizer/create-event".equals(path)) {
+                showCreateForm(request, response, user);
+            } else if (pathInfo != null && pathInfo.matches("/\\d+/edit")) {
+                showEditForm(request, response, user);
+            } else if (pathInfo != null && pathInfo.matches("/\\d+/staff")) {
+                manageStaff(request, response, user);
+            } else if (pathInfo != null && pathInfo.matches("/\\d+")) {
+                viewEvent(request, response, user);
+            } else {
+                listEvents(request, response, user);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load organizer events", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 

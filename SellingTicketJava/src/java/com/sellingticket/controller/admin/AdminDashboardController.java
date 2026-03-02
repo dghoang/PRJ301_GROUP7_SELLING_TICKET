@@ -5,6 +5,7 @@ import com.sellingticket.model.Order;
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
+import com.sellingticket.util.FlashUtil;
 import static com.sellingticket.util.ServletUtil.sendJson;
 
 import java.io.IOException;
@@ -51,6 +52,7 @@ public class AdminDashboardController extends HttpServlet {
 
         // --- JSP page with dashboard stats ---
         try {
+            FlashUtil.apply(request);
             Map<String, Object> stats = dashboardService.getAdminDashboardStats();
             for (Map.Entry<String, Object> entry : stats.entrySet()) {
                 request.setAttribute(entry.getKey(), entry.getValue());

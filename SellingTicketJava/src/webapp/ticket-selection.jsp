@@ -6,7 +6,7 @@
 <div class="container py-5" style="max-width: 1140px;">
     <!-- Header -->
     <div class="mb-5 animate-fadeInUp">
-        <a href="${pageContext.request.contextPath}/event-detail?id=${param.eventId}" class="d-inline-flex align-items-center gap-2 text-muted text-decoration-none mb-3 hover-lift">
+        <a href="${pageContext.request.contextPath}/event/${event.slug}" class="d-inline-flex align-items-center gap-2 text-muted text-decoration-none mb-3 hover-lift">
             <i class="fas fa-arrow-left"></i> Quay lại chi tiết sự kiện
         </a>
         <h1 class="display-6 fw-bold mb-2">Chọn vé</h1>

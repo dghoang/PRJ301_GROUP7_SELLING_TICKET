@@ -19,7 +19,7 @@
             <div class="glass-gradient rounded-4 p-4 mb-4 position-relative overflow-hidden animate-fadeInDown">
                 <div class="row align-items-center">
                     <div class="col-md-8">
-                        <h2 class="fw-bold mb-1">Dashboard Organizer 🎤</h2>
+                        <h2 class="fw-bold mb-1"><i class="fas fa-microphone-alt text-primary me-2"></i>Dashboard Organizer</h2>
                         <p class="text-muted mb-0">Quản lý sự kiện và theo dõi hiệu suất bán vé.</p>
                     </div>
                     <div class="col-md-4 text-end d-none d-md-block">
@@ -95,7 +95,7 @@
                 <div class="col-lg-8 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
-                            <h5 class="fw-bold mb-0">📈 Hiệu suất bán vé</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-chart-line text-primary me-2"></i>Hiệu suất bán vé</h5>
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary rounded-start-pill active" onclick="updateOrgChart('week')">Tuần</button>
                                 <button class="btn btn-outline-primary" onclick="updateOrgChart('month')">Tháng</button>
@@ -110,7 +110,7 @@
                 <div class="col-lg-4 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0">🎫 Loại vé bán ra</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-ticket-alt text-primary me-2"></i>Loại vé bán ra</h5>
                         </div>
                         <div class="card-body d-flex align-items-center justify-content-center px-4 pb-4">
                             <canvas id="ticketTypeChart" height="250"></canvas>
@@ -124,7 +124,7 @@
                 <div class="col-12 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3">⚡ Hành động nhanh</h5>
+                            <h5 class="fw-bold mb-3"><i class="fas fa-bolt text-warning me-2"></i>Hành động nhanh</h5>
                             <div class="d-flex gap-3 flex-wrap">
                                 <a href="${pageContext.request.contextPath}/organizer/create-event" class="btn btn-gradient rounded-pill px-4 hover-glow">
                                     <i class="fas fa-plus me-2"></i>Tạo sự kiện mới
@@ -147,7 +147,7 @@
             <!-- Recent Events Table -->
             <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                 <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
-                    <h5 class="fw-bold mb-0">📋 Sự kiện gần đây</h5>
+                    <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list text-primary me-2"></i>Sự kiện gần đây</h5>
                     <a href="${pageContext.request.contextPath}/organizer/events" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</a>
                 </div>
                 <div class="card-body px-4 pb-4">
@@ -168,7 +168,7 @@
                                 <tr class="hover-lift" style="transition: all 0.2s;">
                                     <td>
                                         <div class="d-flex align-items-center gap-3">
-                                            <img src="${event.bannerUrl != null ? event.bannerUrl : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100'}" 
+                                            <img src="${event.bannerImage != null ? event.bannerImage : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100'}" 
                                                  class="rounded-3 shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
                                             <span class="fw-medium">${event.title}</span>
                                         </div>
