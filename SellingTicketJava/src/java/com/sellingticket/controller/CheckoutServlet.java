@@ -8,13 +8,17 @@ import com.sellingticket.model.User;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
 import com.sellingticket.service.TicketService;
+import com.sellingticket.service.VoucherService;
+import com.sellingticket.service.VoucherService.VoucherResult;
 import com.sellingticket.service.payment.PaymentResult;
 import com.sellingticket.service.payment.SeepayProvider;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -32,12 +36,14 @@ public class CheckoutServlet extends HttpServlet {
     private OrderService orderService;
     private EventService eventService;
     private TicketService ticketService;
+    private VoucherService voucherService;
 
     @Override
     public void init() throws ServletException {
         orderService = new OrderService();
         eventService = new EventService();
         ticketService = new TicketService();
+        voucherService = new VoucherService();
     }
 
 
@@ -56,19 +62,15 @@ public class CheckoutServlet extends HttpServlet {
             }
         }
 
-        int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
-        int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
-
-        // Bound quantity
-        quantity = Math.max(1, Math.min(quantity, MAX_QUANTITY));
-
-        if (ticketTypeId > 0) {
-            TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
-            request.setAttribute("selectedTicket", ticket);
-            request.setAttribute("quantity", quantity);
-            if (ticket != null) {
-                request.setAttribute("subtotal", ticket.getPrice() * quantity);
+        // Parse items param: "typeId:qty,typeId:qty" (multi-ticket support)
+        List<Map<String, Object>> selectedItems = parseItemsParam(request);
+        if (!selectedItems.isEmpty()) {
+            request.setAttribute("selectedItems", selectedItems);
+            double totalAmount = 0;
+            for (Map<String, Object> item : selectedItems) {
+                totalAmount += (double) item.get("subtotal");
             }
+            request.setAttribute("subtotal", totalAmount);
         }
 
         if (user != null) {
@@ -83,6 +85,14 @@ public class CheckoutServlet extends HttpServlet {
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
+
+        // AJAX: voucher validation
+        String action = request.getParameter("action");
+        if ("validate-voucher".equals(action)) {
+            handleVoucherValidation(request, response);
+            return;
+        }
+
         User user = getSessionUser(request);
 
         if (user == null) {
@@ -94,15 +104,31 @@ public class CheckoutServlet extends HttpServlet {
         try {
             Order order = buildOrderFromRequest(request, user);
             if (order == null) {
-                showError(request, response, "Dữ liệu đơn hàng không hợp lệ.");
+                showError(request, response, "Dữ liệu đơn hàng không hợp lệ hoặc vé đã hết. Vui lòng quay lại chọn vé.");
                 return;
+            }
+
+            // Apply voucher if provided
+            String voucherCode = request.getParameter("voucherCode");
+            if (voucherCode != null && !voucherCode.trim().isEmpty()) {
+                VoucherResult vr = voucherService.validateVoucher(
+                        voucherCode.trim(), order.getEventId(), order.getTotalAmount());
+                if (vr.valid && vr.discountAmount > 0) {
+                    order.setDiscountAmount(vr.discountAmount);
+                    order.setFinalAmount(order.getTotalAmount() - vr.discountAmount);
+                    // Increment voucher usage atomically
+                    voucherService.applyVoucher(voucherCode.trim());
+                    LOGGER.log(Level.INFO, "Voucher {0} applied: discount={1}",
+                            new Object[]{voucherCode, vr.discountAmount});
+                }
             }
 
             int orderId = orderService.createOrder(order);
             if (orderId <= 0) {
                 LOGGER.log(Level.WARNING, "Order creation failed for user={0}, event={1}",
                         new Object[]{user.getUserId(), order.getEventId()});
-                showError(request, response, "Không thể tạo đơn hàng. Vé có thể đã hết.");
+                showError(request, response,
+                        "Không thể tạo đơn hàng. Vé đã được người khác mua trước. Vui lòng chọn lại.");
                 return;
             }
 
@@ -136,28 +162,124 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
+    /** AJAX handler: validate voucher code and return discount info as JSON. */
+    private void handleVoucherValidation(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        String code = request.getParameter("code");
+        int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        double amount = 0;
+        try { amount = Double.parseDouble(request.getParameter("amount")); } catch (Exception ignored) {}
+
+        VoucherResult result = voucherService.validateVoucher(code, eventId, amount);
+        String json = "{\"valid\":" + result.valid
+                + ",\"discountAmount\":" + result.discountAmount
+                + ",\"message\":\"" + escapeJson(result.message) + "\"}";
+        response.getWriter().write(json);
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+
+    /**
+     * Parse the items parameter format: "typeId:qty,typeId:qty".
+     * Falls back to legacy single ticketTypeId + quantity params.
+     */
+    private List<Map<String, Object>> parseItemsParam(HttpServletRequest request) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        String itemsParam = request.getParameter("items");
+
+        if (itemsParam != null && !itemsParam.isEmpty()) {
+            String[] parts = itemsParam.split(",");
+            for (String part : parts) {
+                String[] pair = part.trim().split(":");
+                if (pair.length != 2) continue;
+                int typeId = parseIntOrDefault(pair[0].trim(), -1);
+                int qty = parseIntOrDefault(pair[1].trim(), 0);
+                if (typeId <= 0 || qty <= 0 || qty > MAX_QUANTITY) continue;
+
+                TicketType ticket = ticketService.getTicketTypeById(typeId);
+                if (ticket == null) continue;
+
+                Map<String, Object> item = new HashMap<>();
+                item.put("ticketType", ticket);
+                item.put("quantity", qty);
+                item.put("subtotal", ticket.getPrice() * qty);
+                result.add(item);
+            }
+        } else {
+            int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
+            int quantity = Math.max(1, Math.min(parseIntOrDefault(request.getParameter("quantity"), 1), MAX_QUANTITY));
+            if (ticketTypeId > 0) {
+                TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
+                if (ticket != null) {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("ticketType", ticket);
+                    item.put("quantity", quantity);
+                    item.put("subtotal", ticket.getPrice() * quantity);
+                    result.add(item);
+                }
+            }
+        }
+        return result;
+    }
+
     private Order buildOrderFromRequest(HttpServletRequest request, User user) {
 
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
-        int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
-
-        // Validate bounds
-        if (eventId <= 0 || ticketTypeId <= 0 || quantity < 1 || quantity > MAX_QUANTITY) {
-            return null;
-        }
+        if (eventId <= 0) return null;
 
         Event event = eventService.getEventDetails(eventId);
         if (event == null) return null;
 
-        TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
-        if (ticket == null) return null;
+        List<OrderItem> items = new ArrayList<>();
+        double totalAmount = 0;
 
-        if (!ticketService.checkAvailability(ticketTypeId, quantity)) {
-            return null;
+        String itemsParam = request.getParameter("items");
+        if (itemsParam != null && !itemsParam.isEmpty()) {
+            String[] parts = itemsParam.split(",");
+            for (String part : parts) {
+                String[] pair = part.trim().split(":");
+                if (pair.length != 2) continue;
+                int typeId = parseIntOrDefault(pair[0].trim(), -1);
+                int qty = parseIntOrDefault(pair[1].trim(), 0);
+                if (typeId <= 0 || qty <= 0 || qty > MAX_QUANTITY) continue;
+
+                TicketType ticket = ticketService.getTicketTypeById(typeId);
+                if (ticket == null) continue;
+                if (!ticketService.checkAvailability(typeId, qty)) return null;
+
+                double subtotal = ticket.getPrice() * qty;
+                OrderItem item = new OrderItem();
+                item.setTicketTypeId(typeId);
+                item.setQuantity(qty);
+                item.setUnitPrice(ticket.getPrice());
+                item.setSubtotal(subtotal);
+                items.add(item);
+                totalAmount += subtotal;
+            }
+        } else {
+            int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
+            int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
+            if (ticketTypeId <= 0 || quantity < 1 || quantity > MAX_QUANTITY) return null;
+
+            TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
+            if (ticket == null) return null;
+            if (!ticketService.checkAvailability(ticketTypeId, quantity)) return null;
+
+            totalAmount = ticket.getPrice() * quantity;
+            OrderItem item = new OrderItem();
+            item.setTicketTypeId(ticketTypeId);
+            item.setQuantity(quantity);
+            item.setUnitPrice(ticket.getPrice());
+            item.setSubtotal(totalAmount);
+            items.add(item);
         }
 
-        double totalAmount = ticket.getPrice() * quantity;
+        if (items.isEmpty()) return null;
+
         String paymentMethod = request.getParameter("paymentMethod");
 
         Order order = new Order();
@@ -172,15 +294,6 @@ public class CheckoutServlet extends HttpServlet {
         order.setBuyerEmail(getParamOrDefault(request, "buyerEmail", user.getEmail()));
         order.setBuyerPhone(getParamOrDefault(request, "buyerPhone", user.getPhone()));
         order.setNotes(request.getParameter("notes"));
-
-        OrderItem item = new OrderItem();
-        item.setTicketTypeId(ticketTypeId);
-        item.setQuantity(quantity);
-        item.setUnitPrice(ticket.getPrice());
-        item.setSubtotal(totalAmount);
-
-        List<OrderItem> items = new ArrayList<>();
-        items.add(item);
         order.setItems(items);
 
         return order;

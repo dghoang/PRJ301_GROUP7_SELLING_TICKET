@@ -227,7 +227,7 @@ public class OrganizerEventController extends HttpServlet {
                 return;
             }
             if (!InputValidator.isValidDescription(description)) {
-                request.setAttribute("error", "Mô tả phải từ 10-10,000 ký tự");
+                request.setAttribute("error", "Mô tả phải từ 10-500,000 ký tự");
                 showCreateForm(request, response, user);
                 return;
             }

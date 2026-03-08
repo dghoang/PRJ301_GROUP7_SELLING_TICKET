@@ -25,7 +25,13 @@ public class EventDAO extends DBContext {
         event.setAddress(rs.getString("address"));
         event.setStartDate(rs.getTimestamp("start_date"));
         event.setEndDate(rs.getTimestamp("end_date"));
-        event.setStatus(rs.getString("status"));
+        
+        String dbStatus = rs.getString("status");
+        if ("approved".equals(dbStatus) && event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
+            event.setStatus("ended");
+        } else {
+            event.setStatus(dbStatus);
+        }
         event.setFeatured(rs.getBoolean("is_featured"));
         event.setPrivate(rs.getBoolean("is_private"));
         event.setViews(rs.getInt("views"));
@@ -53,8 +59,8 @@ public class EventDAO extends DBContext {
     public List<Event> getApprovedEvents(boolean featuredOnly, int limit) {
         List<Event> events = new ArrayList<>();
         String where = featuredOnly
-                ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND e.start_date > GETDATE() AND (e.is_deleted = 0 OR e.is_deleted IS NULL) "
-                : "WHERE e.status = 'approved' AND e.start_date > GETDATE() AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ";
+                ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND (e.end_date IS NULL OR e.end_date >= GETDATE()) AND (e.is_deleted = 0 OR e.is_deleted IS NULL) "
+                : "WHERE e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()) AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ";
         String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) + where +
                      "ORDER BY ISNULL(e.pin_order, 0) DESC, e.start_date ASC";
 
@@ -348,7 +354,7 @@ public class EventDAO extends DBContext {
     public List<Event> getRelatedEvents(int categoryId, int currentEventId, int limit) {
         List<Event> events = new ArrayList<>();
         String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) +
-                     "WHERE e.status = 'approved' AND e.category_id = ? AND e.event_id != ? AND e.start_date > GETDATE() " +
+                     "WHERE e.status = 'approved' AND e.category_id = ? AND e.event_id != ? AND (e.end_date IS NULL OR e.end_date >= GETDATE()) " +
                      "ORDER BY e.start_date ASC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

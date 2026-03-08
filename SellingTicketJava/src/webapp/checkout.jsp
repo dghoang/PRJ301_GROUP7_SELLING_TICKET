@@ -37,8 +37,14 @@
 
     <form method="POST" action="${pageContext.request.contextPath}/checkout" id="checkoutForm">
         <input type="hidden" name="eventId" value="${event.eventId}">
-        <input type="hidden" name="ticketTypeId" value="${selectedTicket.ticketTypeId}">
-        <input type="hidden" name="quantity" value="${quantity}">
+        <%-- Multi-ticket items param: typeId:qty,typeId:qty --%>
+        <c:if test="${not empty selectedItems}">
+            <c:set var="itemsStr" value=""/>
+            <c:forEach var="si" items="${selectedItems}" varStatus="siLoop">
+                <c:set var="itemsStr" value="${itemsStr}${siLoop.first ? '' : ','}${si.ticketType.ticketTypeId}:${si.quantity}"/>
+            </c:forEach>
+            <input type="hidden" name="items" value="${itemsStr}">
+        </c:if>
         <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
 
         <div class="row g-4 g-lg-5">
@@ -155,10 +161,11 @@
                         <i class="fas fa-tag text-primary"></i> Mã giảm giá
                     </h5>
                     <div class="input-group">
-                        <input type="text" class="form-control py-3 rounded-start-4" placeholder="Nhập mã giảm giá" id="promoCode" name="voucherCode">
-                        <button type="button" class="btn btn-gradient px-4 rounded-end-4 hover-glow" onclick="applyPromo()">Áp dụng</button>
+                        <input type="text" class="form-control py-3 rounded-start-4" placeholder="Nhập mã giảm giá" id="promoCode">
+                        <button type="button" class="btn btn-gradient px-4 rounded-end-4 hover-glow" id="promoBtn" onclick="applyPromo()">Áp dụng</button>
                     </div>
                     <div id="promoResult" class="mt-3"></div>
+                    <input type="hidden" name="voucherCode" id="voucherCodeInput" value="">
                 </div>
             </div>
 
@@ -199,12 +206,22 @@
 
                         <!-- Ticket Details (Dynamic) -->
                         <div class="mb-4">
-                            <c:if test="${not empty selectedTicket}">
-                                <div class="d-flex justify-content-between small mb-2">
-                                    <span class="text-muted">${selectedTicket.name} x ${quantity}</span>
-                                    <span><fmt:formatNumber value="${subtotal}" pattern="#,###"/> đ</span>
-                                </div>
-                            </c:if>
+                            <c:choose>
+                                <c:when test="${not empty selectedItems}">
+                                    <c:forEach var="si" items="${selectedItems}">
+                                        <div class="d-flex justify-content-between small mb-2">
+                                            <span class="text-muted">${si.ticketType.name} x ${si.quantity}</span>
+                                            <span><fmt:formatNumber value="${si.subtotal}" pattern="#,###"/> đ</span>
+                                        </div>
+                                    </c:forEach>
+                                </c:when>
+                                <c:when test="${not empty selectedTicket}">
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span class="text-muted">${selectedTicket.name} x ${quantity}</span>
+                                        <span><fmt:formatNumber value="${subtotal}" pattern="#,###"/> đ</span>
+                                    </div>
+                                </c:when>
+                            </c:choose>
                         </div>
 
                         <!-- Pricing -->
@@ -231,14 +248,6 @@
                             </span>
                         </div>
 
-                        <!-- Terms -->
-                        <div class="form-check mb-3 p-3 rounded-3" style="background: #f8f5ff; border: 1px solid rgba(147,51,234,0.1);">
-                            <input class="form-check-input" type="checkbox" id="checkoutTerms" required style="margin-top:0.35em;">
-                            <label class="form-check-label small" for="checkoutTerms">
-                                Tôi xác nhận thông tin trên là chính xác và đồng ý với
-                                <strong style="color:#9333ea;">điều khoản mua vé</strong>.
-                            </label>
-                        </div>
 
                         <!-- Pay Button -->
                         <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3 fw-bold hover-glow" id="payBtn">
@@ -260,6 +269,8 @@
 
 <script>
 var selectedPayment = 'bank_transfer';
+var currentDiscount = 0;
+var baseSubtotal = ${subtotal != null ? subtotal : 0};
 
 function selectDelivery(type) {
     document.querySelectorAll('.delivery-option').forEach(function(el) {
@@ -290,22 +301,70 @@ function selectPayment(type) {
 function applyPromo() {
     var code = document.getElementById('promoCode').value.trim();
     var result = document.getElementById('promoResult');
-    if (!code) return;
-    // In production, this would be an AJAX call to validate the voucher
+    if (!code) { result.innerHTML = ''; return; }
+
+    var btn = document.getElementById('promoBtn');
+    btn.disabled = true;
     result.innerHTML = '<div class="alert alert-info py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-spinner fa-spin"></i>Đang kiểm tra...</div>';
-    setTimeout(function() {
-        result.innerHTML = '<div class="alert alert-warning py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-info-circle"></i>Mã không hợp lệ hoặc đã hết hạn</div>';
-    }, 1000);
+
+    var ctx = '${pageContext.request.contextPath}';
+    var eventId = '${event.eventId}';
+    var url = ctx + '/checkout?action=validate-voucher&code=' + encodeURIComponent(code)
+            + '&eventId=' + eventId + '&amount=' + baseSubtotal;
+
+    fetch(url, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            if (data.valid) {
+                currentDiscount = data.discountAmount;
+                document.getElementById('voucherCodeInput').value = code;
+                document.getElementById('promoCode').readOnly = true;
+                result.innerHTML = '<div class="alert alert-success py-2 rounded-3 d-flex align-items-center justify-content-between">'
+                    + '<span><i class="fas fa-check-circle me-2"></i>' + data.message + '</span>'
+                    + '<button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="removePromo()"><i class="fas fa-times"></i></button>'
+                    + '</div>';
+                updateOrderTotal();
+            } else {
+                currentDiscount = 0;
+                document.getElementById('voucherCodeInput').value = '';
+                result.innerHTML = '<div class="alert alert-warning py-2 rounded-3 d-flex align-items-center gap-2"><i class="fas fa-info-circle"></i>' + data.message + '</div>';
+                updateOrderTotal();
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            result.innerHTML = '<div class="alert alert-danger py-2 rounded-3"><i class="fas fa-exclamation-triangle me-2"></i>Lỗi kết nối. Thử lại sau.</div>';
+        });
+}
+
+function removePromo() {
+    currentDiscount = 0;
+    document.getElementById('voucherCodeInput').value = '';
+    document.getElementById('promoCode').value = '';
+    document.getElementById('promoCode').readOnly = false;
+    document.getElementById('promoResult').innerHTML = '';
+    updateOrderTotal();
+}
+
+function updateOrderTotal() {
+    var discountRow = document.getElementById('discountRow');
+    var discountAmountEl = document.getElementById('discountAmount');
+    var totalEl = document.getElementById('totalAmount');
+    var finalTotal = baseSubtotal - currentDiscount;
+    if (finalTotal < 0) finalTotal = 0;
+
+    if (currentDiscount > 0) {
+        discountRow.style.display = 'flex';
+        discountRow.style.setProperty('display', 'flex', 'important');
+        discountAmountEl.textContent = '-' + currentDiscount.toLocaleString('vi-VN') + ' đ';
+    } else {
+        discountRow.style.setProperty('display', 'none', 'important');
+    }
+    totalEl.textContent = finalTotal.toLocaleString('vi-VN') + ' đ';
 }
 
 document.getElementById('checkoutForm').addEventListener('submit', function(e) {
-    var terms = document.getElementById('checkoutTerms');
-    if (!terms.checked) {
-        e.preventDefault();
-        terms.parentElement.style.animation = 'shake 0.5s';
-        setTimeout(function() { terms.parentElement.style.animation = ''; }, 500);
-        return;
-    }
     var btn = document.getElementById('payBtn');
     btn.disabled = true;
     document.getElementById('payBtnText').classList.add('d-none');

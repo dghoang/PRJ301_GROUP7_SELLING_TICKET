@@ -60,8 +60,8 @@
                     <h6 class="fw-bold mb-3">Hỗ trợ</h6>
                     <ul class="list-unstyled small">
                         <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Trung tâm trợ giúp</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Điều khoản</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Chính sách</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary">Điều khoản</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary">Chính sách</a></li>
                     </ul>
                 </div>
                 
@@ -88,8 +88,8 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <p class="small text-muted mb-0">&copy; 2026 Ticketbox. All rights reserved.</p>
                 <div class="d-flex gap-3">
-                    <a href="${pageContext.request.contextPath}/faq" class="small text-muted text-decoration-none hover-primary">Privacy</a>
-                    <a href="${pageContext.request.contextPath}/faq" class="small text-muted text-decoration-none hover-primary">Terms</a>
+                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary">Privacy</a>
+                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary">Terms</a>
                     <a href="javascript:void(0)" onclick="showInfo('Trang web sử dụng cookies để cải thiện trải nghiệm.')" class="small text-muted text-decoration-none hover-primary">Cookies</a>
                 </div>
             </div>

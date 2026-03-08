@@ -212,6 +212,33 @@
                 </div>
             </c:if>
 
+            <!-- Mobile Access Banner (dynamic IPs) -->
+            <c:if test="${not empty serverIPs}">
+            <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll visible" style="border-left: 4px solid var(--primary) !important;">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="dash-icon-box" style="background: linear-gradient(135deg, #3b82f6, #06b6d4); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-mobile-alt text-white"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold small mb-1"><i class="fas fa-wifi me-1"></i>Truy cập từ điện thoại (cùng WiFi):</div>
+                        <c:forEach var="ip" items="${serverIPs}">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <code class="text-primary" style="font-size: 0.85rem; user-select: all;" id="mobileUrl_${ip}">http://${ip}:${serverPort}${contextPath}/organizer/check-in</code>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" onclick="copyIP('mobileUrl_${ip}')" title="Copy">
+                                <i class="fas fa-copy" style="font-size: 0.7rem;"></i>
+                            </button>
+                        </div>
+                        </c:forEach>
+                        <div class="text-muted mt-1" style="font-size: 0.7rem;">
+                            <i class="fas fa-info-circle me-1"></i>Nếu trình duyệt báo lỗi "HTTPS-Only":
+                            <strong>Chrome</strong> → Cài đặt → Bảo mật → Tắt "Luôn dùng kết nối an toàn" |
+                            <strong>Firefox</strong> → Nhấn "Tiếp tục với HTTP"
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </c:if>
+
             <c:if test="${event != null}">
             <div class="row g-4">
                 <!-- Left: Scanner -->
@@ -358,12 +385,26 @@ function toggleCamera() {
 
 function startCamera() {
     const btn = document.getElementById('cameraToggle');
+
+    // Check if mediaDevices API is available (requires HTTPS or localhost)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const isLocalhost = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+        if (!isLocalhost) {
+            showResult('error', 'Camera bị chặn do HTTP Local', 
+                'Trên điện thoại, mở trình duyệt truy cập: <b class="text-primary mt-2 d-block user-select-all">chrome://flags/#unsafely-treat-insecure-origin-as-secure</b><br>Nhập IP: <b>http://' + location.hostname + (location.port ? ':' + location.port : '') + '</b> vào ô trống, chọn <b>Enable</b> rồi Relaunch. Hoặc sử dụng tính năng NHẬP MÃ THỦ CÔNG bên dưới.');
+        } else {
+            showResult('error', 'Trình duyệt không hỗ trợ',
+                'Vui lòng sử dụng Chrome, Safari (trên iOS) hoặc Edge bản mới nhất');
+        }
+        return;
+    }
+
     document.getElementById('cameraPlaceholder').style.display = 'none';
 
     html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         onScanSuccess,
         () => {}
     ).then(() => {
@@ -372,7 +413,15 @@ function startCamera() {
         btn.classList.replace('btn-outline-primary', 'btn-primary');
         document.getElementById('scanOverlay').style.display = 'flex';
     }).catch(err => {
-        showResult('error', 'Không thể truy cập camera', err.message || 'Kiểm tra quyền truy cập camera');
+        let msg = 'Kiểm tra quyền truy cập camera trong cài đặt trình duyệt';
+        if (err.name === 'NotAllowedError') {
+            msg = 'Bạn đã từ chối quyền camera. Nhấn biểu tượng 🔒 trên thanh địa chỉ để cấp lại';
+        } else if (err.name === 'NotFoundError') {
+            msg = 'Không tìm thấy camera. Kiểm tra webcam/camera thiết bị';
+        } else if (err.name === 'NotReadableError') {
+            msg = 'Camera đang được sử dụng bởi ứng dụng khác';
+        }
+        showResult('error', 'Không thể truy cập camera', msg);
         document.getElementById('cameraPlaceholder').style.display = 'flex';
     });
 }
@@ -400,48 +449,48 @@ function onScanSuccess(code) {
     if (code === lastScanned && now - lastScanTime < 3000) return;
     lastScanned = code;
     lastScanTime = now;
-    processCheckIn(code);
+    // QR scan → always send as qrToken
+    processQrCheckIn(code);
 }
 
 function checkInManual() {
     const input = document.getElementById('manualCode');
     const code = input.value.trim();
     if (!code) return;
-    processCheckIn(code);
+    // Manual input → always send as orderCode (lookup first)
+    lookupOrder(code);
     input.value = '';
 }
 
-function processCheckIn(code) {
-    showResult('loading', 'Đang xử lý...', escapeHTML(code));
+// ========== QR SCAN CHECK-IN ==========
+function processQrCheckIn(code) {
+    showResult('loading', 'Đang xử lý QR...', '');
 
     fetch(contextPath + '/organizer/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'eventId=' + encodeURIComponent(eventId)
-            + '&orderCode=' + encodeURIComponent(code)
+            + '&qrToken=' + encodeURIComponent(code)
             + '&csrf_token=' + encodeURIComponent(csrfToken)
     })
-    .then(r => {
-        if (r.status === 403) throw new Error('CSRF');
-        return r.json();
-    })
+    .then(r => { if (r.status === 403) throw new Error('CSRF'); return r.json(); })
     .then(data => {
-        // Refresh CSRF token after successful validation (server rotates it)
         if (data.csrfToken) csrfToken = data.csrfToken;
-
+        // Use ticketCode for display, NEVER the raw token
+        const displayCode = data.ticketCode || 'QR vé';
         if (data.success) {
-            showResult('success', 'Check-in thành công!', escapeHTML(data.customerName || code));
-            addFeedItem(code, data.customerName, 'success');
+            showResult('success', 'Check-in thành công!', escapeHTML(data.customerName || '') + (data.ticketType ? ' — ' + escapeHTML(data.ticketType) : ''));
+            addFeedItem(displayCode, data.customerName, 'success');
             checkedInCount++;
             updateStats();
             playSound('success');
         } else if (data.alreadyCheckedIn) {
-            showResult('warning', 'Đã check-in trước đó', 'Lúc ' + escapeHTML(data.checkInTime || 'trước đó'));
-            addFeedItem(code, data.customerName, 'duplicate');
+            showResult('warning', 'Đã check-in trước đó', escapeHTML(data.customerName || displayCode));
+            addFeedItem(displayCode, data.customerName, 'duplicate');
             playSound('error');
         } else {
-            showResult('error', escapeHTML(data.message) || 'Mã không hợp lệ', escapeHTML(code));
-            addFeedItem(code, null, 'invalid');
+            showResult('error', escapeHTML(data.message) || 'QR không hợp lệ', escapeHTML(displayCode));
+            addFeedItem(displayCode, null, 'invalid');
             playSound('error');
         }
     })
@@ -451,6 +500,119 @@ function processCheckIn(code) {
         } else {
             showResult('error', 'Lỗi kết nối', 'Vui lòng thử lại');
         }
+        playSound('error');
+    });
+}
+
+// ========== ORDER LOOKUP → TICKET PICKER ==========
+function lookupOrder(orderCode) {
+    showResult('loading', 'Đang tra cứu đơn hàng...', escapeHTML(orderCode));
+
+    fetch(contextPath + '/organizer/check-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'eventId=' + encodeURIComponent(eventId)
+            + '&orderCode=' + encodeURIComponent(orderCode)
+            + '&csrf_token=' + encodeURIComponent(csrfToken)
+    })
+    .then(r => { if (r.status === 403) throw new Error('CSRF'); return r.json(); })
+    .then(data => {
+        if (data.csrfToken) csrfToken = data.csrfToken;
+        if (data.success && data.action === 'lookup') {
+            showTicketPicker(data);
+        } else {
+            showResult('error', escapeHTML(data.message) || 'Lỗi tra cứu', escapeHTML(orderCode));
+            playSound('error');
+        }
+    })
+    .catch(err => {
+        if (err.message === 'CSRF') {
+            showResult('error', 'Phiên hết hạn', 'Vui lòng tải lại trang (F5)');
+        } else {
+            showResult('error', 'Lỗi kết nối', 'Vui lòng thử lại');
+        }
+        playSound('error');
+    });
+}
+
+function showTicketPicker(data) {
+    const area = document.getElementById('resultArea');
+    area.classList.remove('d-none');
+
+    const allChecked = data.tickets.every(t => t.checkedIn);
+    let html = '<div class="result-card" style="text-align:left;padding:16px;">'
+        + '<div class="d-flex align-items-center gap-2 mb-3">'
+        + '<div class="result-icon" style="background:#3b82f620;color:#3b82f6;width:36px;height:36px;"><i class="fas fa-user"></i></div>'
+        + '<div><div class="fw-bold">' + escapeHTML(data.customerName) + '</div>'
+        + '<div class="text-muted small">Đơn hàng: ' + escapeHTML(data.orderCode) + '</div></div></div>'
+        + '<div class="mb-2 small fw-bold text-muted">Chọn vé để check-in:</div>';
+
+    data.tickets.forEach(t => {
+        const checked = t.checkedIn;
+        html += '<div class="d-flex align-items-center gap-2 p-2 mb-2 rounded-3" style="background:' + (checked ? 'var(--bs-success-bg-subtle,#d1e7dd)' : 'var(--bs-light,#f8f9fa)') + ';">'
+            + '<div style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;'
+            + (checked ? 'background:#10b98120;color:#10b981;">' : 'background:#3b82f620;color:#3b82f6;">')
+            + '<i class="fas ' + (checked ? 'fa-check-circle' : 'fa-ticket-alt') + '"></i></div>'
+            + '<div class="flex-grow-1"><div class="fw-medium small">' + escapeHTML(t.attendeeName || 'Khách') + '</div>'
+            + '<div class="text-muted" style="font-size:0.75rem;"><code style="font-size:0.7rem;color:var(--primary);">' + escapeHTML(t.ticketCode) + '</code> &bull; ' + escapeHTML(t.ticketType) + '</div></div>';
+        if (checked) {
+            html += '<span class="badge bg-success bg-opacity-75 rounded-pill">Đã check-in</span>';
+        } else {
+            html += '<button class="btn btn-sm btn-primary rounded-pill px-3" '
+                + 'onclick="checkInTicket(\'' + escapeHTML(data.orderCode) + '\',' + t.ticketId + ',this)">'
+                + '<i class="fas fa-check me-1"></i>Check-in</button>';
+        }
+        html += '</div>';
+    });
+
+    if (allChecked) {
+        html += '<div class="text-center text-success small mt-2"><i class="fas fa-check-circle me-1"></i>Tất cả vé đã được check-in</div>';
+    }
+
+    html += '<button class="btn btn-sm btn-outline-secondary w-100 mt-2 rounded-pill" onclick="document.getElementById(\'resultArea\').classList.add(\'d-none\')"><i class="fas fa-times me-1"></i>Đóng</button>';
+    html += '</div>';
+    area.innerHTML = html;
+}
+
+function checkInTicket(orderCode, ticketId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch(contextPath + '/organizer/check-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'eventId=' + encodeURIComponent(eventId)
+            + '&orderCode=' + encodeURIComponent(orderCode)
+            + '&action=checkin'
+            + '&ticketId=' + encodeURIComponent(ticketId)
+            + '&csrf_token=' + encodeURIComponent(csrfToken)
+    })
+    .then(r => { if (r.status === 403) throw new Error('CSRF'); return r.json(); })
+    .then(data => {
+        if (data.csrfToken) csrfToken = data.csrfToken;
+        if (data.success) {
+            // Update button to checked state
+            const row = btn.closest('.d-flex');
+            row.style.background = 'var(--bs-success-bg-subtle,#d1e7dd)';
+            const icon = row.querySelector('.fa-ticket-alt');
+            if (icon) { icon.className = 'fas fa-check-circle'; icon.closest('div').style.color = '#10b981'; icon.closest('div').style.background = '#10b98120'; }
+            btn.outerHTML = '<span class="badge bg-success bg-opacity-75 rounded-pill">Đã check-in</span>';
+            addFeedItem(orderCode, data.customerName, 'success');
+            checkedInCount++;
+            updateStats();
+            playSound('success');
+        } else if (data.alreadyCheckedIn) {
+            btn.outerHTML = '<span class="badge bg-warning bg-opacity-75 rounded-pill">Đã check-in</span>';
+            playSound('error');
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-times me-1"></i>Thử lại';
+            playSound('error');
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-redo me-1"></i>Thử lại';
         playSound('error');
     });
 }
@@ -531,6 +693,26 @@ function playSound(type) {
 
 // Init stats
 updateStats();
+
+// Copy IP to clipboard
+function copyIP(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const text = el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = el.nextElementSibling;
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-check" style="font-size:0.7rem;"></i>';
+            setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy" style="font-size:0.7rem;"></i>'; }, 2000);
+        }
+    }).catch(() => {
+        // Fallback for older browsers
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+    });
+}
 </script>
 
 <jsp:include page="../footer.jsp" />

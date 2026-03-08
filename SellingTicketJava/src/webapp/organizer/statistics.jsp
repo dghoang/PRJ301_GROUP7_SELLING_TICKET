@@ -13,11 +13,20 @@
         </div>
 
         <div class="col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
+            <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown flex-wrap gap-3">
                 <h2 class="fw-bold mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Thống kê chi tiết</h2>
-                <button class="btn glass rounded-pill px-4 hover-lift fw-medium">
-                    <i class="fas fa-download me-2 text-primary"></i>Xuất báo cáo
-                </button>
+                <div class="d-flex align-items-center gap-3">
+                    <select class="form-select rounded-pill px-3 glass-strong border-0 fw-medium" id="eventFilter"
+                            style="min-width: 240px;" onchange="onEventFilterChange()">
+                        <option value="0">📊 Tất cả sự kiện</option>
+                        <c:forEach var="ev" items="${events}">
+                            <option value="${ev.eventId}">${ev.title}</option>
+                        </c:forEach>
+                    </select>
+                    <button class="btn glass rounded-pill px-4 hover-lift fw-medium">
+                        <i class="fas fa-download me-2 text-primary"></i>Xuất báo cáo
+                    </button>
+                </div>
             </div>
 
             <!-- Stats Row -->
@@ -125,7 +134,7 @@
                 <div class="col-lg-6 animate-on-scroll stagger-1">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="fw-bold mb-0"><i class="fas fa-mobile-alt text-primary me-2"></i>Nguồn truy cập</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-trophy text-primary me-2"></i>Hiệu suất bán vé theo sự kiện</h5>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <canvas id="sourceChart" height="250"></canvas>
@@ -189,10 +198,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+const API_BASE = '${pageContext.request.contextPath}/organizer/statistics/chart-data';
+const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899', '#14b8a6'];
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Counters
+    // Counters animation
     document.querySelectorAll('.counter').forEach(el => {
-        const target = parseInt(el.dataset.target);
+        const target = parseInt(el.dataset.target) || 0;
+        if (target === 0) { el.textContent = '0'; return; }
         const duration = 2000;
         const step = target / (duration / 16);
         let current = 0;
@@ -203,100 +216,263 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 16);
     });
 
-    // Revenue & Cost
-    const ctx1 = document.getElementById('revenueCostChart').getContext('2d');
-    const g1 = ctx1.createLinearGradient(0, 0, 0, 300);
-    g1.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
-    g1.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+    loadRevenueChart(7);
+    loadTicketRatioChart();
+    loadHourlyChart();
+    loadEventPerformanceChart();
+});
 
-    window.statsChart = new Chart(ctx1, {
-        type: 'line',
+// ========== REVENUE CHART ==========
+var currentEventId = 0;
+
+function loadRevenueChart(days) {
+    var url = API_BASE + '?type=revenue&days=' + days;
+    if (currentEventId > 0) url += '&eventId=' + currentEventId;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            const labels = data.map(d => {
+                const date = new Date(d.date);
+                return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+            });
+            const revenues = data.map(d => d.revenue / 1000000); // Convert to triệu
+            const ticketCounts = data.map(d => d.ticketCount || 0);
+
+            const ctx = document.getElementById('revenueCostChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+
+            if (window.statsChart) window.statsChart.destroy();
+
+            window.statsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Chưa có dữ liệu'],
+                    datasets: [{
+                        label: 'Doanh thu (triệu đ)',
+                        data: revenues.length > 0 ? revenues : [0],
+                        borderColor: '#10b981',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 8
+                    }, {
+                        label: 'Số vé bán',
+                        data: ticketCounts.length > 0 ? ticketCounts : [0],
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', weight: '500' } } },
+                        tooltip: { backgroundColor: 'rgba(255,255,255,0.95)', titleColor: '#1e293b', bodyColor: '#64748b', borderColor: 'rgba(0,0,0,0.05)', borderWidth: 1, cornerRadius: 12, padding: 12, boxPadding: 6 }
+                    },
+                    scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } }
+                }
+            });
+        })
+        .catch(() => console.warn('Không thể tải dữ liệu doanh thu'));
+}
+
+// ========== TICKET RATIO CHART ==========
+function loadTicketRatioChart() {
+    fetch(API_BASE + '?type=tickets')
+        .then(r => r.json())
+        .then(data => {
+            const labels = data.map(d => d.name || 'Không rõ');
+            const counts = data.map(d => d.count || 0);
+
+            new Chart(document.getElementById('ticketRatioChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Chưa có dữ liệu'],
+                    datasets: [{
+                        data: counts.length > 0 ? counts : [1],
+                        backgroundColor: labels.length > 0
+                            ? CHART_COLORS.slice(0, labels.length)
+                            : ['rgba(148,163,184,0.3)'],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { family: 'Inter', size: 12, weight: '500' } } } }
+                }
+            });
+        })
+        .catch(() => console.warn('Không thể tải dữ liệu phân phối vé'));
+}
+
+// ========== HOURLY CHART ==========
+function loadHourlyChart() {
+    fetch(API_BASE + '?type=hourly')
+        .then(r => r.json())
+        .then(data => {
+            // Fill all 24 hours (0-23), defaulting to 0
+            const hourlyData = new Array(24).fill(0);
+            data.forEach(d => { hourlyData[d.hour] = d.count; });
+
+            // Show only active hours (6h - 23h)
+            const activeHours = [];
+            const activeCounts = [];
+            for (let h = 6; h <= 23; h++) {
+                activeHours.push(h + 'h');
+                activeCounts.push(hourlyData[h]);
+            }
+
+            new Chart(document.getElementById('hourlyChart'), {
+                type: 'bar',
+                data: {
+                    labels: activeHours,
+                    datasets: [{
+                        label: 'Đơn hàng',
+                        data: activeCounts,
+                        backgroundColor: (ctx) => {
+                            const max = Math.max(...activeCounts, 1);
+                            const ratio = ctx.raw / max;
+                            return ratio > 0.7 ? 'rgba(16,185,129,0.8)'
+                                 : ratio > 0.4 ? 'rgba(59,130,246,0.6)'
+                                 : 'rgba(148,163,184,0.4)';
+                        },
+                        borderRadius: 6,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } }
+                }
+            });
+        })
+        .catch(() => console.warn('Không thể tải dữ liệu giờ mua vé'));
+}
+
+// ========== EVENT PERFORMANCE (4th chart: replaces source channel) ==========
+function loadEventPerformanceChart() {
+    // Use data from the table (already server-rendered)
+    const rows = document.querySelectorAll('.table-glass tbody tr');
+    const labels = [];
+    const sold = [];
+    const total = [];
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 3) {
+            labels.push(cells[0].textContent.trim().substring(0, 20));
+            const parts = cells[2].textContent.trim().split('/');
+            sold.push(parseInt(parts[0]) || 0);
+            total.push(parseInt(parts[1]) || 0);
+        }
+    });
+
+    if (labels.length === 0) {
+        labels.push('Chưa có sự kiện');
+        sold.push(0);
+        total.push(1);
+    }
+
+    new Chart(document.getElementById('sourceChart'), {
+        type: 'bar',
         data: {
-            labels: ['T2','T3','T4','T5','T6','T7','CN'],
+            labels: labels,
             datasets: [{
-                label: 'Doanh thu (triệu)',
-                data: [45, 72, 58, 95, 82, 120, 105],
-                borderColor: '#10b981',
-                backgroundColor: g1,
-                fill: true,
-                tension: 0.4,
-                borderWidth: 3,
-                pointBackgroundColor: '#10b981',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 8
+                label: 'Vé đã bán',
+                data: sold,
+                backgroundColor: 'rgba(16,185,129,0.7)',
+                borderRadius: 6
             }, {
-                label: 'Chi phí (triệu)',
-                data: [15, 22, 18, 30, 25, 35, 32],
-                borderColor: '#ef4444',
-                borderDash: [5, 5],
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 3,
-                fill: false
+                label: 'Tổng vé',
+                data: total,
+                backgroundColor: 'rgba(59,130,246,0.2)',
+                borderRadius: 6
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'top', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', weight: '500' } } }, tooltip: { backgroundColor: 'rgba(255,255,255,0.95)', titleColor: '#1e293b', bodyColor: '#64748b', borderColor: 'rgba(0,0,0,0.05)', borderWidth: 1, cornerRadius: 12, padding: 12, boxPadding: 6 } },
-            scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } }
+            indexAxis: 'y',
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { family: 'Inter', size: 12, weight: '500' } } } },
+            scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true }, y: { grid: { display: false } } }
         }
     });
-
-    // Ticket Ratio
-    new Chart(document.getElementById('ticketRatioChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['VIP', 'Standard', 'Economy', 'Group', 'Early Bird'],
-            datasets: [{ data: [25, 35, 22, 8, 10], backgroundColor: ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#06b6d4'], borderWidth: 0, hoverOffset: 8 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { family: 'Inter', size: 12, weight: '500' } } } } }
-    });
-
-    // Hourly Pattern
-    new Chart(document.getElementById('hourlyChart'), {
-        type: 'bar',
-        data: {
-            labels: ['6h','8h','10h','12h','14h','16h','18h','20h','22h','0h'],
-            datasets: [{
-                label: 'Đơn hàng',
-                data: [5, 15, 35, 45, 30, 25, 55, 80, 65, 20],
-                backgroundColor: (ctx) => {
-                    const val = ctx.raw;
-                    return val > 50 ? 'rgba(147,51,234,0.8)' : val > 30 ? 'rgba(59,130,246,0.6)' : 'rgba(148,163,184,0.4)';
-                },
-                borderRadius: 6,
-                barPercentage: 0.7
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } } }
-    });
-
-    // Source Channel
-    new Chart(document.getElementById('sourceChart'), {
-        type: 'polarArea',
-        data: {
-            labels: ['Website', 'Facebook', 'Google', 'Zalo', 'Khác'],
-            datasets: [{ data: [40, 25, 18, 12, 5], backgroundColor: ['rgba(147,51,234,0.7)', 'rgba(59,130,246,0.7)', 'rgba(16,185,129,0.7)', 'rgba(245,158,11,0.7)', 'rgba(148,163,184,0.5)'], borderWidth: 0 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { family: 'Inter', size: 12, weight: '500' } } } } }
-    });
-});
+}
 
 function updateStatsChart(range) {
-    const dataMap = {
-        '7d': { labels: ['T2','T3','T4','T5','T6','T7','CN'], d1: [45,72,58,95,82,120,105], d2: [15,22,18,30,25,35,32] },
-        '30d': { labels: ['Tuần 1','Tuần 2','Tuần 3','Tuần 4'], d1: [280,350,310,420], d2: [85,110,95,130] },
-        '90d': { labels: ['Tháng 1','Tháng 2','Tháng 3'], d1: [1100,1350,1500], d2: [340,420,460] }
-    };
-    const d = dataMap[range];
-    window.statsChart.data.labels = d.labels;
-    window.statsChart.data.datasets[0].data = d.d1;
-    window.statsChart.data.datasets[1].data = d.d2;
-    window.statsChart.update();
+    const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
+    loadRevenueChart(daysMap[range] || 7);
     document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
+}
+
+// ========== EVENT FILTER ==========
+var origRevenue = ${totalRevenue != null ? totalRevenue : 0};
+var origOrders = ${totalOrders != null ? totalOrders : 0};
+var origEvents = ${totalEvents != null ? totalEvents : 0};
+var origAvg = origOrders > 0 ? origRevenue / origOrders : 0;
+
+function onEventFilterChange() {
+    var sel = document.getElementById('eventFilter');
+    currentEventId = parseInt(sel.value) || 0;
+
+    if (currentEventId === 0) {
+        updateCards(origRevenue, origOrders, origEvents, origAvg);
+        loadRevenueChart(7);
+        return;
+    }
+
+    fetch('${pageContext.request.contextPath}/organizer/statistics/event-stats?eventId=' + currentEventId)
+        .then(r => r.json())
+        .then(data => {
+            var avg = data.paidOrders > 0 ? data.revenue / data.paidOrders : 0;
+            updateCards(data.revenue, data.totalOrders, data.totalTickets, avg,
+                        data.paidOrders, data.checkedIn);
+            loadRevenueChart(7);
+        })
+        .catch(() => console.warn('Không thể tải thống kê sự kiện'));
+}
+
+function updateCards(revenue, orders, events, avg, paidOrders, checkedIn) {
+    var cards = document.querySelectorAll('.row.g-4.mb-4 .card-body');
+    if (cards.length >= 4) {
+        // Card 1: Revenue
+        cards[0].querySelector('h3').textContent = formatVN(revenue) + ' đ';
+        // Card 2: Orders
+        cards[1].querySelector('h3').textContent = formatVN(orders);
+        if (currentEventId > 0 && paidOrders !== undefined) {
+            cards[1].querySelector('small.text-info').innerHTML = '<i class="fas fa-check-circle"></i> ' + paidOrders + ' đã thanh toán';
+        } else {
+            cards[1].querySelector('small.text-info').innerHTML = '<i class="fas fa-shopping-cart"></i> Tất cả trạng thái';
+        }
+        // Card 3: Events/Tickets
+        cards[2].querySelector('h3').textContent = formatVN(events);
+        if (currentEventId > 0 && checkedIn !== undefined) {
+            cards[2].querySelector('small.text-muted').textContent = 'Tổng vé';
+            cards[2].querySelector('small.text-info').innerHTML = '<i class="fas fa-user-check"></i> ' + checkedIn + ' đã check-in';
+        } else {
+            cards[2].querySelector('small.text-muted').textContent = 'Tổng sự kiện';
+            cards[2].querySelector('small.text-info').innerHTML = '<i class="fas fa-calendar"></i> Đang quản lý';
+        }
+        // Card 4: Average order value
+        cards[3].querySelector('h3').textContent = formatVN(Math.round(avg)) + ' đ';
+    }
+}
+
+function formatVN(n) {
+    return Math.round(n).toLocaleString('vi-VN');
 }
 </script>
 

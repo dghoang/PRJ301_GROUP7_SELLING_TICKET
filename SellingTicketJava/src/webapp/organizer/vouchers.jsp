@@ -136,8 +136,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-medium">Sự kiện áp dụng</label>
-                        <select class="form-select glass-input rounded-3" name="eventId">
-                            <option value="">Tất cả sự kiện</option>
+                        <select class="form-select glass-input rounded-3" name="eventId" required>
+                            <option value="">-- Chọn sự kiện --</option>
                             <c:forEach var="e" items="${events}">
                                 <option value="${e.eventId}">${e.title}</option>
                             </c:forEach>

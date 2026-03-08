@@ -867,6 +867,14 @@
                             Chọn loại vé
                         </h5>
                         
+                        <jsp:useBean id="now" class="java.util.Date" />
+                        <c:if test="${event.endDate != null && event.endDate.time < now.time}">
+                            <div class="alert alert-warning mb-4" style="border-radius: 12px; border-left: 4px solid #f59e0b; background: #fffbeb; color: #b45309;">
+                                <h6 class="fw-bold mb-1"><i class="fas fa-exclamation-triangle me-2"></i> Sự kiện đã kết thúc</h6>
+                                <p class="mb-0 small">Sự kiện này đã qua thời gian tổ chức. Quý khách lưu ý trước khi tiến hành thanh toán.</p>
+                            </div>
+                        </c:if>
+
                         <div class="ticket-selection">
                             <c:choose>
                                 <c:when test="${not empty ticketTypes}">
@@ -982,9 +990,12 @@
                                     </div>
                                 </c:when>
                                 <c:otherwise>
-                                    <div class="text-center py-5 text-muted">
-                                        <i class="fas fa-ticket-alt fa-3x mb-3 opacity-25"></i>
-                                        <p>Chưa có thông tin vé cho sự kiện này</p>
+                                    <div class="text-center p-5">
+                                        <div style="font-size: 3rem; color: #d1d5db; margin-bottom: 1rem;">
+                                            <i class="fas fa-ticket-alt"></i>
+                                        </div>
+                                        <h5 class="text-muted">Chưa có loại vé mở bán</h5>
+                                        <p class="text-muted small">Sự kiện này hiện chưa có giá vé được công bố.</p>
                                     </div>
                                 </c:otherwise>
                             </c:choose>
@@ -1171,24 +1182,23 @@ function proceedToCheckout() {
         return;
     }
     
-    var selectedTicketId = null;
-    var selectedQty = 0;
+    // Collect ALL ticket types with qty > 0
+    var itemParts = [];
     for (var tid in ticketCart) {
         if (ticketCart[tid].qty > 0) {
-            selectedTicketId = tid;
-            selectedQty = ticketCart[tid].qty;
-            break;
+            itemParts.push(tid + ':' + ticketCart[tid].qty);
         }
     }
     
-    if (!selectedTicketId) {
+    if (itemParts.length === 0) {
         if (typeof showToast === 'function') showToast('Vui lòng chọn ít nhất 1 vé', 'error');
         return;
     }
     
     var ctx = document.querySelector('meta[name="ctx"]');
     var ctxPath = ctx ? ctx.content : '';
-    var checkoutUrl = ctxPath + '/checkout?eventId=${event.eventId}&ticketTypeId=' + selectedTicketId + '&quantity=' + selectedQty;
+    // Format: items=typeId:qty,typeId:qty (supports multiple ticket types)
+    var checkoutUrl = ctxPath + '/checkout?eventId=${event.eventId}&items=' + encodeURIComponent(itemParts.join(','));
     window.location.href = checkoutUrl;
 }
 

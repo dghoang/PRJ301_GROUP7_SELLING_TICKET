@@ -96,7 +96,7 @@
         <session-timeout>60</session-timeout>
         <cookie-config>
             <http-only>true</http-only>
-            <secure>true</secure>
+            <!-- secure=true requires HTTPS — enable in production only -->
         </cookie-config>
     </session-config>
 

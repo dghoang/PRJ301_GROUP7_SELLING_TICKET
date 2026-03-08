@@ -173,7 +173,11 @@
 
                                         <!-- QR Code generated from JWT token -->
                                         <div class="qr-container mb-3">
-                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${ticket.qrCode}"
+                                            <c:url var="qrUrl" value="https://api.qrserver.com/v1/create-qr-code/">
+                                                <c:param name="size" value="180x180"/>
+                                                <c:param name="data" value="${ticket.qrCode}"/>
+                                            </c:url>
+                                            <img src="${qrUrl}"
                                                  alt="QR Vé ${ticket.ticketCode}" width="180" height="180"
                                                  style="${ticket.checkedIn ? 'filter: grayscale(100%) opacity(0.5);' : ''}">
                                         </div>
@@ -192,7 +196,7 @@
                                         </div>
 
                                         <c:if test="${!ticket.checkedIn}">
-                                            <button class="btn btn-sm glass rounded-pill px-3 mt-2" onclick="downloadTicketQR('${ticket.ticketCode}', '${ticket.qrCode}')">
+                                            <button class="btn btn-sm glass rounded-pill px-3 mt-2" onclick="downloadTicketQR('${ticket.ticketCode}')">
                                                 <i class="fas fa-download me-1 text-primary"></i>Tải vé
                                             </button>
                                         </c:if>
@@ -257,7 +261,10 @@ function copyCode(code) {
     setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i>', 2000);
 }
 
-function downloadTicketQR(ticketCode, qrData) {
+function downloadTicketQR(ticketCode) {
+    // Find the QR image src from the DOM by ticket code
+    var qrImgs = document.querySelectorAll('img[alt="QR Vé ' + ticketCode + '"]');
+    if (!qrImgs.length) return;
     var canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d');
     var img = new Image();
@@ -283,12 +290,12 @@ function downloadTicketQR(ticketCode, qrData) {
         var t1 = 'Xuất trình QR khi check-in tại sự kiện';
         ctx.fillText(t1, (w - ctx.measureText(t1).width) / 2, 400);
         ctx.fillStyle = '#10b981'; ctx.font = 'bold 12px sans-serif';
-        var t2 = 'JWT Signed • Chống giả mạo';
+        var t2 = 'Vé điện tử • Chống giả mạo';
         ctx.fillText(t2, (w - ctx.measureText(t2).width) / 2, 420);
         var a = document.createElement('a');
         a.download = 'ticket-' + ticketCode + '.png'; a.href = canvas.toDataURL('image/png'); a.click();
     };
-    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrData);
+    img.src = qrImgs[0].src.replace('180x180', '300x300');
 }
 
 document.addEventListener('DOMContentLoaded', createConfetti);
