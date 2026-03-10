@@ -116,7 +116,7 @@ public class AdminUserController extends HttpServlet {
     private void viewUser(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        int userId = parseIntOrDefault(request.getParameter("id"), -1);
+        int userId = getUserIdFromPath(request.getPathInfo());
         if (userId <= 0) {
             FlashUtil.error(request, "Không tìm thấy người dùng!");
             response.sendRedirect(request.getContextPath() + "/admin/users");
@@ -132,6 +132,17 @@ public class AdminUserController extends HttpServlet {
 
         request.setAttribute("user", user);
         request.getRequestDispatcher("/admin/user-detail.jsp").forward(request, response);
+    }
+
+    private int getUserIdFromPath(String pathInfo) {
+        if (pathInfo == null) {
+            return -1;
+        }
+        String trimmed = pathInfo.startsWith("/") ? pathInfo.substring(1) : pathInfo;
+        if (!trimmed.matches("\\d+")) {
+            return -1;
+        }
+        return parseIntOrDefault(trimmed, -1);
     }
 
     private void updateRole(HttpServletRequest request, HttpServletResponse response) throws IOException {

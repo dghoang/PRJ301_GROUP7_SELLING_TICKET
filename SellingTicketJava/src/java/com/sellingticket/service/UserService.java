@@ -1,6 +1,7 @@
 package com.sellingticket.service;
 
 import com.sellingticket.dao.UserDAO;
+import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import java.util.List;
 import java.util.Date;
@@ -126,6 +127,14 @@ public class UserService {
 
     public List<User> searchUsers(String keyword) {
         return userDAO.searchUsers(keyword);
+    }
+
+    /**
+     * Paginated user search with keyword, role filter, and active status.
+     */
+    public PageResult<User> searchUsersPaged(String keyword, String[] roles,
+            Boolean isActive, int page, int pageSize) {
+        return userDAO.searchUsersPaged(keyword, roles, isActive, page, pageSize);
     }
 
     // ========================

@@ -8,6 +8,7 @@ import com.sellingticket.model.Event;
 import com.sellingticket.model.TicketType;
 import com.sellingticket.model.Category;
 import com.sellingticket.model.EventStaff;
+import com.sellingticket.model.PageResult;
 import java.util.List;
 
 /**
@@ -205,6 +206,36 @@ public class EventService {
      */
     public int countSearchEvents(String keyword, String category, String dateFilter) {
         return eventDAO.countSearchEvents(keyword, category, dateFilter);
+    }
+
+    // ========================
+    // PAGED SEARCH OPERATIONS
+    // ========================
+
+    /**
+     * Public: Advanced paginated event search with multiple filters.
+     */
+    public PageResult<Event> searchEventsPaged(String keyword, String category,
+            String dateFrom, String dateTo, Double priceMin, Double priceMax,
+            String sort, int page, int pageSize) {
+        return eventDAO.searchEventsPaged(keyword, category, dateFrom, dateTo,
+                priceMin, priceMax, sort, page, pageSize);
+    }
+
+    /**
+     * Admin: Paginated event list with keyword, status, category filters.
+     */
+    public PageResult<Event> getAllEventsPaged(String keyword, String[] statuses,
+            String category, int page, int pageSize) {
+        return eventDAO.getAllEventsPaged(keyword, statuses, category, page, pageSize);
+    }
+
+    /**
+     * Organizer: Paginated list of own events with filters.
+     */
+    public PageResult<Event> getEventsByOrganizerPaged(int organizerId, String keyword,
+            String[] statuses, int page, int pageSize) {
+        return eventDAO.getEventsByOrganizerPaged(organizerId, keyword, statuses, page, pageSize);
     }
 
     /**

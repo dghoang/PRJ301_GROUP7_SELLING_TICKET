@@ -3,10 +3,10 @@ package com.sellingticket.filter;
 import com.sellingticket.model.User;
 import com.sellingticket.service.AuthTokenService;
 import static com.sellingticket.util.ServletUtil.getSessionUser;
+import static com.sellingticket.util.ServletUtil.redirectToLogin;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.Filter;
@@ -34,11 +34,24 @@ import jakarta.servlet.http.HttpSession;
 @WebFilter(filterName = "AuthFilter", urlPatterns = {
     "/organizer/*", "/admin/*",
     "/checkout", "/tickets", "/my-tickets",
-    "/order-confirmation", "/profile", "/change-password"
+    "/order-confirmation", "/profile", "/change-password",
+    "/resume-payment", "/support/*", "*.jsp"
 })
 public class AuthFilter implements Filter {
 
     private static final Logger LOGGER = Logger.getLogger(AuthFilter.class.getName());
+    private static final Set<String> PROTECTED_ROOT_JSP = Set.of(
+            "/checkout.jsp",
+            "/my-support-tickets.jsp",
+            "/my-tickets.jsp",
+            "/order-confirmation.jsp",
+            "/payment-pending.jsp",
+            "/profile.jsp",
+            "/support-ticket.jsp",
+            "/support-ticket-detail.jsp",
+            "/ticket-selection.jsp"
+    );
+
     private final AuthTokenService authTokenService = new AuthTokenService();
 
     @Override
@@ -54,6 +67,14 @@ public class AuthFilter implements Filter {
         User user = getSessionUser(httpRequest);
         String uri = httpRequest.getRequestURI();
         String contextPath = httpRequest.getContextPath();
+        String path = uri.startsWith(contextPath) ? uri.substring(contextPath.length()) : uri;
+
+        // Hardening: protected JSPs must never be accessed directly via URL.
+        if (isProtectedJsp(path)) {
+            LOGGER.log(Level.WARNING, "Blocked direct access to protected JSP: {0}", path);
+            httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
 
         // --- Try JWT cookie restoration if session is empty ---
         if (user == null) {
@@ -79,13 +100,7 @@ public class AuthFilter implements Filter {
 
         // --- Not logged in: redirect to login with returnUrl ---
         if (user == null) {
-            String returnUrl = uri;
-            String queryString = httpRequest.getQueryString();
-            if (queryString != null && !queryString.isEmpty()) {
-                returnUrl += "?" + queryString;
-            }
-            String encoded = URLEncoder.encode(returnUrl, StandardCharsets.UTF_8);
-            httpResponse.sendRedirect(contextPath + "/login?returnUrl=" + encoded);
+            redirectToLogin(httpRequest, httpResponse);
             return;
         }
 
@@ -131,4 +146,14 @@ public class AuthFilter implements Filter {
 
     @Override
     public void destroy() {}
+
+    private boolean isProtectedJsp(String path) {
+        if (!path.endsWith(".jsp")) {
+            return false;
+        }
+        if (path.startsWith("/admin/") || path.startsWith("/organizer/")) {
+            return true;
+        }
+        return PROTECTED_ROOT_JSP.contains(path);
+    }
 }

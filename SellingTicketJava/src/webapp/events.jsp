@@ -451,58 +451,70 @@
 <!-- Search Box -->
 <div class="container search-container">
     <div class="search-box">
-        <form action="${pageContext.request.contextPath}/events" method="get">
-            <div class="row g-3 align-items-end">
-                <div class="col-lg-4 col-md-6">
-                    <label class="search-label">
-                        <i class="fas fa-search"></i>Tìm kiếm
-                    </label>
-                    <input type="text" name="search" class="search-input" 
-                           placeholder="Tên sự kiện, nghệ sĩ, địa điểm..." value="${searchQuery}">
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="search-label">
-                        <i class="fas fa-folder"></i>Danh mục
-                    </label>
-                    <select name="category" class="search-select">
-                        <option value="">Tất cả danh mục</option>
-                        <c:forEach var="cat" items="${categories}">
-                            <option value="${cat.slug}" ${selectedCategory == cat.slug ? 'selected' : ''}>${cat.name}</option>
-                        </c:forEach>
-                    </select>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="search-label">
-                        <i class="fas fa-calendar"></i>Thời gian
-                    </label>
-                    <select name="date" class="search-select">
-                        <option value="">Tất cả thời gian</option>
-                        <option value="today">Hôm nay</option>
-                        <option value="week">Tuần này</option>
-                        <option value="month">Tháng này</option>
-                    </select>
-                </div>
-                <div class="col-lg-2 col-md-6">
-                    <button type="submit" class="search-btn">
-                        <i class="fas fa-search"></i>Tìm
-                    </button>
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-3 col-md-6">
+                <label class="search-label">
+                    <i class="fas fa-search"></i>Tìm kiếm
+                </label>
+                <div style="position:relative">
+                    <input type="text" id="ajax-search" class="search-input" 
+                           placeholder="Tên sự kiện, nghệ sĩ, địa điểm...">
+                    <span class="search-clear" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;display:none;color:#9ca3af"><i class="fas fa-times"></i></span>
                 </div>
             </div>
-        </form>
+            <div class="col-lg-2 col-md-6">
+                <label class="search-label">
+                    <i class="fas fa-folder"></i>Danh mục
+                </label>
+                <select id="filter-category" class="search-select" data-filter-select="category">
+                    <option value="">Tất cả danh mục</option>
+                    <c:forEach var="cat" items="${categories}">
+                        <option value="${cat.slug}">${cat.name}</option>
+                    </c:forEach>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="search-label">
+                    <i class="fas fa-calendar"></i>Từ ngày
+                </label>
+                <input type="date" class="search-input" data-filter-date="dateFrom">
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="search-label">
+                    <i class="fas fa-calendar-check"></i>Đến ngày
+                </label>
+                <input type="date" class="search-input" data-filter-date="dateTo">
+            </div>
+            <div class="col-lg-1 col-md-2">
+                <label class="search-label">
+                    <i class="fas fa-tag"></i>Giá từ
+                </label>
+                <input type="number" class="search-input" placeholder="0" min="0" data-filter-number="priceMin">
+            </div>
+            <div class="col-lg-1 col-md-2">
+                <label class="search-label">
+                    <i class="fas fa-tag"></i>Giá đến
+                </label>
+                <input type="number" class="search-input" placeholder="∞" min="0" data-filter-number="priceMax">
+            </div>
+            <div class="col-lg-1 col-md-2">
+                <button type="button" class="search-btn" onclick="window.ajaxCards && ajaxCards.load()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- Category Pills -->
 <section class="category-section">
     <div class="container">
-        <div class="d-flex flex-wrap gap-2">
-            <a href="${pageContext.request.contextPath}/events" 
-               class="category-pill ${empty selectedCategory ? 'active' : ''}">
+        <div class="d-flex flex-wrap gap-2" data-pill-group="category">
+            <a href="#" class="category-pill active" data-pill-value="">
                 <i class="fas fa-border-all"></i>Tất cả
             </a>
             <c:forEach var="cat" items="${categories}">
-                <a href="${pageContext.request.contextPath}/events?category=${cat.slug}" 
-                   class="category-pill ${selectedCategory == cat.slug ? 'active' : ''}">
+                <a href="#" class="category-pill" data-pill-value="${cat.slug}">
                     <i class="fas ${cat.icon}"></i>${cat.name}
                 </a>
             </c:forEach>
@@ -516,16 +528,10 @@
         <!-- Results Header -->
         <div class="results-header">
             <span class="results-count">
-                <c:choose>
-                    <c:when test="${not empty events}">
-                        Tìm thấy <strong>${events.size()}</strong> sự kiện
-                    </c:when>
-                    <c:otherwise>
-                        Không có sự kiện
-                    </c:otherwise>
-                </c:choose>
+                Tìm thấy <strong id="total-count">0</strong> sự kiện
             </span>
-            <select class="sort-select" onchange="this.form.submit()" name="sort">
+            <select class="sort-select" data-filter-select="sort">
+                <option value="date_asc">Sắp diễn ra</option>
                 <option value="newest">Mới nhất</option>
                 <option value="popular">Phổ biến nhất</option>
                 <option value="price_asc">Giá thấp → cao</option>
@@ -533,98 +539,11 @@
             </select>
         </div>
 
-        <!-- Events Grid -->
-        <c:choose>
-            <c:when test="${not empty events}">
-                <div class="row g-4">
-                    <c:forEach var="event" items="${events}">
-                        <div class="col-sm-6 col-lg-4 col-xl-3">
-                            <div class="event-card">
-                                <div class="event-img-wrapper skeleton">
-                                    <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400'}" 
-                                         alt="${event.title}" class="event-img" loading="lazy" onload="this.parentElement.classList.remove('skeleton')">
-                                    
-                                    <!-- Date Badge -->
-                                    <div class="date-badge">
-                                        <div class="day"><fmt:formatDate value="${event.startDate}" pattern="dd"/></div>
-                                        <div class="month">Th<fmt:formatDate value="${event.startDate}" pattern="MM"/></div>
-                                    </div>
-                                    
-                                    <!-- Badges -->
-                                    <div class="event-badges">
-                                        <c:if test="${event.featured}">
-                                            <span class="badge-hot">HOT</span>
-                                        </c:if>
-                                    </div>
-                                    
-                                    <!-- Price -->
-                                    <div class="price-tag ${event.minPrice == 0 ? 'free' : ''}">
-                                        <c:choose>
-                                            <c:when test="${event.minPrice == 0}">Miễn phí</c:when>
-                                            <c:otherwise><fmt:formatNumber value="${event.minPrice}" pattern="#,###"/>đ</c:otherwise>
-                                        </c:choose>
-                                    </div>
-                                </div>
-                                
-                                <div class="event-content">
-                                    <span class="event-category">${event.categoryName}</span>
-                                    <h3 class="event-title">
-                                        <a href="${pageContext.request.contextPath}/event/${event.slug}">${event.title}</a>
-                                    </h3>
-                                    <div class="event-meta">
-                                        <div class="event-meta-item">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                            <span>${event.location}</span>
-                                        </div>
-                                        <div class="event-meta-item">
-                                            <i class="fas fa-clock"></i>
-                                            <span><fmt:formatDate value="${event.startDate}" pattern="HH:mm, dd/MM/yyyy"/></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </c:forEach>
-                </div>
+        <!-- Events Grid (AJAX-powered) -->
+        <div class="row g-4" id="events-container"></div>
 
-                <!-- Pagination -->
-                <nav class="pagination-section">
-                    <ul class="pagination">
-                        <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                            <a class="page-link" href="?page=${currentPage - 1}&category=${selectedCategory}&search=${searchQuery}">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                        <c:forEach begin="1" end="5" var="i">
-                            <li class="page-item ${currentPage == i ? 'active' : ''}">
-                                <a class="page-link" href="?page=${i}&category=${selectedCategory}&search=${searchQuery}">${i}</a>
-                            </li>
-                        </c:forEach>
-                        <li class="page-item">
-                            <a class="page-link" href="?page=${currentPage + 1}&category=${selectedCategory}&search=${searchQuery}">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </c:when>
-            <c:otherwise>
-                <!-- Empty State -->
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-calendar-times"></i>
-                    </div>
-                    <h3 class="fw-bold mb-3">Không tìm thấy sự kiện</h3>
-                    <p class="text-muted mb-4" style="max-width: 400px; margin: 0 auto;">
-                        Hiện tại chưa có sự kiện nào phù hợp với tiêu chí tìm kiếm của bạn. 
-                        Hãy thử thay đổi bộ lọc hoặc tìm kiếm khác.
-                    </p>
-                    <a href="${pageContext.request.contextPath}/events" class="btn btn-gradient btn-lg rounded-pill px-5">
-                        <i class="fas fa-redo me-2"></i>Xem tất cả sự kiện
-                    </a>
-                </div>
-            </c:otherwise>
-        </c:choose>
+        <!-- Pagination -->
+        <div id="events-pagination" class="pagination-section"></div>
 
         <!-- CTA Section -->
         <div class="cta-section">
@@ -644,5 +563,100 @@
         </div>
     </div>
 </section>
+
+<script src="${pageContext.request.contextPath}/assets/js/ajax-cards.js"></script>
+<script>
+const ctxPath = '${pageContext.request.contextPath}';
+
+function formatPrice(price) {
+    if (price === 0) return 'Miễn phí';
+    return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const pad = n => String(n).padStart(2, '0');
+    return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ', ' +
+           pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+}
+
+function getDateParts(dateStr) {
+    if (!dateStr) return { day: '--', month: '--' };
+    const d = new Date(dateStr);
+    return { day: String(d.getDate()).padStart(2, '0'), month: 'Th' + String(d.getMonth() + 1).padStart(2, '0') };
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+const ajaxCards = new AjaxCards({
+    apiUrl: ctxPath + '/api/events',
+    container: '#events-container',
+    paginationContainer: '#events-pagination',
+    searchInput: '#ajax-search',
+    pageSize: 12,
+    skeletonCount: 8,
+    totalItemsEl: '#total-count',
+    renderCard: function(e) {
+        const dp = getDateParts(e.startDate);
+        const priceClass = e.minPrice === 0 ? 'free' : '';
+        const hotBadge = e.isFeatured ? '<span class="badge-hot">HOT</span>' : '';
+        
+        return '<div class="col-sm-6 col-lg-4 col-xl-3">' +
+            '<div class="event-card">' +
+                '<div class="event-img-wrapper">' +
+                    '<img src="' + escHtml(e.bannerImage || 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400') + '" ' +
+                        'alt="' + escHtml(e.title) + '" class="event-img" loading="lazy">' +
+                    '<div class="date-badge">' +
+                        '<div class="day">' + dp.day + '</div>' +
+                        '<div class="month">' + dp.month + '</div>' +
+                    '</div>' +
+                    '<div class="event-badges">' + hotBadge + '</div>' +
+                    '<div class="price-tag ' + priceClass + '">' + formatPrice(e.minPrice) + '</div>' +
+                '</div>' +
+                '<div class="event-content">' +
+                    '<span class="event-category">' + escHtml(e.categoryName) + '</span>' +
+                    '<h3 class="event-title">' +
+                        '<a href="' + ctxPath + '/event/' + escHtml(e.slug) + '">' + escHtml(e.title) + '</a>' +
+                    '</h3>' +
+                    '<div class="event-meta">' +
+                        '<div class="event-meta-item"><i class="fas fa-map-marker-alt"></i><span>' + escHtml(e.location) + '</span></div>' +
+                        '<div class="event-meta-item"><i class="fas fa-clock"></i><span>' + formatDate(e.startDate) + '</span></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+});
+
+// Sync pill clicks with category dropdown
+document.querySelectorAll('[data-pill-group="category"] [data-pill-value]').forEach(function(pill) {
+    pill.addEventListener('click', function() {
+        document.getElementById('filter-category').value = pill.dataset.pillValue;
+    });
+});
+
+// Sync category dropdown with pills
+document.getElementById('filter-category').addEventListener('change', function() {
+    const val = this.value;
+    document.querySelectorAll('[data-pill-group="category"] [data-pill-value]').forEach(function(p) {
+        p.classList.toggle('active', p.dataset.pillValue === val);
+    });
+});
+
+// Show/hide search clear button
+const searchInput = document.getElementById('ajax-search');
+const clearBtn = searchInput.parentElement.querySelector('.search-clear');
+searchInput.addEventListener('input', function() {
+    clearBtn.style.display = this.value ? 'block' : 'none';
+});
+
+ajaxCards.init();
+</script>
 
 <jsp:include page="footer.jsp" />

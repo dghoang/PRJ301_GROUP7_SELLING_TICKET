@@ -20,9 +20,9 @@
                     <h2 class="fw-bold mb-1">Quản lý Vouchers</h2>
                     <p class="text-muted mb-0">Tạo mã giảm giá để tăng doanh thu bán vé</p>
                 </div>
-                <button class="btn btn-gradient rounded-pill px-4 hover-glow" data-bs-toggle="modal" data-bs-target="#createVoucherModal">
+                <a href="${pageContext.request.contextPath}/organizer/vouchers/create" class="btn btn-gradient rounded-pill px-4 hover-glow">
                     <i class="fas fa-plus me-2"></i>Tạo Voucher
-                </button>
+                </a>
             </div>
 
             <%-- Vouchers Grid --%>
@@ -35,9 +35,9 @@
                             </div>
                             <h4 class="fw-bold">Chưa có voucher nào</h4>
                             <p class="text-muted mb-4">Tạo voucher đầu tiên để khuyến mãi cho sự kiện!</p>
-                            <button class="btn btn-gradient rounded-pill px-4 hover-glow" data-bs-toggle="modal" data-bs-target="#createVoucherModal">
+                            <a href="${pageContext.request.contextPath}/organizer/vouchers/create" class="btn btn-gradient rounded-pill px-4 hover-glow">
                                 <i class="fas fa-plus me-2"></i>Tạo Voucher
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </c:when>
@@ -48,8 +48,8 @@
                             <div class="card glass-strong border-0 rounded-4 hover-lift h-100" style="transition: all 0.3s;">
                                 <div class="card-body p-4">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <div class="dash-icon-box" style="background: linear-gradient(135deg, ${v.discountType == 'percent' ? '#3b82f6, #6366f1' : '#10b981, #06b6d4'});">
-                                            <i class="fas ${v.discountType == 'percent' ? 'fa-percent' : 'fa-tag'} fa-lg text-white"></i>
+                                        <div class="dash-icon-box" style="background: linear-gradient(135deg, ${v.discountType == 'percentage' ? '#3b82f6, #6366f1' : '#10b981, #06b6d4'});">
+                                            <i class="fas ${v.discountType == 'percentage' ? 'fa-percent' : 'fa-tag'} fa-lg text-white"></i>
                                         </div>
                                         <c:choose>
                                             <c:when test="${v.usable}">
@@ -63,8 +63,8 @@
 
                                     <h5 class="fw-bold mb-1">${v.code}</h5>
                                     <p class="text-muted small mb-3">
-                                        Giảm ${v.discountType == 'percent' ? v.discountValue.intValue().toString().concat('%') : ''}
-                                        <c:if test="${v.discountType != 'percent'}">
+                                        Giảm ${v.discountType == 'percentage' ? v.discountValue.intValue().toString().concat('%') : ''}
+                                        <c:if test="${v.discountType != 'percentage'}">
                                             <fmt:formatNumber value="${v.discountValue}" type="number" groupingUsed="true"/>đ
                                         </c:if>
                                         <c:if test="${not empty v.eventName}"> • ${v.eventName}</c:if>
@@ -72,9 +72,9 @@
 
                                     <%-- Usage progress --%>
                                     <div class="mb-3">
-                                        <c:set var="usagePercent" value="${v.maxUsage > 0 ? (v.usedCount * 100 / v.maxUsage) : 0}"/>
+                                        <c:set var="usagePercent" value="${v.usageLimit > 0 ? (v.usedCount * 100 / v.usageLimit) : 0}"/>
                                         <div class="d-flex justify-content-between small mb-1">
-                                            <span>Đã dùng: ${v.usedCount}/${v.maxUsage}</span>
+                                            <span>Đã dùng: ${v.usedCount}/${v.usageLimit}</span>
                                             <span><fmt:formatNumber value="${usagePercent}" maxFractionDigits="0"/>%</span>
                                         </div>
                                         <div class="progress" style="height: 6px; border-radius: 3px;">
@@ -89,7 +89,7 @@
 
                                     <c:if test="${v.usable}">
                                         <div class="d-flex gap-2">
-                                            <a href="${pageContext.request.contextPath}/organizer/vouchers?action=edit&id=${v.voucherId}"
+                                            <a href="${pageContext.request.contextPath}/organizer/vouchers/edit/${v.voucherId}"
                                                class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill">
                                                 <i class="fas fa-edit me-1"></i>Sửa
                                             </a>
@@ -147,7 +147,7 @@
                         <div class="col-6">
                             <label class="form-label fw-medium">Loại giảm giá</label>
                             <select class="form-select glass-input rounded-3" name="discountType">
-                                <option value="percent">Phần trăm (%)</option>
+                                <option value="percentage">Phần trăm (%)</option>
                                 <option value="fixed">Số tiền (VNĐ)</option>
                             </select>
                         </div>
@@ -168,7 +168,7 @@
                     </div>
                     <div class="mb-3 mt-3">
                         <label class="form-label fw-medium">Số lượng <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control glass-input rounded-3" name="maxUsage" placeholder="100" required>
+                        <input type="number" class="form-control glass-input rounded-3" name="usageLimit" placeholder="100" required>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">

@@ -30,7 +30,7 @@ public class OrganizerOrderController extends HttpServlet {
 
         User user = getSessionUser(request);
         if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+            redirectToLogin(request, response);
             return;
         }
 
@@ -48,7 +48,7 @@ public class OrganizerOrderController extends HttpServlet {
 
         User user = getSessionUser(request);
         if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+            redirectToLogin(request, response);
             return;
         }
 

@@ -158,9 +158,10 @@
                         </div>
                     </c:if>
 
+                    <c:set var="loginReturnUrl" value="${not empty param.returnUrl ? param.returnUrl : param.redirect}"/>
                     <form action="${pageContext.request.contextPath}/login" method="POST">
                         <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
-                        <input type="hidden" name="returnUrl" value="${param.returnUrl}"/>
+                        <input type="hidden" name="returnUrl" value="${loginReturnUrl}"/>
                         <!-- Email -->
                         <div class="mb-4 animate-fadeInUp stagger-1">
                             <label for="email" class="form-label fw-medium">Email</label>

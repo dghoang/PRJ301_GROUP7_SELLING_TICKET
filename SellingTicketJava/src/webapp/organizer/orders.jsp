@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -155,7 +156,7 @@
                                     </td>
                                     <td class="text-muted"><fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm" /></td>
                                     <td class="text-center">
-                                        <a href="${pageContext.request.contextPath}/organizer/orders/${order.orderId}" class="btn btn-sm glass rounded-pill px-3"><i class="fas fa-eye text-primary"></i></a>
+                                        <a href="${pageContext.request.contextPath}/organizer/orders/${order.eventId}" class="btn btn-sm glass rounded-pill px-3" title="Xem chi tiết đơn theo sự kiện"><i class="fas fa-eye text-primary"></i></a>
                                     </td>
                                 </tr>
                                 </c:forEach>

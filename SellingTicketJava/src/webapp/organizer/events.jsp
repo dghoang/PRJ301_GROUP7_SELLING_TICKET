@@ -258,12 +258,12 @@
             <!-- Filter + Search Bar -->
             <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll visible">
                 <div class="card-body d-flex gap-3 flex-wrap align-items-center p-3">
-                    <div class="filter-tabs d-flex gap-2 flex-wrap">
-                        <button class="btn active" data-filter="all">Tất cả <span class="badge bg-light text-dark ms-1">${countAll}</span></button>
-                        <button class="btn" data-filter="approved">Đang bán <span class="badge bg-light text-dark ms-1">${countApproved}</span></button>
-                        <button class="btn" data-filter="pending">Chờ duyệt <span class="badge bg-light text-dark ms-1">${countPending}</span></button>
-                        <button class="btn" data-filter="draft">Nháp <span class="badge bg-light text-dark ms-1">${countDraft}</span></button>
-                        <button class="btn" data-filter="ended">Đã kết thúc <span class="badge bg-light text-dark ms-1">${countEnded}</span></button>
+                    <div class="filter-tabs d-flex gap-2 flex-wrap" data-pill-group="status">
+                        <button class="btn active" data-pill-value="">Tất cả <span class="badge bg-light text-dark ms-1">${countAll}</span></button>
+                        <button class="btn" data-pill-value="approved">Đang bán <span class="badge bg-light text-dark ms-1">${countApproved}</span></button>
+                        <button class="btn" data-pill-value="pending">Chờ duyệt <span class="badge bg-light text-dark ms-1">${countPending}</span></button>
+                        <button class="btn" data-pill-value="draft">Nháp <span class="badge bg-light text-dark ms-1">${countDraft}</span></button>
+                        <button class="btn" data-pill-value="ended">Đã kết thúc <span class="badge bg-light text-dark ms-1">${countEnded}</span></button>
                     </div>
                     <div class="input-group ms-auto" style="max-width: 260px;">
                         <span class="input-group-text glass border-0 bg-transparent"><i class="fas fa-search text-muted"></i></span>
@@ -272,108 +272,12 @@
                 </div>
             </div>
 
-            <!-- Events Grid -->
+            <!-- Events Grid (AJAX-powered) -->
             <div class="row g-4" id="eventsGrid">
-                <c:forEach var="event" items="${events}">
-                    <div class="col-md-6 col-lg-4 event-item animate-on-scroll visible" data-status="${event.status}" data-title="${event.title}">
-                        <div class="event-manage-card" onclick="window.location='${pageContext.request.contextPath}/organizer/events/${event.eventId}'">
-                            <div class="card-img-wrapper">
-                                <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400'}" alt="${event.title}">
-                                <span class="status-badge
-                                    ${event.status == 'approved' ? 'bg-success text-white' : ''}
-                                    ${event.status == 'pending' ? 'bg-warning text-dark' : ''}
-                                    ${event.status == 'draft' ? 'bg-secondary text-white' : ''}
-                                    ${event.status == 'ended' ? 'bg-dark text-white' : ''}">
-                                    ${event.status == 'approved' ? 'Đang bán' : event.status == 'pending' ? 'Chờ duyệt' : event.status == 'draft' ? 'Nháp' : 'Đã kết thúc'}
-                                </span>
-                                <c:if test="${not empty event.categoryName}">
-                                    <span class="category-badge"><i class="fas fa-tag me-1"></i>${event.categoryName}</span>
-                                </c:if>
-                            </div>
-                            <div class="card-body p-3">
-                                <h6 class="fw-bold mb-2 event-title">${event.title}</h6>
-                                <p class="text-muted small mb-2">
-                                    <i class="far fa-calendar me-1"></i><fmt:formatDate value="${event.startDate}" pattern="dd/MM/yyyy"/>
-                                    <span class="mx-1">&bull;</span>
-                                    <i class="fas fa-map-marker-alt me-1"></i>${event.location}
-                                </p>
-
-                                <!-- Ticket Progress -->
-                                <c:set var="soldPct" value="${event.totalTickets > 0 ? (event.soldTickets * 100 / event.totalTickets) : 0}"/>
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <span><strong>${event.soldTickets}</strong>/${event.totalTickets} vé</span>
-                                        <c:if test="${event.totalTickets > 0}">
-                                            <span class="text-muted"><fmt:formatNumber value="${soldPct}" maxFractionDigits="0"/>%</span>
-                                        </c:if>
-                                    </div>
-                                    <div class="progress-thin">
-                                        <div class="progress-bar" style="width: <fmt:formatNumber value='${soldPct}' maxFractionDigits='0'/>%"></div>
-                                    </div>
-                                </div>
-
-                                <!-- Bottom Row: Revenue + Views + Actions -->
-                                <div class="d-flex justify-content-between align-items-center" onclick="event.stopPropagation()">
-                                    <div>
-                                        <span class="text-success fw-bold small">
-                                            <fmt:formatNumber value="${event.revenue}" type="currency" currencySymbol="" maxFractionDigits="0"/>đ
-                                        </span>
-                                        <span class="text-muted small ms-2">
-                                            <i class="far fa-eye"></i> ${event.views}
-                                        </span>
-                                    </div>
-                                    <div class="action-dropdown dropdown">
-                                        <button class="btn btn-sm glass rounded-pill px-2" data-bs-toggle="dropdown">
-                                            <i class="fas fa-ellipsis-h text-muted"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <c:set var="myRole" value="${eventRoles[event.eventId]}" />
-                                            
-                                            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}"><i class="fas fa-eye me-2 text-info"></i>Xem chi tiết</a></li>
-                                            
-                                            <!-- Edit: Admin, Owner, Manager, Editor -->
-                                            <c:if test="${myRole == 'admin' || myRole == 'owner' || myRole == 'manager' || myRole == 'editor'}">
-                                                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/edit"><i class="fas fa-edit me-2 text-primary"></i>Chỉnh sửa</a></li>
-                                            </c:if>
-
-                                            <!-- Manage Staff: Admin, Owner, Manager -->
-                                            <c:if test="${myRole == 'admin' || myRole == 'owner' || myRole == 'manager'}">
-                                                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/staff"><i class="fas fa-users me-2" style="color:#9333ea;"></i>Nhân sự</a></li>
-                                            </c:if>
-                                            
-                                            <!-- Delete: Admin, Owner -->
-                                            <c:if test="${myRole == 'admin' || myRole == 'owner'}">
-                                                <li><hr class="dropdown-divider my-1"></li>
-                                                <li><a class="dropdown-item text-danger" href="#" data-event-id="${event.eventId}" data-event-title="${event.title}" onclick="confirmDelete(this)"><i class="fas fa-trash me-2"></i>Xóa</a></li>
-                                            </c:if>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </c:forEach>
             </div>
 
-            <!-- Empty State -->
-            <c:if test="${empty events}">
-                <div class="empty-events animate-on-scroll visible">
-                    <div class="empty-events-icon">
-                        <i class="fas fa-calendar-plus"></i>
-                    </div>
-                    <h4 class="fw-bold mb-2">Chưa có sự kiện nào</h4>
-                    <p class="text-muted mb-4">Bắt đầu tạo sự kiện đầu tiên của bạn ngay!</p>
-                    <a href="${pageContext.request.contextPath}/organizer/create-event" class="btn btn-gradient rounded-pill px-5 py-2 hover-glow">
-                        <i class="fas fa-plus me-2"></i>Tạo sự kiện đầu tiên
-                    </a>
-                </div>
-            </c:if>
-
-            <!-- No Results (hidden by default) -->
-            <div id="noResults" class="text-center py-5 d-none">
-                <i class="fas fa-search fa-3x text-muted opacity-25 mb-3"></i>
-                <p class="text-muted">Không tìm thấy sự kiện phù hợp</p>
-            </div>
+            <!-- Pagination -->
+            <div id="orgEvtPagination" class="d-flex justify-content-center mt-4"></div>
         </div>
     </div>
 </div>
@@ -402,50 +306,99 @@
     </div>
 </div>
 
+<script src="${pageContext.request.contextPath}/assets/js/ajax-cards.js"></script>
 <script>
-// ========== FILTER TABS ==========
-document.querySelectorAll('.filter-tabs .btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.filter-tabs .btn').forEach(function(b) { b.classList.remove('active'); });
-        this.classList.add('active');
-        var filter = this.dataset.filter;
-        var visibleCount = 0;
-        document.querySelectorAll('.event-item').forEach(function(item) {
-            var status = item.dataset.status;
-            var show = filter === 'all' || status === filter;
-            item.style.display = show ? '' : 'none';
-            if (show) visibleCount++;
-        });
-        document.getElementById('noResults').classList.toggle('d-none', visibleCount > 0);
+(function() {
+    var ctxPath = '${pageContext.request.contextPath}';
+
+    function esc(v) { if (!v) return ''; var d = document.createElement('div'); d.textContent = v; return d.innerHTML; }
+    function fmtDate(s) {
+        if (!s) return '';
+        var d = new Date(s), pad = function(n) { return String(n).padStart(2, '0'); };
+        return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear();
+    }
+    function fmtMoney(n) { return new Intl.NumberFormat('vi-VN').format(n || 0) + 'đ'; }
+    function statusLabel(s) {
+        switch(s) {
+            case 'approved': return {cls: 'bg-success text-white', text: 'Đang bán'};
+            case 'pending':  return {cls: 'bg-warning text-dark', text: 'Chờ duyệt'};
+            case 'draft':    return {cls: 'bg-secondary text-white', text: 'Nháp'};
+            default:         return {cls: 'bg-dark text-white', text: 'Đã kết thúc'};
+        }
+    }
+
+    var orgCards = new AjaxCards({
+        apiUrl: ctxPath + '/api/organizer/events',
+        container: '#eventsGrid',
+        paginationContainer: '#orgEvtPagination',
+        searchInput: '#eventSearchInput',
+        pageSize: 12,
+        skeletonCount: 6,
+        renderEmpty: function() {
+            return '<div class="col-12">' +
+                '<div class="empty-events animate-on-scroll visible">' +
+                '<div class="empty-events-icon"><i class="fas fa-calendar-plus"></i></div>' +
+                '<h4 class="fw-bold mb-2">Chưa có sự kiện nào</h4>' +
+                '<p class="text-muted mb-4">Bắt đầu tạo sự kiện đầu tiên của bạn ngay!</p>' +
+                '<a href="' + ctxPath + '/organizer/create-event" class="btn btn-gradient rounded-pill px-5 py-2 hover-glow"><i class="fas fa-plus me-2"></i>Tạo sự kiện đầu tiên</a>' +
+                '</div></div>';
+        },
+        renderCard: function(e) {
+            var img = esc(e.bannerImage || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400');
+            var st = statusLabel(e.status);
+            var soldPct = e.totalTickets > 0 ? Math.round(e.soldTickets * 100 / e.totalTickets) : 0;
+
+            // Dropdown menu
+            var menu = '<li><a class="dropdown-item" href="' + ctxPath + '/organizer/events/' + e.eventId + '"><i class="fas fa-eye me-2 text-info"></i>Xem chi tiết</a></li>';
+            menu += '<li><a class="dropdown-item" href="' + ctxPath + '/organizer/events/' + e.eventId + '/edit"><i class="fas fa-edit me-2 text-primary"></i>Chỉnh sửa</a></li>';
+            menu += '<li><a class="dropdown-item" href="' + ctxPath + '/organizer/events/' + e.eventId + '/staff"><i class="fas fa-users me-2" style="color:#9333ea;"></i>Nhân sự</a></li>';
+            menu += '<li><hr class="dropdown-divider my-1"></li>';
+            menu += '<li><a class="dropdown-item text-danger" href="#" data-event-id="' + e.eventId + '" data-event-title="' + esc(e.title).replace(/"/g,'&quot;') + '" onclick="confirmDelete(this)"><i class="fas fa-trash me-2"></i>Xóa</a></li>';
+
+            return '<div class="col-md-6 col-lg-4 event-item animate-on-scroll visible">' +
+                '<div class="event-manage-card" onclick="window.location=\'' + ctxPath + '/organizer/events/' + e.eventId + '\'">' +
+                '<div class="card-img-wrapper">' +
+                    '<img src="' + img + '" alt="' + esc(e.title) + '">' +
+                    '<span class="status-badge ' + st.cls + '">' + st.text + '</span>' +
+                    (e.categoryName ? '<span class="category-badge"><i class="fas fa-tag me-1"></i>' + esc(e.categoryName) + '</span>' : '') +
+                '</div>' +
+                '<div class="card-body p-3">' +
+                    '<h6 class="fw-bold mb-2 event-title">' + esc(e.title) + '</h6>' +
+                    '<p class="text-muted small mb-2">' +
+                        '<i class="far fa-calendar me-1"></i>' + fmtDate(e.startDate) +
+                        ' <span class="mx-1">&bull;</span> ' +
+                        '<i class="fas fa-map-marker-alt me-1"></i>' + esc(e.location) +
+                    '</p>' +
+                    '<div class="mb-2">' +
+                        '<div class="d-flex justify-content-between small mb-1">' +
+                            '<span><strong>' + e.soldTickets + '</strong>/' + e.totalTickets + ' vé</span>' +
+                            (e.totalTickets > 0 ? '<span class="text-muted">' + soldPct + '%</span>' : '') +
+                        '</div>' +
+                        '<div class="progress-thin"><div class="progress-bar" style="width:' + soldPct + '%"></div></div>' +
+                    '</div>' +
+                    '<div class="d-flex justify-content-between align-items-center" onclick="event.stopPropagation()">' +
+                        '<div><span class="text-success fw-bold small">' + fmtMoney(e.revenue) + '</span></div>' +
+                        '<div class="action-dropdown dropdown">' +
+                            '<button class="btn btn-sm glass rounded-pill px-2" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-h text-muted"></i></button>' +
+                            '<ul class="dropdown-menu dropdown-menu-end">' + menu + '</ul>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '</div></div>';
+        }
     });
-});
+    orgCards.init();
 
-// ========== SEARCH ==========
-var searchTimeout;
-document.getElementById('eventSearchInput').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    var query = this.value.trim().toLowerCase();
-    searchTimeout = setTimeout(function() {
-        var visibleCount = 0;
-        document.querySelectorAll('.event-item').forEach(function(item) {
-            var title = item.dataset.title.toLowerCase();
-            var match = !query || title.indexOf(query) !== -1;
-            item.style.display = match ? '' : 'none';
-            if (match) visibleCount++;
-        });
-        document.getElementById('noResults').classList.toggle('d-none', visibleCount > 0);
-    }, 200);
-});
-
-// ========== DELETE MODAL ==========
-function confirmDelete(el) {
-    if (window.event) window.event.preventDefault();
-    var eventId = el.getAttribute('data-event-id');
-    var eventName = el.getAttribute('data-event-title');
-    document.getElementById('deleteEventName').textContent = eventName;
-    document.getElementById('deleteForm').action = '${pageContext.request.contextPath}/organizer/events/' + eventId + '/delete';
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
+    // ========== DELETE MODAL ==========
+    window.confirmDelete = function(el) {
+        if (window.event) window.event.preventDefault();
+        var eventId = el.getAttribute('data-event-id');
+        var eventName = el.getAttribute('data-event-title');
+        document.getElementById('deleteEventName').textContent = eventName;
+        document.getElementById('deleteForm').action = ctxPath + '/organizer/events/' + eventId + '/delete';
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    };
+})();
 </script>
 
 <jsp:include page="../footer.jsp" />

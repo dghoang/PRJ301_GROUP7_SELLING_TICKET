@@ -16,6 +16,20 @@
 # Ignore environment-specific files
 config/database.php
 src/
+
+# Allow specific JSP hotfix files under SellingTicketJava/src while keeping the rest ignored
+!SellingTicketJava/src/
+SellingTicketJava/src/*
+!SellingTicketJava/src/webapp/
+SellingTicketJava/src/webapp/*
+!SellingTicketJava/src/webapp/admin/
+!SellingTicketJava/src/webapp/organizer/
+SellingTicketJava/src/webapp/admin/*
+!SellingTicketJava/src/webapp/admin/user-detail.jsp
+SellingTicketJava/src/webapp/organizer/*
+!SellingTicketJava/src/webapp/organizer/event-orders.jsp
+!SellingTicketJava/src/webapp/organizer/voucher-form.jsp
+
 __pycache__/
 *.py[cod]
 *$py.class

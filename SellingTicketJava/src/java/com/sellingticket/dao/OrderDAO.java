@@ -2,6 +2,7 @@ package com.sellingticket.dao;
 
 import com.sellingticket.model.Order;
 import com.sellingticket.model.OrderItem;
+import com.sellingticket.model.PageResult;
 import com.sellingticket.util.DBContext;
 import java.sql.*;
 import java.util.ArrayList;
@@ -453,5 +454,143 @@ public class OrderDAO extends DBContext {
             LOGGER.log(Level.SEVERE, "Failed to count checked-in orders for event=" + eventId, e);
         }
         return 0;
+    }
+
+    // ========================
+    // PAGED SEARCH METHODS
+    // ========================
+
+    /**
+     * Admin: Search orders with pagination, keyword, status filter, date range.
+     */
+    public PageResult<Order> searchOrdersPaged(String keyword, String[] statuses,
+            String dateFrom, String dateTo, int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder("WHERE (o.is_deleted = 0 OR o.is_deleted IS NULL) ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append("AND (o.order_code LIKE ? OR o.buyer_name LIKE ? OR o.buyer_email LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw); params.add(kw); params.add(kw);
+        }
+        if (statuses != null && statuses.length > 0) {
+            where.append("AND o.status IN (");
+            for (int i = 0; i < statuses.length; i++) {
+                where.append(i > 0 ? ",?" : "?");
+                params.add(statuses[i]);
+            }
+            where.append(") ");
+        }
+        if (dateFrom != null && !dateFrom.trim().isEmpty()) {
+            where.append("AND CAST(o.created_at AS DATE) >= ? ");
+            params.add(dateFrom.trim());
+        }
+        if (dateTo != null && !dateTo.trim().isEmpty()) {
+            where.append("AND CAST(o.created_at AS DATE) <= ? ");
+            params.add(dateTo.trim());
+        }
+
+        String dataSql = "SELECT o.*, e.title as event_title FROM Orders o " +
+                "JOIN Events e ON o.event_id = e.event_id " +
+                where.toString() + "ORDER BY o.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String countSql = "SELECT COUNT(*) FROM Orders o " + where.toString();
+
+        // Execute count
+        int totalItems = 0;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(countSql)) {
+            int idx = 1;
+            for (Object p : params) ps.setString(idx++, (String) p);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) totalItems = rs.getInt(1);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to count orders", e);
+        }
+
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(100, pageSize));
+        List<Order> items = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(dataSql)) {
+            int idx = 1;
+            for (Object p : params) ps.setString(idx++, (String) p);
+            ps.setInt(idx++, (safePage - 1) * safeSize);
+            ps.setInt(idx, safeSize);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                items.add(mapResultSetToOrder(rs));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to search orders paged", e);
+        }
+
+        if (!items.isEmpty()) loadOrderItemsBatch(items);
+        return new PageResult<>(items, totalItems, safePage, safeSize);
+    }
+
+    /**
+     * User: Get own orders with pagination and keyword search.
+     */
+    public PageResult<Order> getOrdersByUserPaged(int userId, String keyword,
+            String[] statuses, int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder("WHERE o.user_id = ? AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append("AND (o.order_code LIKE ? OR e.title LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw); params.add(kw);
+        }
+        if (statuses != null && statuses.length > 0) {
+            where.append("AND o.status IN (");
+            for (int i = 0; i < statuses.length; i++) {
+                where.append(i > 0 ? ",?" : "?");
+                params.add(statuses[i]);
+            }
+            where.append(") ");
+        }
+
+        String dataSql = "SELECT o.*, e.title as event_title FROM Orders o " +
+                "JOIN Events e ON o.event_id = e.event_id " +
+                where.toString() + "ORDER BY o.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String countSql = "SELECT COUNT(*) FROM Orders o " +
+                "JOIN Events e ON o.event_id = e.event_id " + where.toString();
+
+        int totalItems = 0;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(countSql)) {
+            int idx = 1;
+            ps.setInt(idx++, userId);
+            for (Object p : params) ps.setString(idx++, (String) p);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) totalItems = rs.getInt(1);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to count user orders", e);
+        }
+
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(100, pageSize));
+        List<Order> items = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(dataSql)) {
+            int idx = 1;
+            ps.setInt(idx++, userId);
+            for (Object p : params) ps.setString(idx++, (String) p);
+            ps.setInt(idx++, (safePage - 1) * safeSize);
+            ps.setInt(idx, safeSize);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                items.add(mapResultSetToOrder(rs));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to get user orders paged", e);
+        }
+
+        if (!items.isEmpty()) loadOrderItemsBatch(items);
+        return new PageResult<>(items, totalItems, safePage, safeSize);
     }
 }

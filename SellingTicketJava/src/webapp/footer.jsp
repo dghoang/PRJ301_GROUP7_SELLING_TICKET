@@ -112,10 +112,22 @@
     // Require login function for protected links
     function requireLogin(element) {
         if (!isLoggedIn) {
-            event.preventDefault();
+            const evt = window.event;
+            if (evt) {
+                evt.preventDefault();
+            }
+
+            let returnPath = '/home';
+            try {
+                const targetUrl = new URL(element.getAttribute('href') || element.href, window.location.origin);
+                returnPath = targetUrl.pathname + targetUrl.search + targetUrl.hash;
+            } catch (e) {
+                // Keep safe fallback when URL parsing fails.
+            }
+
             showWarning('Vui lòng đăng nhập để tiếp tục');
             setTimeout(() => {
-                window.location.href = '${pageContext.request.contextPath}/login?redirect=' + encodeURIComponent(element.href);
+                window.location.href = '${pageContext.request.contextPath}/login?returnUrl=' + encodeURIComponent(returnPath);
             }, 1500);
             return false;
         }

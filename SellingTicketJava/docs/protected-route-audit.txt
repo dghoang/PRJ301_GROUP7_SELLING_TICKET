@@ -1,0 +1,63 @@
+Protected JSP Route Audit (2026-03-10)
+
+Scope
+- Audited protected JSP pages under:
+- /admin/*
+- /organizer/*
+- Root protected JSPs: checkout.jsp, my-support-tickets.jsp, my-tickets.jsp, order-confirmation.jsp, payment-pending.jsp, profile.jsp, support-ticket.jsp, support-ticket-detail.jsp, ticket-selection.jsp
+
+Canonical Route Mapping
+- src/webapp/checkout.jsp -> GET /checkout (CheckoutServlet)
+- src/webapp/my-support-tickets.jsp -> GET /support/my-tickets (SupportTicketServlet)
+- src/webapp/my-tickets.jsp -> GET /my-tickets (MyTicketsServlet)
+- src/webapp/order-confirmation.jsp -> GET /order-confirmation?id={orderId} (OrderConfirmationServlet)
+- src/webapp/payment-pending.jsp -> POST /checkout (SeePay flow) or GET /resume-payment?orderId={id}
+- src/webapp/profile.jsp -> GET /profile (ProfileServlet)
+- src/webapp/support-ticket.jsp -> GET /support/new (SupportTicketServlet)
+- src/webapp/support-ticket-detail.jsp -> GET /support/ticket/{id} (SupportTicketServlet)
+- src/webapp/ticket-selection.jsp -> GET /tickets?eventId={id} (TicketSelectionServlet)
+
+- src/webapp/admin/categories.jsp -> GET /admin/categories
+- src/webapp/admin/chat-dashboard.jsp -> GET /admin/chat-dashboard
+- src/webapp/admin/dashboard.jsp -> GET /admin or GET /admin/dashboard
+- src/webapp/admin/event-approval.jsp -> GET /admin/events?status=pending
+- src/webapp/admin/event-detail.jsp -> GET /admin/events/{id}
+- src/webapp/admin/events.jsp -> GET /admin/events
+- src/webapp/admin/orders.jsp -> GET /admin/orders
+- src/webapp/admin/reports.jsp -> GET /admin/reports
+- src/webapp/admin/settings.jsp -> GET /admin/settings
+- src/webapp/admin/support.jsp -> GET /admin/support
+- src/webapp/admin/support-detail.jsp -> GET /admin/support/{ticketId}
+- src/webapp/admin/users.jsp -> GET /admin/users
+
+- src/webapp/organizer/check-in.jsp -> GET /organizer/check-in
+- src/webapp/organizer/create-event.jsp -> GET /organizer/create-event
+- src/webapp/organizer/dashboard.jsp -> GET /organizer or GET /organizer/dashboard
+- src/webapp/organizer/edit-event.jsp -> GET /organizer/events/{id}/edit
+- src/webapp/organizer/event-detail.jsp -> GET /organizer/events/{id}
+- src/webapp/organizer/events.jsp -> GET /organizer/events
+- src/webapp/organizer/manage-staff.jsp -> GET /organizer/events/{id}/staff
+- src/webapp/organizer/orders.jsp -> GET /organizer/orders
+- src/webapp/organizer/settings.jsp -> GET /organizer/settings
+- src/webapp/organizer/statistics.jsp -> GET /organizer/statistics
+- src/webapp/organizer/support.jsp -> GET /organizer/support
+- src/webapp/organizer/support-detail.jsp -> GET /organizer/support/ticket/{id}
+- src/webapp/organizer/team.jsp -> GET /organizer/team?eventId={id}
+- src/webapp/organizer/tickets.jsp -> GET /organizer/tickets
+- src/webapp/organizer/vouchers.jsp -> GET /organizer/vouchers
+
+Findings Status
+1) RESOLVED: Added missing JSP file src/webapp/admin/user-detail.jsp
+2) RESOLVED: Added missing JSP file src/webapp/organizer/event-orders.jsp
+3) RESOLVED: Added missing JSP file src/webapp/organizer/voucher-form.jsp
+4) RESOLVED: Standardized AdminUser detail route to path-param style (/admin/users/{id})
+
+Additional Fixes During Runtime Hardening
+1) Fixed organizer order detail link to use event route (/organizer/orders/{eventId})
+2) Fixed voucher edit link to use canonical route (/organizer/vouchers/edit/{voucherId})
+3) Fixed voucher field-name and value mismatches (usageLimit, discountType=percentage)
+4) Fixed Bootstrap 5.3.3 CSS SRI hash in header.jsp
+
+Hardening Status
+- Direct access to protected JSPs is blocked at AuthFilter layer (*.jsp mapping + protected JSP matcher).
+- Protected pages now require canonical servlet entrypoints.

@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * CloudinaryUtil — Wrapper for Cloudinary SDK.
@@ -18,6 +20,7 @@ import java.util.Properties;
  */
 public class CloudinaryUtil {
 
+    private static final Logger LOGGER = Logger.getLogger(CloudinaryUtil.class.getName());
     private static CloudinaryUtil instance;
     private Cloudinary cloudinary;
     private boolean configured = false;
@@ -40,27 +43,28 @@ public class CloudinaryUtil {
                 Properties props = new Properties();
                 props.load(is);
 
-                String cloudName = props.getProperty("cloudinary.cloud_name", "");
-                String apiKey = props.getProperty("cloudinary.api_key", "");
-                String apiSecret = props.getProperty("cloudinary.api_secret", "");
+                String cloudName = resolveProperty(props, "cloudinary.cloud_name", "CLOUDINARY_CLOUD_NAME");
+                String apiKey = resolveProperty(props, "cloudinary.api_key", "CLOUDINARY_API_KEY");
+                String apiSecret = resolveProperty(props, "cloudinary.api_secret", "CLOUDINARY_API_SECRET");
+                String secure = props.getProperty("cloudinary.secure", "true");
 
-                if (!cloudName.isEmpty() && !cloudName.startsWith("YOUR_")) {
+                if (isValidCredential(cloudName) && isValidCredential(apiKey) && isValidCredential(apiSecret)) {
                     Map<String, String> config = new HashMap<>();
                     config.put("cloud_name", cloudName);
                     config.put("api_key", apiKey);
                     config.put("api_secret", apiSecret);
-                    config.put("secure", "true");
+                    config.put("secure", secure);
                     this.cloudinary = new Cloudinary(config);
                     this.configured = true;
-                    System.out.println("[CloudinaryUtil] Configured for cloud: " + cloudName);
+                    LOGGER.log(Level.INFO, "Cloudinary configured for cloud: {0}", cloudName);
                 } else {
-                    System.err.println("[CloudinaryUtil] Properties found but credentials not set. Fill in cloudinary.properties.");
+                    LOGGER.warning("Cloudinary credentials are missing/placeholder. Fill cloudinary.properties or env vars.");
                 }
             } else {
-                System.err.println("[CloudinaryUtil] cloudinary.properties not found in classpath.");
+                LOGGER.warning("cloudinary.properties not found in classpath.");
             }
         } catch (Exception e) {
-            System.err.println("[CloudinaryUtil] Failed to load config: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Failed to load Cloudinary config", e);
         }
     }
 
@@ -75,7 +79,7 @@ public class CloudinaryUtil {
     @SuppressWarnings("unchecked")
     public Map<String, Object> upload(byte[] fileBytes, String folder, String fileName) {
         if (!configured) {
-            System.err.println("[CloudinaryUtil] Not configured — fill in cloudinary.properties first.");
+            LOGGER.warning("Cloudinary is not configured. Fill cloudinary.properties or env vars first.");
             return null;
         }
         try {
@@ -94,7 +98,7 @@ public class CloudinaryUtil {
             response.put("format", result.get("format"));
             return response;
         } catch (Exception e) {
-            System.err.println("[CloudinaryUtil] Upload failed: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Cloudinary upload failed", e);
             return null;
         }
     }
@@ -110,7 +114,7 @@ public class CloudinaryUtil {
             Map<String, Object> result = cloudinary.uploader().destroy(publicId, new HashMap<>());
             return "ok".equals(result.get("result"));
         } catch (Exception e) {
-            System.err.println("[CloudinaryUtil] Delete failed: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Cloudinary delete failed", e);
             return false;
         }
     }
@@ -148,4 +152,23 @@ public class CloudinaryUtil {
     }
 
     public boolean isConfigured() { return configured; }
+
+    private String resolveProperty(Properties props, String key, String envKey) {
+        String value = props.getProperty(key, "").trim();
+        if (value.isEmpty()) {
+            String env = System.getenv(envKey);
+            if (env != null) {
+                value = env.trim();
+            }
+        }
+        return value;
+    }
+
+    private boolean isValidCredential(String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        String normalized = value.toUpperCase();
+        return !(normalized.startsWith("YOUR_") || normalized.startsWith("CHANGE_ME"));
+    }
 }

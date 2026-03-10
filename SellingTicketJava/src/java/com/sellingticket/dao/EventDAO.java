@@ -1,7 +1,9 @@
-package com.sellingticket.dao;
+﻿package com.sellingticket.dao;
 
 import com.sellingticket.model.Event;
+import com.sellingticket.model.PageResult;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -154,7 +156,7 @@ public class EventDAO extends BaseDAO {
                      "           FROM OrderItems oi " +
                      "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
                      "           JOIN Orders o ON oi.order_id = o.order_id " +
-                     "           WHERE o.status = 'completed' " +
+                     "           WHERE o.status IN ('paid','completed') " +
                      "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
                      "WHERE e.organizer_id = ? ORDER BY e.created_at DESC";
                      
@@ -182,7 +184,7 @@ public class EventDAO extends BaseDAO {
                      "           FROM OrderItems oi " +
                      "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
                      "           JOIN Orders o ON oi.order_id = o.order_id " +
-                     "           WHERE o.status = 'completed' " +
+                     "           WHERE o.status IN ('paid','completed') " +
                      "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
                      "ORDER BY e.created_at DESC";
                      
@@ -367,5 +369,205 @@ public class EventDAO extends BaseDAO {
 
     public boolean unpinEvent(int eventId) {
         return pinEvent(eventId, 0);
+    }
+
+    // ========================
+    // PAGED SEARCH METHODS
+    // ========================
+
+    /**
+     * Advanced paginated search for public events page.
+     * Supports keyword, category, date range, price range, and sorting.
+     */
+    public PageResult<Event> searchEventsPaged(String keyword, String category,
+            String dateFrom, String dateTo, Double priceMin, Double priceMax,
+            String sort, int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder();
+        where.append("WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+        where.append("AND (e.end_date IS NULL OR e.end_date >= GETDATE()) ");
+
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append("AND (e.title LIKE ? OR e.description LIKE ? OR e.location LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw); params.add(kw); params.add(kw);
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            where.append("AND c.slug = ? ");
+            params.add(category.trim());
+        }
+        if (dateFrom != null && !dateFrom.trim().isEmpty()) {
+            where.append("AND CAST(e.start_date AS DATE) >= ? ");
+            params.add(dateFrom.trim());
+        }
+        if (dateTo != null && !dateTo.trim().isEmpty()) {
+            where.append("AND CAST(e.start_date AS DATE) <= ? ");
+            params.add(dateTo.trim());
+        }
+        if (priceMin != null) {
+            where.append("AND ISNULL(tp.min_price, 0) >= ? ");
+            params.add(priceMin);
+        }
+        if (priceMax != null) {
+            where.append("AND ISNULL(tp.min_price, 0) <= ? ");
+            params.add(priceMax);
+        }
+
+        String orderBy;
+        switch (sort != null ? sort : "date_asc") {
+            case "date_desc": orderBy = "ORDER BY e.start_date DESC "; break;
+            case "price_asc": orderBy = "ORDER BY ISNULL(tp.min_price, 0) ASC "; break;
+            case "price_desc": orderBy = "ORDER BY ISNULL(tp.min_price, 0) DESC "; break;
+            case "popular": orderBy = "ORDER BY e.views DESC "; break;
+            case "newest": orderBy = "ORDER BY e.created_at DESC "; break;
+            default: orderBy = "ORDER BY e.start_date ASC "; break;
+        }
+
+        String dataSql = BASE_SELECT_WITH_JOINS + where.toString() + orderBy + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String countSql = "SELECT COUNT(*) FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " +
+                "LEFT JOIN (SELECT event_id, MIN(price) as min_price FROM TicketTypes GROUP BY event_id) tp ON tp.event_id = e.event_id " +
+                where.toString();
+
+        ParamSetter setter = ps -> {
+            int idx = 1;
+            for (Object p : params) {
+                if (p instanceof String) ps.setString(idx++, (String) p);
+                else if (p instanceof Double) ps.setDouble(idx++, (Double) p);
+                else if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+            }
+        };
+
+        return queryPaged(dataSql, countSql, setter, this::mapEventWithJoins, page, pageSize);
+    }
+
+    /**
+     * Paginated search for admin event management.
+     * Supports keyword, multiple statuses, and category filter.
+     */
+    public PageResult<Event> getAllEventsPaged(String keyword, String[] statuses,
+            String category, int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder("WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw); params.add(kw);
+        }
+        if (statuses != null && statuses.length > 0) {
+            where.append("AND e.status IN (");
+            for (int i = 0; i < statuses.length; i++) {
+                where.append(i > 0 ? ",?" : "?");
+                params.add(statuses[i]);
+            }
+            where.append(") ");
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            where.append("AND c.slug = ? ");
+            params.add(category.trim());
+        }
+
+        String baseSql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
+                "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                "ISNULL(rev.revenue, 0) as revenue " +
+                "FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " +
+                "JOIN Users u ON e.organizer_id = u.user_id " +
+                "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                "           FROM OrderItems oi " +
+                "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                "           JOIN Orders o ON oi.order_id = o.order_id " +
+                "           WHERE o.status IN ('paid','completed') " +
+                "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id ";
+
+        String dataSql = baseSql + where.toString() + "ORDER BY e.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String countSql = "SELECT COUNT(*) FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " + where.toString();
+
+        ParamSetter setter = ps -> {
+            int idx = 1;
+            for (Object p : params) {
+                if (p instanceof String) ps.setString(idx++, (String) p);
+            }
+        };
+
+        return queryPaged(dataSql, countSql, setter, rs -> {
+            Event event = mapResultSetToEvent(rs);
+            event.setCategoryName(rs.getString("category_name"));
+            event.setOrganizerName(rs.getString("organizer_name"));
+            event.setSoldTickets(rs.getInt("sold_tickets"));
+            event.setTotalTickets(rs.getInt("total_tickets"));
+            event.setRevenue(rs.getDouble("revenue"));
+            return event;
+        }, page, pageSize);
+    }
+
+    /**
+     * Paginated search for organizer's own events.
+     * Supports keyword and multiple status filters.
+     */
+    public PageResult<Event> getEventsByOrganizerPaged(int organizerId, String keyword,
+            String[] statuses, int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder("WHERE e.organizer_id = ? ");
+        List<Object> params = new ArrayList<>();
+        params.add(organizerId);
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw); params.add(kw);
+        }
+        if (statuses != null && statuses.length > 0) {
+            where.append("AND e.status IN (");
+            for (int i = 0; i < statuses.length; i++) {
+                where.append(i > 0 ? ",?" : "?");
+                params.add(statuses[i]);
+            }
+            where.append(") ");
+        }
+
+        String baseSql = "SELECT e.*, c.name as category_name, " +
+                "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                "ISNULL(rev.revenue, 0) as revenue " +
+                "FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " +
+                "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                "           FROM OrderItems oi " +
+                "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                "           JOIN Orders o ON oi.order_id = o.order_id " +
+                "           WHERE o.status IN ('paid','completed') " +
+                "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id ";
+
+        String dataSql = baseSql + where.toString() + "ORDER BY e.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String countSql = "SELECT COUNT(*) FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " + where.toString();
+
+        ParamSetter setter = ps -> {
+            int idx = 1;
+            for (Object p : params) {
+                if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+                else if (p instanceof String) ps.setString(idx++, (String) p);
+            }
+        };
+
+        return queryPaged(dataSql, countSql, setter, rs -> {
+            Event event = mapResultSetToEvent(rs);
+            event.setCategoryName(rs.getString("category_name"));
+            event.setSoldTickets(rs.getInt("sold_tickets"));
+            event.setTotalTickets(rs.getInt("total_tickets"));
+            event.setRevenue(rs.getDouble("revenue"));
+            return event;
+        }, page, pageSize);
     }
 }

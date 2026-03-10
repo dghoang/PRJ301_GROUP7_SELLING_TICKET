@@ -59,7 +59,7 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
 
         User user = getSessionUser(request);
-        if (user == null) { response.sendRedirect(request.getContextPath() + "/login"); return; }
+        if (user == null) { redirectToLogin(request, response); return; }
 
         try {
             String path = request.getServletPath();
@@ -91,7 +91,7 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
 
         User user = getSessionUser(request);
-        if (user == null) { response.sendRedirect(request.getContextPath() + "/login"); return; }
+        if (user == null) { redirectToLogin(request, response); return; }
 
         String path = request.getServletPath();
         String pathInfo = request.getPathInfo();

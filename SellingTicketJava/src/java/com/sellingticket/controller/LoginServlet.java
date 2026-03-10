@@ -157,7 +157,17 @@ public class LoginServlet extends HttpServlet {
         if (returnUrl == null || returnUrl.trim().isEmpty()) {
             returnUrl = request.getParameter("redirect");
         }
-        String redirect = sanitizeRedirect(returnUrl);
+        if (returnUrl == null || returnUrl.trim().isEmpty()) {
+            HttpSession currentSession = request.getSession(false);
+            if (currentSession != null) {
+                Object stored = currentSession.getAttribute("redirectAfterLogin");
+                if (stored instanceof String) {
+                    returnUrl = (String) stored;
+                }
+                currentSession.removeAttribute("redirectAfterLogin");
+            }
+        }
+        String redirect = sanitizeRedirect(request, returnUrl);
         response.sendRedirect(request.getContextPath() + redirect);
     }
 
@@ -171,9 +181,19 @@ public class LoginServlet extends HttpServlet {
         request.getRequestDispatcher("login.jsp").forward(request, response);
     }
 
-    private String sanitizeRedirect(String redirect) {
+    private String sanitizeRedirect(HttpServletRequest request, String redirect) {
         if (redirect == null || redirect.trim().isEmpty()) return "/home";
         redirect = redirect.trim();
+
+        String contextPath = request.getContextPath();
+        if (!contextPath.isEmpty()) {
+            if (redirect.equals(contextPath)) {
+                redirect = "/";
+            } else if (redirect.startsWith(contextPath + "/")) {
+                redirect = redirect.substring(contextPath.length());
+            }
+        }
+
         // Block open redirect attacks
         if (redirect.startsWith("//") || redirect.contains("://")
                 || redirect.toLowerCase().startsWith("javascript:")

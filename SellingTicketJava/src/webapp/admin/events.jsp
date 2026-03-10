@@ -22,14 +22,22 @@
             </div>
 
             <%-- Search Bar --%>
-            <div class="d-flex justify-content-end mb-4 animate-on-scroll">
-                <form class="input-group shadow-sm rounded-pill overflow-hidden" style="max-width: 320px;" method="GET" action="${pageContext.request.contextPath}/admin/events">
-                    <c:if test="${not empty statusFilter}">
-                        <input type="hidden" name="status" value="${statusFilter}"/>
-                    </c:if>
+            <div class="d-flex justify-content-between align-items-center mb-4 animate-on-scroll">
+                <div class="d-flex align-items-center gap-2" data-filter-group="status">
+                    <label class="btn btn-sm glass rounded-pill px-3">
+                        <input type="checkbox" value="pending" class="d-none"> <i class="fas fa-clock me-1 text-warning"></i>Chờ duyệt
+                    </label>
+                    <label class="btn btn-sm glass rounded-pill px-3">
+                        <input type="checkbox" value="approved" class="d-none"> <i class="fas fa-check me-1 text-success"></i>Đã duyệt
+                    </label>
+                    <label class="btn btn-sm glass rounded-pill px-3">
+                        <input type="checkbox" value="rejected" class="d-none"> <i class="fas fa-times me-1 text-danger"></i>Từ chối
+                    </label>
+                </div>
+                <div class="input-group shadow-sm rounded-pill overflow-hidden" style="max-width: 320px;">
                     <span class="input-group-text glass border-0 bg-white"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" name="q" class="form-control glass border-0 bg-white shadow-none ps-0" placeholder="Tìm kiếm sự kiện..." value="${param.q}">
-                </form>
+                    <input type="text" id="admin-event-search" class="form-control glass border-0 bg-white shadow-none ps-0" placeholder="Tìm kiếm sự kiện...">
+                </div>
             </div>
 
             <%-- Stats Cards as Filters --%>
@@ -136,87 +144,7 @@
                                     <th class="text-center">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <c:forEach var="event" items="${events}">
-                                <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <img src="${event.bannerImage != null ? event.bannerImage : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100'}"
-                                                 class="rounded-3 shadow-sm" style="width:50px;height:50px;object-fit:cover;" alt="">
-                                            <div>
-                                                <a href="${pageContext.request.contextPath}/admin/events/${event.eventId}" class="fw-medium text-decoration-none">${event.title}</a>
-                                                <div class="text-muted small"><i class="fas fa-map-marker-alt me-1"></i>${event.location}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-muted">${event.organizerName}</td>
-                                    <td><span class="badge glass rounded-pill px-3 py-1">${event.categoryName}</span></td>
-                                    <td class="text-muted small">
-                                        <fmt:formatDate value="${event.startDate}" pattern="dd/MM/yyyy HH:mm"/>
-                                    </td>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${event.status == 'approved'}">
-                                                <span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check me-1"></i>Đã duyệt</span>
-                                            </c:when>
-                                            <c:when test="${event.status == 'pending'}">
-                                                <span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#f59e0b,#f97316);color:white;"><i class="fas fa-clock me-1"></i>Chờ duyệt</span>
-                                            </c:when>
-                                            <c:when test="${event.status == 'rejected'}">
-                                                <span class="badge bg-danger rounded-pill px-3 py-2"><i class="fas fa-times me-1"></i>Từ chối</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge bg-secondary rounded-pill px-3 py-2">${event.status}</span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex gap-1 justify-content-center flex-wrap">
-                                            <a href="${pageContext.request.contextPath}/admin/events/${event.eventId}" class="btn btn-sm glass rounded-pill px-2" title="Xem chi tiết">
-                                                <i class="fas fa-eye text-primary"></i>
-                                            </a>
-                                            <c:if test="${event.status == 'pending'}">
-                                                <form method="POST" action="${pageContext.request.contextPath}/admin/events/approve" class="d-inline">
-                                                    <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
-                                                    <input type="hidden" name="eventId" value="${event.eventId}"/>
-                                                    <button type="submit" class="btn btn-sm rounded-pill px-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;" title="Duyệt">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </form>
-                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Từ chối"
-                                                        data-bs-toggle="modal" data-bs-target="#rejectModal"
-                                                        onclick="document.getElementById('rejectEventId').value='${event.eventId}'; document.getElementById('rejectEventName').textContent='${event.title}'">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </c:if>
-                                            <c:if test="${event.status != 'pending'}">
-                                                <form method="POST" action="${pageContext.request.contextPath}/admin/events/delete" class="d-inline"
-                                                      onsubmit="return confirm('Bạn có chắc muốn xóa sự kiện này?')">
-                                                    <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
-                                                    <input type="hidden" name="eventId" value="${event.eventId}"/>
-                                                    <button type="submit" class="btn btn-sm glass rounded-pill px-2" title="Xóa">
-                                                        <i class="fas fa-trash text-danger"></i>
-                                                    </button>
-                                                </form>
-                                            </c:if>
-                                            <button class="btn btn-sm rounded-pill px-2 ${event.featured ? 'pinned' : ''}" title="${event.featured ? 'Bỏ nổi bật' : 'Đánh dấu nổi bật'}"
-                                                    style="background:${event.featured ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(245,158,11,0.1)'};color:${event.featured ? 'white' : '#d97706'};border:${event.featured ? 'none' : '1px solid rgba(245,158,11,0.3)'};"
-                                                    onclick="toggleFeatured(${event.eventId}, ${event.featured}, this)">
-                                                <i class="fas fa-star"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                </c:forEach>
-                                <c:if test="${empty events}">
-                                <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">
-                                        <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
-                                        <p class="mb-0 fw-medium">Không có sự kiện nào</p>
-                                        <small>Thay đổi bộ lọc để xem các sự kiện khác</small>
-                                    </td>
-                                </tr>
-                                </c:if>
+                            <tbody id="admin-events-tbody">
                             </tbody>
                         </table>
                     </div>
@@ -224,29 +152,7 @@
             </div>
 
             <%-- Pagination --%>
-            <c:if test="${currentPage != null}">
-            <div class="d-flex justify-content-center mt-4">
-                <nav>
-                    <ul class="pagination pagination-sm">
-                        <c:if test="${currentPage > 1}">
-                            <li class="page-item">
-                                <a class="page-link glass rounded-start-pill" href="${pageContext.request.contextPath}/admin/events?page=${currentPage - 1}&status=${statusFilter}">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                            </li>
-                        </c:if>
-                        <li class="page-item active">
-                            <span class="page-link" style="background:linear-gradient(135deg,var(--primary),var(--secondary));border:none;">${currentPage}</span>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link glass rounded-end-pill" href="${pageContext.request.contextPath}/admin/events?page=${currentPage + 1}&status=${statusFilter}">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-            </c:if>
+            <div id="admin-events-pagination" class="d-flex justify-content-center mt-4"></div>
         </div>
     </div>
 </div>
@@ -323,8 +229,87 @@ function toggleFeatured(eventId, currentState, btn) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'eventId=' + eventId + '&featured=' + (!currentState)
     })
-    .then(function(res) { if (res.ok) location.reload(); });
+    .then(function(res) { if (res.ok) window.adminEventsTable.load(); });
 }
+</script>
+
+<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js"></script>
+<script>
+(function() {
+    var ctxPath = '${pageContext.request.contextPath}';
+    var csrfToken = '${sessionScope.csrf_token}';
+
+    function esc(v) {
+        if (!v) return '';
+        var d = document.createElement('div'); d.textContent = v; return d.innerHTML;
+    }
+    function fmtDate(s) {
+        if (!s) return '';
+        var d = new Date(s);
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function statusBadge(status) {
+        switch(status) {
+            case 'approved': return '<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check me-1"></i>Đã duyệt</span>';
+            case 'pending': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#f59e0b,#f97316);color:white;"><i class="fas fa-clock me-1"></i>Chờ duyệt</span>';
+            case 'rejected': return '<span class="badge bg-danger rounded-pill px-3 py-2"><i class="fas fa-times me-1"></i>Từ chối</span>';
+            default: return '<span class="badge bg-secondary rounded-pill px-3 py-2">' + esc(status) + '</span>';
+        }
+    }
+
+    // Toggle filter checkbox styling
+    document.querySelectorAll('[data-filter-group="status"] label').forEach(function(label) {
+        var cb = label.querySelector('input[type="checkbox"]');
+        cb.addEventListener('change', function() {
+            label.classList.toggle('active', cb.checked);
+            label.style.background = cb.checked ? 'var(--primary)' : '';
+            label.style.color = cb.checked ? 'white' : '';
+        });
+    });
+
+    window.adminEventsTable = new AjaxTable({
+        apiUrl: ctxPath + '/api/admin/events',
+        tableBody: '#admin-events-tbody',
+        paginationContainer: '#admin-events-pagination',
+        searchInput: '#admin-event-search',
+        pageSize: 20,
+        skeletonCols: 6,
+        renderRow: function(e) {
+            var img = esc(e.bannerImage || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100');
+            var actions = '<a href="' + ctxPath + '/admin/events/' + e.eventId + '" class="btn btn-sm glass rounded-pill px-2" title="Xem chi tiết"><i class="fas fa-eye text-primary"></i></a>';
+            if (e.status === 'pending') {
+                actions += '<form method="POST" action="' + ctxPath + '/admin/events/approve" class="d-inline">' +
+                    '<input type="hidden" name="csrf_token" value="' + csrfToken + '"/>' +
+                    '<input type="hidden" name="eventId" value="' + e.eventId + '"/>' +
+                    '<button type="submit" class="btn btn-sm rounded-pill px-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;" title="Duyệt"><i class="fas fa-check"></i></button></form>';
+                actions += '<button class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Từ chối" data-bs-toggle="modal" data-bs-target="#rejectModal" onclick="document.getElementById(\'rejectEventId\').value=\'' + e.eventId + '\';document.getElementById(\'rejectEventName\').textContent=\'' + esc(e.title).replace(/'/g, "\\'") + '\'"><i class="fas fa-times"></i></button>';
+            } else {
+                actions += '<form method="POST" action="' + ctxPath + '/admin/events/delete" class="d-inline" onsubmit="return confirm(\'Bạn có chắc muốn xóa sự kiện này?\')">' +
+                    '<input type="hidden" name="csrf_token" value="' + csrfToken + '"/>' +
+                    '<input type="hidden" name="eventId" value="' + e.eventId + '"/>' +
+                    '<button type="submit" class="btn btn-sm glass rounded-pill px-2" title="Xóa"><i class="fas fa-trash text-danger"></i></button></form>';
+            }
+            var featStyle = e.isFeatured
+                ? 'background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none'
+                : 'background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.3)';
+            actions += '<button class="btn btn-sm rounded-pill px-2" style="' + featStyle + '" onclick="toggleFeatured(' + e.eventId + ',' + e.isFeatured + ',this)"><i class="fas fa-star"></i></button>';
+
+            return '<tr class="hover-lift" style="transition:all 0.2s;">' +
+                '<td><div class="d-flex align-items-center gap-3">' +
+                    '<img src="' + img + '" class="rounded-3 shadow-sm" style="width:50px;height:50px;object-fit:cover;" alt="">' +
+                    '<div><a href="' + ctxPath + '/admin/events/' + e.eventId + '" class="fw-medium text-decoration-none">' + esc(e.title) + '</a>' +
+                    '<div class="text-muted small"><i class="fas fa-map-marker-alt me-1"></i>' + esc(e.location) + '</div></div></div></td>' +
+                '<td class="text-muted">' + esc(e.organizerName) + '</td>' +
+                '<td><span class="badge glass rounded-pill px-3 py-1">' + esc(e.categoryName) + '</span></td>' +
+                '<td class="text-muted small">' + fmtDate(e.startDate) + '</td>' +
+                '<td>' + statusBadge(e.status) + '</td>' +
+                '<td class="text-center"><div class="d-flex gap-1 justify-content-center flex-wrap">' + actions + '</div></td>' +
+            '</tr>';
+        }
+    });
+    adminEventsTable.init();
+})();
 </script>
 
 <jsp:include page="../footer.jsp" />

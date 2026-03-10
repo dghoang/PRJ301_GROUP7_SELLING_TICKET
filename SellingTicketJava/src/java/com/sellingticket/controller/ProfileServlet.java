@@ -3,6 +3,7 @@ package com.sellingticket.controller;
 import com.sellingticket.model.User;
 import com.sellingticket.service.UserService;
 import static com.sellingticket.util.ServletUtil.getSessionUser;
+import static com.sellingticket.util.ServletUtil.redirectToLogin;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,7 +25,7 @@ public class ProfileServlet extends HttpServlet {
 
         User user = getSessionUser(request);
         if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login?redirect=/profile");
+            redirectToLogin(request, response);
             return;
         }
 
@@ -45,7 +46,7 @@ public class ProfileServlet extends HttpServlet {
 
         User user = getSessionUser(request);
         if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+            redirectToLogin(request, response);
             return;
         }
 

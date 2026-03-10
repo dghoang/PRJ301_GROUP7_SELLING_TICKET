@@ -63,15 +63,19 @@ public class DBContext {
                     + "Add mssql-jdbc-*.jar to WEB-INF/lib/", e);
         }
 
-        String server = props.getProperty("db.server", "localhost");
-        String port = props.getProperty("db.port", "1433");
-        String dbName = props.getProperty("db.name", "SellingTicketDB");
+        String server = resolveProperty(props, "db.server", "DB_SERVER", "localhost");
+        String port = resolveProperty(props, "db.port", "DB_PORT", "1433");
+        String dbName = requireProperty(resolveProperty(props, "db.name", "DB_NAME", null), "db.name");
+        String encrypt = resolveProperty(props, "db.encrypt", "DB_ENCRYPT", "true");
+        String trustServerCertificate = resolveProperty(props, "db.trustServerCertificate",
+            "DB_TRUST_SERVER_CERTIFICATE", "true");
 
         URL = "jdbc:sqlserver://" + server + ":" + port
                 + ";databaseName=" + dbName
-                + ";encrypt=true;trustServerCertificate=true";
-        USER = props.getProperty("db.user", "sa");
-        PASS = props.getProperty("db.password", "");
+            + ";encrypt=" + encrypt
+            + ";trustServerCertificate=" + trustServerCertificate;
+        USER = requireProperty(resolveProperty(props, "db.user", "DB_USER", null), "db.user");
+        PASS = requireProperty(resolveProperty(props, "db.password", "DB_PASSWORD", null), "db.password");
         MAX_POOL_SIZE = Integer.parseInt(props.getProperty("db.pool.maxSize", "20"));
         CONNECTION_TIMEOUT_MS = Long.parseLong(props.getProperty("db.pool.connectionTimeoutMs", "30000"));
 
@@ -236,6 +240,32 @@ public class DBContext {
     public static String getPoolStats() {
         return "Pool[active=" + activeCount.get() + ", idle=" + pool.size()
                 + ", max=" + MAX_POOL_SIZE + "]";
+    }
+
+    private static String resolveProperty(Properties props, String key, String envKey, String defaultValue) {
+        String value = props.getProperty(key);
+        if (value == null || value.trim().isEmpty()) {
+            String env = System.getenv(envKey);
+            if (env != null && !env.trim().isEmpty()) {
+                value = env;
+            }
+        }
+        if (value == null || value.trim().isEmpty()) {
+            value = defaultValue;
+        }
+        return value != null ? value.trim() : null;
+    }
+
+    private static String requireProperty(String value, String key) {
+        if (value == null || value.isEmpty()) {
+            throw new RuntimeException("Missing required DB config: " + key);
+        }
+
+        String normalized = value.toUpperCase();
+        if (normalized.startsWith("CHANGE_ME") || "YOUR_VALUE".equals(normalized)) {
+            throw new RuntimeException("Unsafe placeholder detected for DB config: " + key);
+        }
+        return value;
     }
 }
 

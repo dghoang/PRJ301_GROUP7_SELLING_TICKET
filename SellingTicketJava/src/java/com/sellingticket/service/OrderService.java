@@ -3,6 +3,7 @@ package com.sellingticket.service;
 import com.sellingticket.dao.OrderDAO;
 import com.sellingticket.dao.TicketDAO;
 import com.sellingticket.model.Order;
+import com.sellingticket.model.PageResult;
 import com.sellingticket.service.payment.PaymentFactory;
 import com.sellingticket.service.payment.PaymentProvider;
 import com.sellingticket.service.payment.PaymentResult;
@@ -71,6 +72,22 @@ public class OrderService {
 
     public List<Order> getAllOrders(String status, int page, int pageSize) {
         return orderDAO.getAllOrders(status, page, pageSize);
+    }
+
+    /**
+     * Admin: Paginated order search with keyword, status, date range.
+     */
+    public PageResult<Order> searchOrdersPaged(String keyword, String[] statuses,
+            String dateFrom, String dateTo, int page, int pageSize) {
+        return orderDAO.searchOrdersPaged(keyword, statuses, dateFrom, dateTo, page, pageSize);
+    }
+
+    /**
+     * User: Paginated list of own orders with keyword/status filters.
+     */
+    public PageResult<Order> getOrdersByUserPaged(int userId, String keyword,
+            String[] statuses, int page, int pageSize) {
+        return orderDAO.getOrdersByUserPaged(userId, keyword, statuses, page, pageSize);
     }
 
     // ========================

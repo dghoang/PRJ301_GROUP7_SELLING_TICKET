@@ -1,5 +1,6 @@
 package com.sellingticket.dao;
 
+import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import com.sellingticket.util.DBContext;
 import com.sellingticket.util.PasswordUtil;
@@ -311,5 +312,82 @@ public class UserDAO extends DBContext {
             LOGGER.log(Level.SEVERE, "Failed to search users with keyword: " + keyword, e);
         }
         return users;
+    }
+
+    // ========================
+    // PAGED SEARCH
+    // ========================
+
+    /**
+     * Search users with pagination, keyword, role filter, and active status.
+     * Supports multi-role checkbox filter.
+     */
+    public PageResult<User> searchUsersPaged(String keyword, String[] roles,
+            Boolean isActive, int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder("WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            where.append("AND (full_name LIKE ? OR email LIKE ? OR phone LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw); params.add(kw); params.add(kw);
+        }
+        if (roles != null && roles.length > 0) {
+            where.append("AND role IN (");
+            for (int i = 0; i < roles.length; i++) {
+                where.append(i > 0 ? ",?" : "?");
+                params.add(roles[i]);
+            }
+            where.append(") ");
+        }
+        if (isActive != null) {
+            where.append("AND is_active = ? ");
+            params.add(isActive ? 1 : 0);
+        }
+
+        String dataSql = "SELECT * FROM Users " + where.toString() +
+                "ORDER BY created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String countSql = "SELECT COUNT(*) FROM Users " + where.toString();
+
+        // Execute count query
+        int totalItems = 0;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(countSql)) {
+            int idx = 1;
+            for (Object p : params) {
+                if (p instanceof String) ps.setString(idx++, (String) p);
+                else if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) totalItems = rs.getInt(1);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to count users", e);
+        }
+
+        // Execute data query
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(100, pageSize));
+        List<User> items = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(dataSql)) {
+            int idx = 1;
+            for (Object p : params) {
+                if (p instanceof String) ps.setString(idx++, (String) p);
+                else if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+            }
+            ps.setInt(idx++, (safePage - 1) * safeSize);
+            ps.setInt(idx, safeSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    items.add(mapResultSetToUser(rs));
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to search users paged", e);
+        }
+
+        return new PageResult<>(items, totalItems, safePage, safeSize);
     }
 }

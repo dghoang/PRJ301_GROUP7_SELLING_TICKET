@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -114,6 +116,31 @@ public final class ServletUtil {
         HttpSession session = request.getSession();
         session.setAttribute("toastMessage", message);
         session.setAttribute("toastType", type);
+    }
+
+    /** Build app-relative path with query string from the current request URI. */
+    public static String getRequestPathWithQuery(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        if (path.isEmpty()) {
+            path = "/";
+        }
+
+        String queryString = request.getQueryString();
+        if (queryString != null && !queryString.isEmpty()) {
+            path += "?" + queryString;
+        }
+        return path;
+    }
+
+    /** Redirect unauthenticated users to login while preserving the current path. */
+    public static void redirectToLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String returnUrl = getRequestPathWithQuery(request);
+        String encoded = URLEncoder.encode(returnUrl, StandardCharsets.UTF_8);
+        response.sendRedirect(request.getContextPath() + "/login?returnUrl=" + encoded);
     }
 
     // ========================

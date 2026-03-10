@@ -96,8 +96,8 @@ public class CheckoutServlet extends HttpServlet {
         User user = getSessionUser(request);
 
         if (user == null) {
-            request.getSession().setAttribute("redirectAfterLogin", "checkout?" + request.getQueryString());
-            response.sendRedirect("login");
+            request.getSession().setAttribute("redirectAfterLogin", getRequestPathWithQuery(request));
+            redirectToLogin(request, response);
             return;
         }
 
