@@ -190,6 +190,17 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     overflow: hidden;
     padding-top: 60%; /* Aspect Ratio */
+    background-color: #f3f4f6;
+}
+
+.skeleton {
+    animation: skeleton-loading 1.5s linear infinite alternate;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+}
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .event-img {

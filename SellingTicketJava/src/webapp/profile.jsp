@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 
+<c:set var="pageTitle" value="Bảng điều khiển" scope="request" />
 <jsp:include page="header.jsp" />
 
 <style>

@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
+<c:set var="pageTitle" value="${event.title}" scope="request" />
 <jsp:include page="header.jsp" />
 
 <style>
@@ -785,13 +786,13 @@
             
             <!-- Right: Ticket Banner -->
             <div class="col-lg-7">
-                <div class="ticket-banner-wrapper">
+                <div class="ticket-banner-wrapper skeleton">
                     <c:choose>
                         <c:when test="${not empty event.bannerImage}">
-                            <img src="${event.bannerImage}" alt="${event.title}" class="ticket-banner-img">
+                            <img src="${event.bannerImage}" alt="${event.title}" class="ticket-banner-img" onload="this.parentElement.classList.remove('skeleton')">
                         </c:when>
                         <c:otherwise>
-                            <img src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=900" alt="Event Banner" class="ticket-banner-img">
+                            <img src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=900" alt="Event Banner" class="ticket-banner-img" onload="this.parentElement.classList.remove('skeleton')">
                         </c:otherwise>
                     </c:choose>
                     
@@ -1064,7 +1065,7 @@
                                 <c:forEach var="related" items="${relatedEvents}" end="2">
                                     <a href="${pageContext.request.contextPath}/event/${related.slug}" class="related-event-card">
                                         <img src="${not empty related.bannerImage ? related.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=200'}" 
-                                             alt="${related.title}" class="related-event-img">
+                                             alt="${related.title}" class="related-event-img skeleton" loading="lazy" onload="this.classList.remove('skeleton')">
                                         <div>
                                             <div class="related-event-title">${related.title}</div>
                                             <div class="related-event-meta">
@@ -1077,21 +1078,21 @@
                             </c:when>
                             <c:otherwise>
                                 <a href="#" class="related-event-card">
-                                    <img src="https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=200" alt="Event" class="related-event-img">
+                                    <img src="https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=200" alt="Event" class="related-event-img skeleton" loading="lazy" onload="this.classList.remove('skeleton')">
                                     <div>
                                         <div class="related-event-title">Rock Festival 2026</div>
                                         <div class="related-event-meta"><i class="fas fa-calendar-alt me-1"></i>15/03/2026</div>
                                     </div>
                                 </a>
                                 <a href="#" class="related-event-card">
-                                    <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200" alt="Event" class="related-event-img">
+                                    <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200" alt="Event" class="related-event-img skeleton" loading="lazy" onload="this.classList.remove('skeleton')">
                                     <div>
                                         <div class="related-event-title">Jazz Night Live</div>
                                         <div class="related-event-meta"><i class="fas fa-calendar-alt me-1"></i>20/03/2026</div>
                                     </div>
                                 </a>
                                 <a href="#" class="related-event-card">
-                                    <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200" alt="Event" class="related-event-img">
+                                    <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200" alt="Event" class="related-event-img skeleton" loading="lazy" onload="this.classList.remove('skeleton')">
                                     <div>
                                         <div class="related-event-title">EDM Party Night</div>
                                         <div class="related-event-meta"><i class="fas fa-calendar-alt me-1"></i>25/03/2026</div>

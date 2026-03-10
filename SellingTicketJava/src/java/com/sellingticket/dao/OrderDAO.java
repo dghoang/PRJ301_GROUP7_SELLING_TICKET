@@ -57,6 +57,23 @@ public class OrderDAO extends DBContext {
                 }
             }
 
+            // Step 1.5: Atomically increment voucher usage if applicable
+            if (order.getVoucherCode() != null && !order.getVoucherCode().isEmpty()) {
+                String updateVoucherSQL = "UPDATE Vouchers SET used_count = used_count + 1 " +
+                                          "WHERE code = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL) " +
+                                          "AND (usage_limit = 0 OR used_count < usage_limit)";
+                try (PreparedStatement psVoucher = conn.prepareStatement(updateVoucherSQL)) {
+                    psVoucher.setString(1, order.getVoucherCode());
+                    int updated = psVoucher.executeUpdate();
+                    if (updated == 0) {
+                        // Voucher unavailable, inactive, deleted, or limit reached
+                        conn.rollback();
+                        LOGGER.log(Level.INFO, "Voucher atomic update failed: {0}", order.getVoucherCode());
+                        return 0;
+                    }
+                }
+            }
+
             // Step 2: Insert order
             int orderId;
             try (PreparedStatement psOrder = conn.prepareStatement(insertOrderSQL, Statement.RETURN_GENERATED_KEYS)) {

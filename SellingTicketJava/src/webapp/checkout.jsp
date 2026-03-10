@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
+<c:set var="pageTitle" value="Thanh toán" scope="request" />
 <jsp:include page="header.jsp" />
 
 <div class="container py-5" style="max-width: 1140px;">

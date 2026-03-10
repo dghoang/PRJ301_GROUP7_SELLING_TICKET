@@ -116,9 +116,8 @@ public class CheckoutServlet extends HttpServlet {
                 if (vr.valid && vr.discountAmount > 0) {
                     order.setDiscountAmount(vr.discountAmount);
                     order.setFinalAmount(order.getTotalAmount() - vr.discountAmount);
-                    // Increment voucher usage atomically
-                    voucherService.applyVoucher(voucherCode.trim());
-                    LOGGER.log(Level.INFO, "Voucher {0} applied: discount={1}",
+                    order.setVoucherCode(voucherCode.trim()); // Set to be applied atomically
+                    LOGGER.log(Level.INFO, "Voucher {0} validated: discount={1}",
                             new Object[]{voucherCode, vr.discountAmount});
                 }
             }

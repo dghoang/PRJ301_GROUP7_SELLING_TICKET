@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
+<c:set var="pageTitle" value="Trang chủ" scope="request" />
 <jsp:include page="header.jsp" />
 
 <!-- Hero Section - Enhanced with Animations -->
@@ -45,10 +46,10 @@
 
                 <!-- Enhanced Search Bar -->
                 <div class="glass-strong p-3 rounded-4 mb-5 mx-auto animate-fadeInUp stagger-3" style="max-width: 700px;">
-                    <form action="search" method="get" class="d-flex flex-column flex-sm-row gap-2">
+                    <form action="events" method="get" class="d-flex flex-column flex-sm-row gap-2">
                         <div class="flex-grow-1 d-flex align-items-center bg-white rounded-3 px-3 py-2 shadow-sm">
                             <i class="fas fa-search text-muted me-2"></i>
-                            <input type="text" name="q" class="form-control border-0 shadow-none" 
+                            <input type="text" name="search" class="form-control border-0 shadow-none" 
                                    placeholder="Tìm sự kiện, nghệ sĩ, địa điểm...">
                         </div>
                         <button type="submit" class="btn btn-gradient rounded-3 px-4 py-2 hover-glow">
@@ -172,8 +173,8 @@
             <c:forEach var="event" items="${featuredEvents}" end="3">
                 <div class="col-md-6 col-lg-3 animate-on-scroll">
                     <div class="event-card-enhanced shadow-sm h-100">
-                        <div class="event-img-wrapper position-relative">
-                            <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400'}" alt="${event.title}" class="event-img" loading="lazy">
+                        <div class="event-img-wrapper position-relative skeleton">
+                            <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400'}" alt="${event.title}" class="event-img" loading="lazy" onload="this.parentElement.classList.remove('skeleton')">
                             <c:if test="${event.featured}">
                                 <span class="badge badge-hot position-absolute top-0 start-0 m-2">HOT</span>
                             </c:if>

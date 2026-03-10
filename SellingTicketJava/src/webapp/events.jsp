@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
+<c:set var="pageTitle" value="Khám phá sự kiện" scope="request" />
 <jsp:include page="header.jsp" />
 
 <style>
@@ -539,9 +540,9 @@
                     <c:forEach var="event" items="${events}">
                         <div class="col-sm-6 col-lg-4 col-xl-3">
                             <div class="event-card">
-                                <div class="event-img-wrapper">
+                                <div class="event-img-wrapper skeleton">
                                     <img src="${not empty event.bannerImage ? event.bannerImage : 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400'}" 
-                                         alt="${event.title}" class="event-img" loading="lazy">
+                                         alt="${event.title}" class="event-img" loading="lazy" onload="this.parentElement.classList.remove('skeleton')">
                                     
                                     <!-- Date Badge -->
                                     <div class="date-badge">

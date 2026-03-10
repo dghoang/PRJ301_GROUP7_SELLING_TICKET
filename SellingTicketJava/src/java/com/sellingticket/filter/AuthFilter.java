@@ -64,6 +64,11 @@ public class AuthFilter implements Filter {
             }
 
             if (user != null) {
+                // Prevent session fixation: invalidate old session before creating new one
+                HttpSession oldSession = httpRequest.getSession(false);
+                if (oldSession != null) {
+                    oldSession.invalidate();
+                }
                 HttpSession session = httpRequest.getSession(true);
                 session.setAttribute("user", user);
                 session.setAttribute("account", user);

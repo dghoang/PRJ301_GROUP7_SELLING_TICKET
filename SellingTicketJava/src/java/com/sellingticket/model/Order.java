@@ -18,6 +18,7 @@ public class Order {
     private String buyerEmail;
     private String buyerPhone;
     private String notes;
+    private String voucherCode;
     private Date createdAt;
     
     // Joined fields
@@ -68,6 +69,9 @@ public class Order {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getVoucherCode() { return voucherCode; }
+    public void setVoucherCode(String voucherCode) { this.voucherCode = voucherCode; }
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }

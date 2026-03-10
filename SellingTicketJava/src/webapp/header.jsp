@@ -1,17 +1,29 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticketbox - Nền tảng đặt vé sự kiện hàng đầu</title>
+    <title>
+        <c:choose>
+            <c:when test="${not empty pageTitle}">
+                <c:out value="${pageTitle} | Ticketbox"/>
+            </c:when>
+            <c:otherwise>
+                Ticketbox - Nền tảng đặt vé sự kiện hàng đầu
+            </c:otherwise>
+        </c:choose>
+    </title>
     
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YcnS/sWG0H3bULRP4QoEqhUYj2kMe0KEdBkX" crossorigin="anonymous">
     
     <!-- Font Awesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,71 +33,9 @@
     <!-- Custom CSS -->
     <link href="${pageContext.request.contextPath}/assets/css/main.css" rel="stylesheet">
     
-    <style>
-    /* Navbar enhancements */
-    .navbar-glass {
-        transition: all 0.3s ease;
-    }
-    .navbar-glass.scrolled {
-        background: rgba(255, 255, 255, 0.95) !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    }
-    .nav-link {
-        position: relative;
-        padding: 0.5rem 1rem !important;
-        border-radius: 12px;
-    }
-    .nav-link::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        width: 0;
-        height: 2px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        transition: all 0.3s ease;
-        transform: translateX(-50%);
-        border-radius: 2px;
-    }
-    .nav-link:hover::after,
-    .nav-link.active::after {
-        width: 60%;
-    }
-    .search-input-nav {
-        transition: all 0.3s ease;
-        border-radius: 12px !important;
-    }
-    .search-input-nav:focus-within {
-        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
-    }
-    .user-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-    .nav-cta {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: white !important;
-        padding: 0.5rem 1rem !important;
-        border-radius: 12px !important;
-    }
-    .nav-cta:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
-    }
-    .nav-cta::after {
-        display: none;
-    }
-    </style>
+    <link href="${pageContext.request.contextPath}/assets/css/navbar.css" rel="stylesheet">
 </head>
-<body class="d-flex flex-column">
+<body class="d-flex flex-column" data-context-path="${pageContext.request.contextPath}">
     
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top navbar-glass" id="mainNavbar">
@@ -173,8 +123,8 @@
     <c:if test="${not empty sessionScope.toastMessage}">
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var type = '${sessionScope.toastType}' || 'success';
-        var msg = '${sessionScope.toastMessage}';
+        var type = "${fn:escapeXml(sessionScope.toastType)}" || 'success';
+        var msg = "${fn:escapeXml(sessionScope.toastMessage)}";
         showToast(msg, type);
     });
     </script>
@@ -190,21 +140,4 @@
     <!-- Main Content Wrapper -->
     <main class="flex-grow-1">
 
-<script>
-// Navbar scroll effect
-window.addEventListener('scroll', function() {
-    const navbar = document.getElementById('mainNavbar');
-    if (window.scrollY > 50) {
-        navbar.classList.add('scrolled');
-    } else {
-        navbar.classList.remove('scrolled');
-    }
-});
-
-// Search redirect
-document.getElementById('navSearchInput')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter' && this.value.trim()) {
-        window.location.href = '${pageContext.request.contextPath}/events?q=' + encodeURIComponent(this.value.trim());
-    }
-});
-</script>
+<script src="${pageContext.request.contextPath}/assets/js/navbar.js"></script>
