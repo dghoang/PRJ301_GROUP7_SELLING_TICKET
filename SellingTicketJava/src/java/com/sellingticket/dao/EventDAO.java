@@ -1,15 +1,12 @@
-﻿package com.sellingticket.dao;
+package com.sellingticket.dao;
 
 import com.sellingticket.model.Event;
 import com.sellingticket.model.PageResult;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class EventDAO extends BaseDAO {
-
-    private static final Logger LOGGER = Logger.getLogger(EventDAO.class.getName());
 
     private Event mapResultSetToEvent(ResultSet rs) throws SQLException {
         Event event = new Event();
@@ -39,6 +36,17 @@ public class EventDAO extends BaseDAO {
         // Remove exception-driven mapping (assuming SELECT e.* always includes these columns)
         event.setRejectionReason(rs.getString("rejection_reason"));
         event.setRejectedAt(rs.getTimestamp("rejected_at"));
+        
+        // Event ticket settings
+        if (hasColumn(rs, "max_tickets_per_order")) {
+            event.setMaxTicketsPerOrder(rs.getInt("max_tickets_per_order"));
+        }
+        if (hasColumn(rs, "max_total_tickets")) {
+            event.setMaxTotalTickets(rs.getInt("max_total_tickets"));
+        }
+        if (hasColumn(rs, "pre_order_enabled")) {
+            event.setPreOrderEnabled(rs.getBoolean("pre_order_enabled"));
+        }
         
         return event;
     }
@@ -216,8 +224,9 @@ public class EventDAO extends BaseDAO {
 
     public boolean createEvent(Event event) {
         String sql = "INSERT INTO Events (organizer_id, category_id, title, slug, description, banner_image, " +
-                     "location, address, start_date, end_date, status, is_featured, is_private) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "location, address, start_date, end_date, status, is_featured, is_private, " +
+                     "max_tickets_per_order, max_total_tickets, pre_order_enabled) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                      
         int newId = executeInsertReturnKey(sql, ps -> {
             ps.setInt(1, event.getOrganizerId());
@@ -233,6 +242,9 @@ public class EventDAO extends BaseDAO {
             ps.setString(11, event.getStatus());
             ps.setBoolean(12, event.isFeatured());
             ps.setBoolean(13, event.isPrivate());
+            ps.setInt(14, event.getMaxTicketsPerOrder());
+            ps.setInt(15, event.getMaxTotalTickets());
+            ps.setBoolean(16, event.isPreOrderEnabled());
         });
         
         if (newId > 0) {
@@ -284,7 +296,9 @@ public class EventDAO extends BaseDAO {
         String sql = "UPDATE Events SET " +
                      "category_id = ?, title = ?, slug = ?, description = ?, banner_image = ?, " +
                      "location = ?, address = ?, start_date = ?, end_date = ?, " +
-                     "is_featured = ?, is_private = ?, updated_at = GETDATE() " +
+                     "is_featured = ?, is_private = ?, " +
+                     "max_tickets_per_order = ?, max_total_tickets = ?, pre_order_enabled = ?, " +
+                     "updated_at = GETDATE() " +
                      "WHERE event_id = ?";
         return executeUpdate(sql, ps -> {
             ps.setInt(1, event.getCategoryId());
@@ -298,13 +312,27 @@ public class EventDAO extends BaseDAO {
             ps.setTimestamp(9, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
             ps.setBoolean(10, event.isFeatured());
             ps.setBoolean(11, event.isPrivate());
-            ps.setInt(12, event.getEventId());
+            ps.setInt(12, event.getMaxTicketsPerOrder());
+            ps.setInt(13, event.getMaxTotalTickets());
+            ps.setBoolean(14, event.isPreOrderEnabled());
+            ps.setInt(15, event.getEventId());
         }) > 0;
     }
 
     public boolean deleteEvent(int eventId) {
         String sql = "UPDATE Events SET is_deleted = 1, status = 'cancelled', updated_at = GETDATE() WHERE event_id = ?";
         return executeUpdate(sql, ps -> ps.setInt(1, eventId)) > 0;
+    }
+
+    public boolean updateEventSettings(int eventId, int maxTicketsPerOrder, int maxTotalTickets, boolean preOrderEnabled) {
+        String sql = "UPDATE Events SET max_tickets_per_order = ?, max_total_tickets = ?, pre_order_enabled = ?, "
+                   + "updated_at = GETDATE() WHERE event_id = ?";
+        return executeUpdate(sql, ps -> {
+            ps.setInt(1, maxTicketsPerOrder);
+            ps.setInt(2, maxTotalTickets);
+            ps.setBoolean(3, preOrderEnabled);
+            ps.setInt(4, eventId);
+        }) > 0;
     }
 
     public List<Event> getAllEvents(String status, int page, int pageSize) {
@@ -375,10 +403,7 @@ public class EventDAO extends BaseDAO {
     // PAGED SEARCH METHODS
     // ========================
 
-    /**
-     * Advanced paginated search for public events page.
-     * Supports keyword, category, date range, price range, and sorting.
-     */
+    // Advanced paginated search for public events page
     public PageResult<Event> searchEventsPaged(String keyword, String category,
             String dateFrom, String dateTo, Double priceMin, Double priceMax,
             String sort, int page, int pageSize) {
@@ -443,10 +468,7 @@ public class EventDAO extends BaseDAO {
         return queryPaged(dataSql, countSql, setter, this::mapEventWithJoins, page, pageSize);
     }
 
-    /**
-     * Paginated search for admin event management.
-     * Supports keyword, multiple statuses, and category filter.
-     */
+    // Paginated search for admin event management
     public PageResult<Event> getAllEventsPaged(String keyword, String[] statuses,
             String category, int page, int pageSize) {
 
@@ -509,10 +531,7 @@ public class EventDAO extends BaseDAO {
         }, page, pageSize);
     }
 
-    /**
-     * Paginated search for organizer's own events.
-     * Supports keyword and multiple status filters.
-     */
+    // Paginated search for organizer's own events
     public PageResult<Event> getEventsByOrganizerPaged(int organizerId, String keyword,
             String[] statuses, int page, int pageSize) {
 

@@ -42,7 +42,30 @@ public class TicketSelectionServlet extends HttpServlet {
             return;
         }
 
+        // Block ticket selection for past events
+        if (event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
+            request.setAttribute("error", "Sự kiện đã kết thúc, không thể mua vé.");
+            request.setAttribute("event", event);
+            request.setAttribute("ticketTypes", java.util.Collections.emptyList());
+            request.getRequestDispatcher("ticket-selection.jsp").forward(request, response);
+            return;
+        }
+
         List<TicketType> ticketTypes = ticketService.getTicketsByEvent(eventId);
+
+        // Check pre-order mode: mark tickets as pre-order if sale hasn't started
+        java.util.Date now = new java.util.Date();
+        boolean isPreOrder = false;
+        for (TicketType tt : ticketTypes) {
+            if (tt.getSaleStart() != null && tt.getSaleStart().after(now)) {
+                if (event.isPreOrderEnabled()) {
+                    isPreOrder = true;
+                }
+            }
+        }
+        request.setAttribute("isPreOrder", isPreOrder);
+        request.setAttribute("preOrderEnabled", event.isPreOrderEnabled());
+        request.setAttribute("maxTicketsPerOrder", event.getMaxTicketsPerOrder() > 0 ? event.getMaxTicketsPerOrder() : 10);
 
         request.setAttribute("event", event);
         request.setAttribute("ticketTypes", ticketTypes);

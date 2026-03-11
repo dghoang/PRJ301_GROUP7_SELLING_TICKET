@@ -33,22 +33,24 @@ public class EventService {
     // READ OPERATIONS
     // ========================
 
-    /**
-     * Get event with all related data (tickets, category info)
-     */
     public Event getEventDetails(int eventId) {
         Event event = eventDAO.getEventById(eventId);
         if (event != null) {
             List<TicketType> tickets = ticketTypeDAO.getTicketTypesByEventId(eventId);
             event.setTicketTypes(tickets);
+            // Compute aggregated ticket stats from ticket types
+            int totalTickets = 0, soldTickets = 0;
+            for (TicketType tt : tickets) {
+                totalTickets += tt.getQuantity();
+                soldTickets += tt.getSoldQuantity();
+            }
+            event.setTotalTickets(totalTickets);
+            event.setSoldTickets(soldTickets);
             eventDAO.incrementViews(eventId);
         }
         return event;
     }
 
-    /**
-     * Get event by slug with all related data.
-     */
     public Event getEventBySlug(String slug) {
         Event event = eventDAO.getEventBySlug(slug);
         if (event != null) {
@@ -59,51 +61,30 @@ public class EventService {
         return event;
     }
 
-    /**
-     * Get featured events for homepage
-     */
     public List<Event> getFeaturedEvents(int limit) {
         return eventDAO.getFeaturedEvents(limit);
     }
 
-    /**
-     * Get upcoming events
-     */
     public List<Event> getUpcomingEvents(int limit) {
         return eventDAO.getUpcomingEvents(limit);
     }
 
-    /**
-     * Search events with filters
-     */
     public List<Event> searchEvents(String keyword, String category, String dateFilter, int page, int pageSize) {
         return eventDAO.searchEvents(keyword, category, dateFilter, page, pageSize);
     }
 
-    /**
-     * Get events by organizer
-     */
     public List<Event> getEventsByOrganizer(int organizerId) {
         return eventDAO.getEventsByOrganizer(organizerId);
     }
 
-    /**
-     * Get related events (same category, excluding current)
-     */
     public List<Event> getRelatedEvents(int categoryId, int currentEventId, int limit) {
         return eventDAO.getRelatedEvents(categoryId, currentEventId, limit);
     }
 
-    /**
-     * Get all events with pagination (for admin)
-     */
     public List<Event> getAllEvents(String status, int page, int pageSize) {
         return eventDAO.getAllEvents(status, page, pageSize);
     }
 
-    /**
-     * Get pending events for approval
-     */
     public List<Event> getPendingEvents() {
         return eventDAO.getPendingEvents();
     }
@@ -112,9 +93,6 @@ public class EventService {
     // WRITE OPERATIONS
     // ========================
 
-    /**
-     * Create event with associated ticket types
-     */
     public boolean createEventWithTickets(Event event, List<TicketType> tickets) {
         boolean eventCreated = eventDAO.createEvent(event);
         if (eventCreated && tickets != null && !tickets.isEmpty()) {
@@ -126,41 +104,30 @@ public class EventService {
         return eventCreated;
     }
 
-    /**
-     * Update event
-     */
     public boolean updateEvent(Event event) {
         return eventDAO.updateEvent(event);
     }
 
-    /**
-     * Delete event (soft delete)
-     */
     public boolean deleteEvent(int eventId) {
         return eventDAO.deleteEvent(eventId);
+    }
+
+    public boolean updateEventSettings(int eventId, int maxTicketsPerOrder, int maxTotalTickets, boolean preOrderEnabled) {
+        return eventDAO.updateEventSettings(eventId, maxTicketsPerOrder, maxTotalTickets, preOrderEnabled);
     }
 
     // ========================
     // ADMIN OPERATIONS
     // ========================
 
-    /**
-     * Approve an event
-     */
     public boolean approveEvent(int eventId) {
         return eventDAO.updateEventStatus(eventId, "approved");
     }
 
-    /**
-     * Reject an event
-     */
     public boolean rejectEvent(int eventId) {
         return eventDAO.updateEventStatus(eventId, "rejected");
     }
 
-    /**
-     * Reject an event with rich-HTML reason
-     */
     public boolean rejectEvent(int eventId, String reason) {
         if (reason != null && !reason.trim().isEmpty()) {
             return eventDAO.updateEventStatusWithReason(eventId, "rejected", reason);
@@ -168,9 +135,6 @@ public class EventService {
         return eventDAO.updateEventStatus(eventId, "rejected");
     }
 
-    /**
-     * Toggle featured status
-     */
     public boolean setFeatured(int eventId, boolean featured) {
         Event event = eventDAO.getEventById(eventId);
         if (event != null) {
@@ -180,12 +144,10 @@ public class EventService {
         return false;
     }
 
-    /** Pin event to homepage with given priority. */
     public boolean pinEvent(int eventId, int pinOrder) {
         return eventDAO.pinEvent(eventId, pinOrder);
     }
 
-    /** Unpin event from homepage. */
     public boolean unpinEvent(int eventId) {
         return eventDAO.unpinEvent(eventId);
     }
@@ -194,16 +156,10 @@ public class EventService {
     // STATISTICS
     // ========================
 
-    /**
-     * Get event counts by status
-     */
     public int countEventsByStatus(String status) {
         return eventDAO.countEventsByStatus(status);
     }
 
-    /**
-     * Count total search results for pagination.
-     */
     public int countSearchEvents(String keyword, String category, String dateFilter) {
         return eventDAO.countSearchEvents(keyword, category, dateFilter);
     }
@@ -212,9 +168,6 @@ public class EventService {
     // PAGED SEARCH OPERATIONS
     // ========================
 
-    /**
-     * Public: Advanced paginated event search with multiple filters.
-     */
     public PageResult<Event> searchEventsPaged(String keyword, String category,
             String dateFrom, String dateTo, Double priceMin, Double priceMax,
             String sort, int page, int pageSize) {
@@ -222,39 +175,24 @@ public class EventService {
                 priceMin, priceMax, sort, page, pageSize);
     }
 
-    /**
-     * Admin: Paginated event list with keyword, status, category filters.
-     */
     public PageResult<Event> getAllEventsPaged(String keyword, String[] statuses,
             String category, int page, int pageSize) {
         return eventDAO.getAllEventsPaged(keyword, statuses, category, page, pageSize);
     }
 
-    /**
-     * Organizer: Paginated list of own events with filters.
-     */
     public PageResult<Event> getEventsByOrganizerPaged(int organizerId, String keyword,
             String[] statuses, int page, int pageSize) {
         return eventDAO.getEventsByOrganizerPaged(organizerId, keyword, statuses, page, pageSize);
     }
 
-    /**
-     * Get total approved events
-     */
     public int getTotalEvents() {
         return eventDAO.getTotalEvents();
     }
 
-    /**
-     * Get all categories
-     */
     public List<Category> getAllCategories() {
         return categoryDAO.getAllCategories();
     }
 
-    /**
-     * Check if a user can create more events (limit: 3 pending events)
-     */
     public boolean canUserCreateEvent(int userId) {
         return eventDAO.countPendingEventsByOrganizer(userId) < 3;
     }
@@ -263,11 +201,6 @@ public class EventService {
     // PERMISSION ENGINE
     // ========================
 
-    /**
-     * Returns the user's effective role for an event.
-     * Priority: owner > staff role > null
-     * Admin users get "admin" role for any event.
-     */
     public String getUserEventRole(int eventId, int userId, String userRole) {
         if ("admin".equals(userRole)) return "admin";
 
@@ -279,7 +212,6 @@ public class EventService {
         return staffRole; // "manager", "editor", "checkin", or null
     }
 
-    /** Owner + any staff + admin can view event details. */
     public boolean hasManagerPermission(int eventId, int userId) {
         return hasManagerPermission(eventId, userId, null);
     }
@@ -292,7 +224,6 @@ public class EventService {
         return eventStaffDAO.hasPermission(eventId, userId);
     }
 
-    /** Owner + manager + editor + admin can edit event info and tickets. */
     public boolean hasEditPermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
@@ -300,7 +231,6 @@ public class EventService {
                 || "manager".equals(role) || "editor".equals(role);
     }
 
-    /** Owner + manager + checkin + admin can perform check-in. */
     public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
@@ -308,28 +238,21 @@ public class EventService {
                 || "manager".equals(role) || "checkin".equals(role);
     }
 
-    /** Only owner + admin can delete events. */
     public boolean hasDeletePermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
         return "admin".equals(role) || "owner".equals(role);
     }
 
-    /** Owner + manager + admin can manage vouchers and staff. */
     public boolean hasVoucherPermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
     }
 
-    /** Owner + manager + editor + admin can view statistics. */
     public boolean hasStatsPermission(int eventId, int userId, String userRole) {
         return hasEditPermission(eventId, userId, userRole);
     }
 
-    /**
-     * Checks if the user is associated with any approved events (as owner or staff).
-     * Used to block operational features if the user doesn't have an approved roster.
-     */
     public boolean hasApprovedEvents(int userId, String role) {
         if ("admin".equals(role)) return true;
         List<Event> accessibleEvents = getAccessibleEvents(userId, role);
@@ -341,11 +264,6 @@ public class EventService {
         return false;
     }
 
-    /**
-     * Returns all events a user can access:
-     * - Admin: ALL events in the system
-     * - Others: own events + events where assigned as staff
-     */
     public List<Event> getAccessibleEvents(int userId, String userRole) {
         if ("admin".equals(userRole)) {
             return eventDAO.getAllEventsWithStats();

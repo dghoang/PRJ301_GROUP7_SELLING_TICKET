@@ -128,6 +128,9 @@ CREATE TABLE Events (
     views INT DEFAULT 0,
     pin_order INT DEFAULT 0,
     display_priority INT DEFAULT 0,
+    max_tickets_per_order INT NOT NULL DEFAULT 0,
+    max_total_tickets INT NOT NULL DEFAULT 0,
+    pre_order_enabled BIT NOT NULL DEFAULT 0,
     rejection_reason NVARCHAR(MAX),
     rejected_at DATETIME,
     published_at DATETIME,
@@ -992,28 +995,28 @@ INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, 
 -- Order 5: Customer 8 → Event 6 (Marathon) — 1 Half = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0005', 8, 6, 800000, 0, 800000, 'paid', 'seepay', DATEADD(DAY,-45,@now), N'Phạm Minh Đức', 'duc.pham@outlook.com', '0965432109', DATEADD(DAY,-45,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (5, 22, 1, 800000, 800000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (5, 19, 1, 800000, 800000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-MRT-001', 6, N'Phạm Minh Đức', 'duc.pham@outlook.com', 'TIX-MRT-001|EVT6|HALF|2026-05-03');
 
 -- Order 6: Customer 10 → Event 6 (Marathon) — 1 Fun Run = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0006', 10, 6, 300000, 0, 300000, 'paid', 'seepay', DATEADD(DAY,-40,@now), N'Vũ Thị Hà', 'ha.vu@gmail.com', '0945678901', DATEADD(DAY,-40,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (6, 23, 1, 300000, 300000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (6, 20, 1, 300000, 300000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-MRT-002', 7, N'Vũ Thị Hà', 'ha.vu@gmail.com', 'TIX-MRT-002|EVT6|5K|2026-05-03');
 
 -- Order 7: Customer 11 → Event 9 (Workshop UI/UX) — 1 Standard = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0007', 11, 9, 1200000, 0, 1200000, 'paid', 'seepay', DATEADD(DAY,-15,@now), N'Đỗ Quang Khải', 'khai.do@gmail.com', '0934567890', DATEADD(DAY,-15,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (7, 28, 1, 1200000, 1200000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (7, 25, 1, 1200000, 1200000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-UXW-001', 8, N'Đỗ Quang Khải', 'khai.do@gmail.com', 'TIX-UXW-001|EVT9|STD|2026-04-05');
 
 -- Order 8: Customer 3 → Event 11 (Ẩm thực) — 2 VIP Passport = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0008', 3, 11, 500000, 0, 500000, 'paid', 'seepay', DATEADD(DAY,-12,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-12,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (8, 35, 2, 250000, 500000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (8, 31, 2, 250000, 500000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-FDF-001', 9, N'Nguyễn Văn An', 'customer@ticketbox.vn', 'TIX-FDF-001|EVT11|VIP|2026-05-01'),
 ('TIX-FDF-002', 9, N'Nguyễn Thị Mai', 'mai@gmail.com', 'TIX-FDF-002|EVT11|VIP|2026-05-01');
@@ -1021,14 +1024,14 @@ INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, 
 -- Order 9: Customer 5 → Event 17 (AI Summit) — 1 VIP = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0009', 5, 17, 3000000, 0, 3000000, 'paid', 'seepay', DATEADD(DAY,-10,@now), N'Trần Thị Bình', 'binh.tran@gmail.com', '0987654321', DATEADD(DAY,-10,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (9, 51, 1, 3000000, 3000000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (9, 43, 1, 3000000, 3000000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-AIS-001', 10, N'Trần Thị Bình', 'binh.tran@gmail.com', 'TIX-AIS-001|EVT17|VIP|2026-06-20');
 
 -- Order 10: Customer 6 → Event 8 (Night Run) — 2 Runner = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0010', 6, 8, 800000, 0, 800000, 'paid', 'seepay', DATEADD(DAY,-35,@now), N'Lê Hoàng Cường', 'cuong.le@yahoo.com', '0976543210', DATEADD(DAY,-35,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (10, 26, 2, 400000, 800000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (10, 23, 2, 400000, 800000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-NR-001', 11, N'Lê Hoàng Cường', 'cuong.le@yahoo.com', 'TIX-NR-001|EVT8|10K|2026-03-22'),
 ('TIX-NR-002', 11, N'Lê Thị Lan', 'lan.le@gmail.com', 'TIX-NR-002|EVT8|10K|2026-03-22');
@@ -1043,14 +1046,14 @@ INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, 
 -- Order 12: Customer 10 → Event 13 (Triển lãm) — 1 Workshop Pass = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0012', 10, 13, 300000, 0, 300000, 'paid', 'seepay', DATEADD(DAY,-5,@now), N'Vũ Thị Hà', 'ha.vu@gmail.com', '0945678901', DATEADD(DAY,-5,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (12, 38, 1, 300000, 300000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (12, 34, 1, 300000, 300000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-ART-001', 13, N'Vũ Thị Hà', 'ha.vu@gmail.com', 'TIX-ART-001|EVT13|WS|2026-04-15');
 
 -- Order 13: Customer 11 → Event 14 (Tấm Cám) — 2 Hạng A = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0013', 11, 14, 2400000, 0, 2400000, 'paid', 'seepay', DATEADD(DAY,-7,@now), N'Đỗ Quang Khải', 'khai.do@gmail.com', '0934567890', DATEADD(DAY,-7,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (13, 40, 2, 1200000, 2400000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (13, 36, 2, 1200000, 2400000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-TC-001', 14, N'Đỗ Quang Khải', 'khai.do@gmail.com', 'TIX-TC-001|EVT14|A|2026-05-20'),
 ('TIX-TC-002', 14, N'Đỗ Thị Hương', 'huong.do@gmail.com', 'TIX-TC-002|EVT14|A|2026-05-20');
@@ -1058,14 +1061,14 @@ INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, 
 -- Order 14: Customer 3 → Event 17 (AI Summit) — 1 Student = PAID (discounted)
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0014', 3, 17, 500000, 0, 500000, 'paid', 'seepay', DATEADD(DAY,-3,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-3,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (14, 53, 1, 500000, 500000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (14, 45, 1, 500000, 500000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-AIS-002', 15, N'Nguyễn Văn An', 'customer@ticketbox.vn', 'TIX-AIS-002|EVT17|STU|2026-06-20');
 
 -- Order 15: Customer 5 → Event 15 (Startup Pitch) — 1 General = PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0015', 5, 15, 200000, 0, 200000, 'paid', 'seepay', DATEADD(DAY,-6,@now), N'Trần Thị Bình', 'binh.tran@gmail.com', '0987654321', DATEADD(DAY,-6,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (15, 47, 1, 200000, 200000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (15, 40, 1, 200000, 200000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
 ('TIX-SPD-001', 16, N'Trần Thị Bình', 'binh.tran@gmail.com', 'TIX-SPD-001|EVT15|GA|2026-05-15');
 
@@ -1082,23 +1085,23 @@ INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal
 -- Order 18: Customer 8 → Event 18 (Hackathon) — PAID (free ticket)
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0018', 8, 18, 0, 0, 0, 'paid', 'cash', DATEADD(DAY,-4,@now), N'Phạm Minh Đức', 'duc.pham@outlook.com', '0965432109', DATEADD(DAY,-4,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (18, 54, 1, 0, 0);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (18, 46, 1, 0, 0);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
-('TIX-HKT-001', 18, N'Team Codecraft (Phạm Minh Đức, Nguyễn Hoàng, Lê Quỳnh)', 'duc.pham@outlook.com', 'TIX-HKT-001|EVT18|TEAM|2026-05-24');
+('TIX-HKT-001', 19, N'Team Codecraft (Phạm Minh Đức, Nguyễn Hoàng, Lê Quỳnh)', 'duc.pham@outlook.com', 'TIX-HKT-001|EVT18|TEAM|2026-05-24');
 
 -- Order 19: Customer 10 → Event 12 (Cooking Class) — PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0019', 10, 12, 500000, 0, 500000, 'paid', 'seepay', DATEADD(DAY,-9,@now), N'Vũ Thị Hà', 'ha.vu@gmail.com', '0945678901', DATEADD(DAY,-9,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (19, 36, 1, 500000, 500000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (19, 32, 1, 500000, 500000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
-('TIX-CK-001', 19, N'Vũ Thị Hà', 'ha.vu@gmail.com', 'TIX-CK-001|EVT12|STD|2026-03-30');
+('TIX-CK-001', 20, N'Vũ Thị Hà', 'ha.vu@gmail.com', 'TIX-CK-001|EVT12|STD|2026-03-30');
 
 -- Order 20: Customer 3 → Event 10 (Data Science) — PAID
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
 VALUES ('ORD-2026-0020', 3, 10, 600000, 0, 600000, 'paid', 'seepay', DATEADD(DAY,-11,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-11,@now));
-INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (20, 30, 1, 600000, 600000);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (20, 27, 1, 600000, 600000);
 INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code) VALUES
-('TIX-DS-001', 20, N'Nguyễn Văn An', 'customer@ticketbox.vn', 'TIX-DS-001|EVT10|FULL|2026-04-15');
+('TIX-DS-001', 21, N'Nguyễn Văn An', 'customer@ticketbox.vn', 'TIX-DS-001|EVT10|FULL|2026-04-15');
 GO
 
 PRINT '=== 20 orders + order items + tickets seeded ===';

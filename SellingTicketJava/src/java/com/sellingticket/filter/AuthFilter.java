@@ -35,7 +35,10 @@ import jakarta.servlet.http.HttpSession;
     "/organizer/*", "/admin/*",
     "/checkout", "/tickets", "/my-tickets",
     "/order-confirmation", "/profile", "/change-password",
-    "/resume-payment", "/support/*", "*.jsp"
+    "/resume-payment", "/support/*",
+    "/api/admin/*", "/api/organizer/*", "/api/my-tickets",
+    "/api/chat/*", "/api/payment/*", "/api/upload",
+    "/media/upload", "*.jsp"
 })
 public class AuthFilter implements Filter {
 
@@ -76,6 +79,12 @@ public class AuthFilter implements Filter {
             return;
         }
 
+        // --- Exempt external webhook endpoints (they use their own auth) ---
+        if (path.equals("/api/seepay/webhook")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // --- Try JWT cookie restoration if session is empty ---
         if (user == null) {
             user = authTokenService.validateAccessToken(httpRequest);
@@ -100,6 +109,14 @@ public class AuthFilter implements Filter {
 
         // --- Not logged in: redirect to login with returnUrl ---
         if (user == null) {
+            // For API endpoints, return 401 JSON instead of redirect
+            if (path.startsWith("/api/")) {
+                httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                httpResponse.setContentType("application/json");
+                httpResponse.setCharacterEncoding("UTF-8");
+                httpResponse.getWriter().write("{\"error\":\"Unauthorized\"}");
+                return;
+            }
             redirectToLogin(httpRequest, httpResponse);
             return;
         }
@@ -137,6 +154,29 @@ public class AuthFilter implements Filter {
             if ("support_agent".equals(role)) {
                 LOGGER.log(Level.WARNING, "Support agent {0} blocked from {1}", new Object[]{user.getEmail(), uri});
                 httpResponse.sendRedirect(contextPath + "/admin/chat-dashboard");
+                return;
+            }
+            // Only organizer and admin can access organizer area
+            if (!"organizer".equals(role) && !"admin".equals(role)) {
+                httpResponse.sendRedirect(contextPath + "/home?error=unauthorized");
+                return;
+            }
+        }
+
+        // --- API access control ---
+        if (uri.startsWith(contextPath + "/api/admin/")) {
+            if (!"admin".equals(role)) {
+                httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                httpResponse.setContentType("application/json");
+                httpResponse.getWriter().write("{\"error\":\"Unauthorized\"}");
+                return;
+            }
+        }
+        if (uri.startsWith(contextPath + "/api/organizer/")) {
+            if (!"organizer".equals(role) && !"admin".equals(role)) {
+                httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                httpResponse.setContentType("application/json");
+                httpResponse.getWriter().write("{\"error\":\"Unauthorized\"}");
                 return;
             }
         }

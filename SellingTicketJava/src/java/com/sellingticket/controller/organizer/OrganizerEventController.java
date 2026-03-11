@@ -233,6 +233,21 @@ public class OrganizerEventController extends HttpServlet {
             }
 
             Event event = buildEventFromRequest(request, user);
+
+            // Validate: event start date must not be in the past
+            if (event.getStartDate() != null && event.getStartDate().before(new java.util.Date())) {
+                request.setAttribute("error", "Ngày bắt đầu sự kiện không được trong quá khứ");
+                showCreateForm(request, response, user);
+                return;
+            }
+            // Validate: end date must be after start date
+            if (event.getEndDate() != null && event.getStartDate() != null
+                    && event.getEndDate().before(event.getStartDate())) {
+                request.setAttribute("error", "Ngày kết thúc phải sau ngày bắt đầu");
+                showCreateForm(request, response, user);
+                return;
+            }
+
             uploadBanner(request, event, user);
             event.setStatus("pending");
             event.setFeatured(false);
@@ -275,6 +290,25 @@ public class OrganizerEventController extends HttpServlet {
             String endDateStr = request.getParameter("endDate");
             if (endDateStr != null && !endDateStr.isEmpty()) {
                 existing.setEndDate(parseDateOrNull(endDateStr));
+            }
+
+            // Event ticket settings
+            existing.setMaxTicketsPerOrder(parseIntOrDefault(request.getParameter("maxTicketsPerOrder"), existing.getMaxTicketsPerOrder()));
+            existing.setMaxTotalTickets(parseIntOrDefault(request.getParameter("maxTotalTickets"), existing.getMaxTotalTickets()));
+            existing.setPreOrderEnabled("true".equals(request.getParameter("preOrderEnabled")));
+
+            // Validate: start date must not be in the past (for new dates only)
+            if (existing.getStartDate() != null && existing.getStartDate().before(new java.util.Date())) {
+                setToast(request, "Ngày bắt đầu sự kiện không được trong quá khứ", "error");
+                response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
+                return;
+            }
+            // Validate: end date must be after start date
+            if (existing.getEndDate() != null && existing.getStartDate() != null
+                    && existing.getEndDate().before(existing.getStartDate())) {
+                setToast(request, "Ngày kết thúc phải sau ngày bắt đầu", "error");
+                response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
+                return;
             }
 
             if (eventService.updateEvent(existing)) {
@@ -387,6 +421,12 @@ public class OrganizerEventController extends HttpServlet {
         if (endDateStr != null && !endDateStr.isEmpty()) {
             event.setEndDate(parseDateOrNull(endDateStr));
         }
+
+        // Event ticket settings
+        event.setMaxTicketsPerOrder(parseIntOrDefault(request.getParameter("maxTicketsPerOrder"), 0));
+        event.setMaxTotalTickets(parseIntOrDefault(request.getParameter("maxTotalTickets"), 0));
+        event.setPreOrderEnabled("true".equals(request.getParameter("preOrderEnabled")));
+
         return event;
     }
 

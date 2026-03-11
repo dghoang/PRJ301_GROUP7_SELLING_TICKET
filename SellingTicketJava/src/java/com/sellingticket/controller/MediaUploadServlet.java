@@ -2,9 +2,11 @@ package com.sellingticket.controller;
 
 import com.sellingticket.model.Media;
 import com.sellingticket.model.User;
+import com.sellingticket.service.EventService;
 import com.sellingticket.service.MediaService;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -44,11 +46,15 @@ import jakarta.servlet.http.Part;
 public class MediaUploadServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(MediaUploadServlet.class.getName());
+    private static final Set<String> VALID_ENTITY_TYPES = Set.of("user", "event", "ticket_type");
+    private static final Set<String> VALID_PURPOSES = Set.of("avatar", "banner", "gallery", "inline", "ticket_design");
     private MediaService mediaService;
+    private EventService eventService;
 
     @Override
     public void init() throws ServletException {
         mediaService = new MediaService();
+        eventService = new EventService();
     }
 
     @Override
@@ -86,7 +92,41 @@ public class MediaUploadServlet extends HttpServlet {
                 return;
             }
 
+            // Validate entityType and purpose against whitelist
+            if (!VALID_ENTITY_TYPES.contains(entityType)) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"success\":false,\"error\":\"Invalid entityType\"}");
+                return;
+            }
+            if (!VALID_PURPOSES.contains(purpose)) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"success\":false,\"error\":\"Invalid purpose\"}");
+                return;
+            }
+
             int entityId = Integer.parseInt(entityIdStr);
+
+            // ===== SECURITY: Verify entity ownership before upload =====
+            if ("user".equals(entityType)) {
+                // Users can only upload to their own profile
+                if (entityId != user.getUserId()) {
+                    LOGGER.log(Level.WARNING, "Upload denied: user {0} tried to upload to user entity {1}",
+                            new Object[]{user.getUserId(), entityId});
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    out.print("{\"success\":false,\"error\":\"Cannot upload for another user\"}");
+                    return;
+                }
+            } else if ("event".equals(entityType) || "ticket_type".equals(entityType)) {
+                // Must be event organizer or admin to upload event/ticket media
+                boolean isAdmin = "admin".equals(user.getRole());
+                if (!isAdmin && !eventService.hasEditPermission(entityId, user.getUserId(), user.getRole())) {
+                    LOGGER.log(Level.WARNING, "Upload denied: user {0} has no edit permission for entity {1}/{2}",
+                            new Object[]{user.getUserId(), entityType, entityId});
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    out.print("{\"success\":false,\"error\":\"No permission to upload for this entity\"}");
+                    return;
+                }
+            }
 
             // Read file bytes
             byte[] fileBytes = filePart.getInputStream().readAllBytes();

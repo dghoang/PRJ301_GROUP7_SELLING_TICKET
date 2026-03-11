@@ -56,6 +56,13 @@ public class CheckoutServlet extends HttpServlet {
 
         if (eventId > 0) {
             Event event = eventService.getEventDetails(eventId);
+            // Block checkout page for past events
+            if (event != null && event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
+                request.setAttribute("error", "Sự kiện đã kết thúc, không thể thanh toán.");
+                request.setAttribute("event", event);
+                request.getRequestDispatcher("/checkout.jsp").forward(request, response);
+                return;
+            }
             request.setAttribute("event", event);
             if (event != null) {
                 request.setAttribute("tickets", ticketService.getTicketsByEvent(eventId));
@@ -233,8 +240,18 @@ public class CheckoutServlet extends HttpServlet {
         Event event = eventService.getEventDetails(eventId);
         if (event == null) return null;
 
+        // Block checkout for past events
+        if (event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
+            return null;
+        }
+
+        // Determine max quantity per order from event settings
+        int eventMaxPerOrder = event.getMaxTicketsPerOrder();
+        int maxQty = (eventMaxPerOrder > 0) ? eventMaxPerOrder : MAX_QUANTITY;
+
         List<OrderItem> items = new ArrayList<>();
         double totalAmount = 0;
+        int totalTicketsInOrder = 0;
 
         String itemsParam = request.getParameter("items");
         if (itemsParam != null && !itemsParam.isEmpty()) {
@@ -244,7 +261,7 @@ public class CheckoutServlet extends HttpServlet {
                 if (pair.length != 2) continue;
                 int typeId = parseIntOrDefault(pair[0].trim(), -1);
                 int qty = parseIntOrDefault(pair[1].trim(), 0);
-                if (typeId <= 0 || qty <= 0 || qty > MAX_QUANTITY) continue;
+                if (typeId <= 0 || qty <= 0 || qty > maxQty) continue;
 
                 TicketType ticket = ticketService.getTicketTypeById(typeId);
                 if (ticket == null) continue;
@@ -258,11 +275,12 @@ public class CheckoutServlet extends HttpServlet {
                 item.setSubtotal(subtotal);
                 items.add(item);
                 totalAmount += subtotal;
+                totalTicketsInOrder += qty;
             }
         } else {
             int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
             int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
-            if (ticketTypeId <= 0 || quantity < 1 || quantity > MAX_QUANTITY) return null;
+            if (ticketTypeId <= 0 || quantity < 1 || quantity > maxQty) return null;
 
             TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
             if (ticket == null) return null;
@@ -275,9 +293,17 @@ public class CheckoutServlet extends HttpServlet {
             item.setUnitPrice(ticket.getPrice());
             item.setSubtotal(totalAmount);
             items.add(item);
+            totalTicketsInOrder += quantity;
         }
 
         if (items.isEmpty()) return null;
+
+        // Enforce max tickets per order
+        if (totalTicketsInOrder > maxQty) return null;
+
+        // Enforce max total tickets for event
+        int eventMaxTotal = event.getMaxTotalTickets();
+        if (eventMaxTotal > 0 && (event.getSoldTickets() + totalTicketsInOrder) > eventMaxTotal) return null;
 
         String paymentMethod = request.getParameter("paymentMethod");
 

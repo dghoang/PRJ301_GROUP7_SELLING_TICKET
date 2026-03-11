@@ -33,6 +33,11 @@ public class Event {
     private String rejectionReason;
     private Date rejectedAt;
     
+    // Event ticket settings
+    private int maxTicketsPerOrder;  // max tickets per single order (0 = use system default)
+    private int maxTotalTickets;     // max total tickets for entire event (0 = unlimited)
+    private boolean preOrderEnabled; // allow pre-ordering before sale starts
+    
     // Associated ticket types (for event detail view)
     private List<TicketType> ticketTypes;
 
@@ -113,6 +118,15 @@ public class Event {
     
     public List<TicketType> getTicketTypes() { return ticketTypes; }
     public void setTicketTypes(List<TicketType> ticketTypes) { this.ticketTypes = ticketTypes; }
+
+    public int getMaxTicketsPerOrder() { return maxTicketsPerOrder; }
+    public void setMaxTicketsPerOrder(int maxTicketsPerOrder) { this.maxTicketsPerOrder = maxTicketsPerOrder; }
+
+    public int getMaxTotalTickets() { return maxTotalTickets; }
+    public void setMaxTotalTickets(int maxTotalTickets) { this.maxTotalTickets = maxTotalTickets; }
+
+    public boolean isPreOrderEnabled() { return preOrderEnabled; }
+    public void setPreOrderEnabled(boolean preOrderEnabled) { this.preOrderEnabled = preOrderEnabled; }
 
     @Override
     public String toString() {
