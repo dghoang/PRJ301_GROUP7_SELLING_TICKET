@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -32,6 +33,8 @@ public class CheckoutServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(CheckoutServlet.class.getName());
     private static final int MAX_QUANTITY = 10;
+    private static final Set<String> ALLOWED_PAYMENT_METHODS = Set.of(
+            "seepay", "bank_transfer", "cash");
 
     private OrderService orderService;
     private EventService eventService;
@@ -240,6 +243,9 @@ public class CheckoutServlet extends HttpServlet {
         Event event = eventService.getEventDetails(eventId);
         if (event == null) return null;
 
+        // V4 FIX: Only allow checkout for approved events
+        if (!"approved".equals(event.getStatus())) return null;
+
         // Block checkout for past events
         if (event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
             return null;
@@ -265,6 +271,8 @@ public class CheckoutServlet extends HttpServlet {
 
                 TicketType ticket = ticketService.getTicketTypeById(typeId);
                 if (ticket == null) continue;
+                // V9 FIX: Verify ticket belongs to this event
+                if (ticket.getEventId() != eventId) continue;
                 if (!ticketService.checkAvailability(typeId, qty)) return null;
 
                 double subtotal = ticket.getPrice() * qty;
@@ -284,6 +292,8 @@ public class CheckoutServlet extends HttpServlet {
 
             TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
             if (ticket == null) return null;
+            // V9 FIX: Verify ticket belongs to this event
+            if (ticket.getEventId() != eventId) return null;
             if (!ticketService.checkAvailability(ticketTypeId, quantity)) return null;
 
             totalAmount = ticket.getPrice() * quantity;
@@ -305,7 +315,11 @@ public class CheckoutServlet extends HttpServlet {
         int eventMaxTotal = event.getMaxTotalTickets();
         if (eventMaxTotal > 0 && (event.getSoldTickets() + totalTicketsInOrder) > eventMaxTotal) return null;
 
+        // V4 FIX: Whitelist payment methods
         String paymentMethod = request.getParameter("paymentMethod");
+        if (paymentMethod == null || !ALLOWED_PAYMENT_METHODS.contains(paymentMethod)) {
+            paymentMethod = "bank_transfer";
+        }
 
         Order order = new Order();
         order.setOrderCode(orderService.generateOrderCode());

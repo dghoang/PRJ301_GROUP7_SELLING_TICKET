@@ -220,9 +220,17 @@ public class OrganizerEventController extends HttpServlet {
         try {
             // Validate inputs before processing
             String title = request.getParameter("title");
+            String shortDescription = request.getParameter("shortDescription");
             String description = request.getParameter("description");
+            int categoryId = parseIntOrDefault(request.getParameter("category"), -1);
+
             if (!InputValidator.isValidEventTitle(title)) {
                 request.setAttribute("error", "Tên sự kiện phải từ 3-200 ký tự");
+                showCreateForm(request, response, user);
+                return;
+            }
+            if (!InputValidator.isValidText(shortDescription, 10, 500)) {
+                request.setAttribute("error", "Mô tả ngắn phải từ 10-500 ký tự");
                 showCreateForm(request, response, user);
                 return;
             }
@@ -231,8 +239,18 @@ public class OrganizerEventController extends HttpServlet {
                 showCreateForm(request, response, user);
                 return;
             }
+            if (categoryId <= 0 || categoryService.getCategoryById(categoryId) == null) {
+                request.setAttribute("error", "Danh mục không hợp lệ");
+                showCreateForm(request, response, user);
+                return;
+            }
 
-            Event event = buildEventFromRequest(request, user);
+            Event event = buildEventFromRequest(request, user, categoryId);
+            if (!InputValidator.isNotBlank(event.getLocation())) {
+                request.setAttribute("error", "Vui lòng nhập địa điểm sự kiện");
+                showCreateForm(request, response, user);
+                return;
+            }
 
             // Validate: event start date must not be in the past
             if (event.getStartDate() != null && event.getStartDate().before(new java.util.Date())) {
@@ -253,6 +271,11 @@ public class OrganizerEventController extends HttpServlet {
             event.setFeatured(false);
 
             List<TicketType> tickets = parseTicketTypes(request);
+            if (tickets.isEmpty()) {
+                request.setAttribute("error", "Phải có ít nhất 1 loại vé hợp lệ");
+                showCreateForm(request, response, user);
+                return;
+            }
 
             if (eventService.createEventWithTickets(event, tickets)) {
                 setToast(request, "Tạo sự kiện thành công! Đang chờ duyệt.", "success");
@@ -261,8 +284,8 @@ public class OrganizerEventController extends HttpServlet {
                 request.setAttribute("error", "Failed to create event");
                 showCreateForm(request, response, user);
             }
-        } catch (NumberFormatException e) {
-            request.setAttribute("error", "Invalid category or date format");
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", "Dữ liệu nhập không hợp lệ");
             showCreateForm(request, response, user);
         }
     }
@@ -404,12 +427,13 @@ public class OrganizerEventController extends HttpServlet {
     }
 
     /** Extract event fields from form parameters. */
-    private Event buildEventFromRequest(HttpServletRequest request, User user) {
+    private Event buildEventFromRequest(HttpServletRequest request, User user, int categoryId) {
         Event event = new Event();
         event.setOrganizerId(user.getUserId());
-        event.setCategoryId(Integer.parseInt(request.getParameter("category")));
+        event.setCategoryId(categoryId);
         event.setTitle(request.getParameter("title"));
         event.setSlug(generateSlug(request.getParameter("title")));
+        event.setShortDescription(request.getParameter("shortDescription"));
         event.setDescription(request.getParameter("description"));
         event.setBannerImage(request.getParameter("bannerImage"));
         event.setLocation(request.getParameter("location"));
@@ -464,13 +488,27 @@ public class OrganizerEventController extends HttpServlet {
         String[] quantities = request.getParameterValues("ticketQuantity[]");
 
         if (names == null || prices == null || quantities == null) return tickets;
+        if (names.length != prices.length || prices.length != quantities.length) {
+            throw new IllegalArgumentException("Ticket fields do not match");
+        }
 
         for (int i = 0; i < names.length; i++) {
-            if (names[i] == null || names[i].isEmpty()) continue;
+            String ticketName = names[i] == null ? "" : names[i].trim();
+            if (ticketName.isEmpty()) continue;
+
+            double ticketPrice = Double.parseDouble(prices[i]);
+            int ticketQuantity = Integer.parseInt(quantities[i]);
+
+            if (!InputValidator.isValidTicketTypeName(ticketName)
+                    || !InputValidator.isNonNegative(ticketPrice)
+                    || ticketQuantity <= 0) {
+                throw new IllegalArgumentException("Invalid ticket type");
+            }
+
             TicketType ticket = new TicketType();
-            ticket.setName(names[i]);
-            ticket.setPrice(Double.parseDouble(prices[i]));
-            ticket.setQuantity(Integer.parseInt(quantities[i]));
+            ticket.setName(ticketName);
+            ticket.setPrice(ticketPrice);
+            ticket.setQuantity(ticketQuantity);
             tickets.add(ticket);
         }
 

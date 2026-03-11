@@ -64,3 +64,7 @@ mcp_servers.json
 memory-bank/
 artifacts/
 tests/
+skills-lock.json
+ui-ux-pro-max-skill/
+~/.gemini/antigravity/skills/
+~/antigravity-skills/

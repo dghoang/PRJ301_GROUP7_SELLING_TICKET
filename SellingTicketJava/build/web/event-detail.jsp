@@ -860,6 +860,14 @@
                                 </div>
                             </div>
                         </div>
+                        <c:if test="${not empty sessionScope.user && sessionScope.user.role != 'admin' && sessionScope.user.role != 'organizer'}">
+                        <button class="btn btn-sm rounded-pill mt-3 px-4" id="eventChatBtn"
+                                data-event-id="${event.eventId}" data-event-title="<c:out value='${event.title}'/>"
+                                onclick="openEventChat(Number(this.dataset.eventId), this.dataset.eventTitle)" 
+                                style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;">
+                            <i class="fas fa-comments me-2"></i>Chat với ban tổ chức
+                        </button>
+                        </c:if>
                     </div>
                     
                     <!-- Tickets -->

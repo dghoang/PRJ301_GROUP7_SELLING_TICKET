@@ -153,10 +153,21 @@ public class GoogleOAuthServlet extends HttpServlet {
             return;
         }
 
-        // Check if user already exists
+        // Check if user already exists (active)
         User user = userService.getUserByEmail(userInfo.email);
 
         if (user == null) {
+            // Check if a deactivated account exists with this email
+            User existing = userService.getUserByEmailAny(userInfo.email);
+            if (existing != null && !existing.isActive()) {
+                // Deactivated account — block login with clear message
+                request.getSession().setAttribute("toastMessage",
+                        "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.");
+                request.getSession().setAttribute("toastType", "error");
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
+
             // Auto-register with Google info (no password needed for OAuth users)
             boolean registered = userService.registerOAuth(
                     userInfo.email, userInfo.name, userInfo.picture);

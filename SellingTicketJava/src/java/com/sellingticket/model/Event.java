@@ -9,6 +9,7 @@ public class Event {
     private int categoryId;
     private String title;
     private String slug;
+    private String shortDescription;
     private String description;
     private String bannerImage;
     private String location;
@@ -58,6 +59,9 @@ public class Event {
 
     public String getSlug() { return slug; }
     public void setSlug(String slug) { this.slug = slug; }
+
+    public String getShortDescription() { return shortDescription; }
+    public void setShortDescription(String shortDescription) { this.shortDescription = shortDescription; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

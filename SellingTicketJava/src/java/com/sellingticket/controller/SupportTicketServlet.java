@@ -10,6 +10,7 @@ import static com.sellingticket.util.ServletUtil.redirectToLogin;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -30,6 +31,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SupportTicketServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(SupportTicketServlet.class.getName());
+    private static final Set<String> VALID_CATEGORIES = Set.of(
+            "order", "payment", "refund", "event", "account", "technical", "other");
+    private static final int MAX_SUBJECT_LENGTH = 200;
+    private static final int MAX_DESCRIPTION_LENGTH = 5000;
+    private static final int MAX_REPLY_LENGTH = 5000;
     private final SupportTicketService ticketService = new SupportTicketService();
 
     @Override
@@ -88,11 +94,37 @@ public class SupportTicketServlet extends HttpServlet {
         if (path == null) path = "/";
 
         if (path.equals("/create")) {
+            String category = request.getParameter("category");
+            String subject = request.getParameter("subject");
+            String description = request.getParameter("description");
+
+            // Validate required fields
+            if (subject == null || subject.trim().isEmpty() ||
+                description == null || description.trim().isEmpty()) {
+                response.sendRedirect(request.getContextPath() + "/support/new?error=missing_fields");
+                return;
+            }
+
+            // Validate category (whitelist) — allow null/empty (defaults to "other")
+            if (category == null || !VALID_CATEGORIES.contains(category.trim().toLowerCase())) {
+                category = "other";
+            }
+
+            // Enforce length limits
+            subject = subject.trim();
+            if (subject.length() > MAX_SUBJECT_LENGTH) {
+                subject = subject.substring(0, MAX_SUBJECT_LENGTH);
+            }
+            description = description.trim();
+            if (description.length() > MAX_DESCRIPTION_LENGTH) {
+                description = description.substring(0, MAX_DESCRIPTION_LENGTH);
+            }
+
             SupportTicket ticket = new SupportTicket();
             ticket.setUserId(user.getUserId());
-            ticket.setCategory(request.getParameter("category"));
-            ticket.setSubject(request.getParameter("subject"));
-            ticket.setDescription(request.getParameter("description"));
+            ticket.setCategory(category.trim().toLowerCase());
+            ticket.setSubject(subject);
+            ticket.setDescription(description);
             String orderId = request.getParameter("orderId");
             if (orderId != null && !orderId.isEmpty()) {
                 ticket.setOrderId(parseIntOrDefault(orderId, null));
@@ -113,10 +145,15 @@ public class SupportTicketServlet extends HttpServlet {
             int ticketId = parseIntOrDefault(request.getParameter("ticketId"), -1);
             String content = request.getParameter("content");
             if (ticketId > 0 && content != null && !content.trim().isEmpty()) {
+                // Enforce length limit
+                String trimmed = content.trim();
+                if (trimmed.length() > MAX_REPLY_LENGTH) {
+                    trimmed = trimmed.substring(0, MAX_REPLY_LENGTH);
+                }
                 // Verify ownership
                 SupportTicket ticket = ticketService.getById(ticketId);
                 if (ticket != null && ticket.getUserId() == user.getUserId()) {
-                    ticketService.addReply(ticketId, user.getUserId(), content.trim(), false);
+                    ticketService.addReply(ticketId, user.getUserId(), trimmed, false);
                 }
             }
             response.sendRedirect(request.getContextPath() + "/support/ticket/" + ticketId);

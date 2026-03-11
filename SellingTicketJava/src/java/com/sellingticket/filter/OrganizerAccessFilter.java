@@ -62,7 +62,8 @@ public class OrganizerAccessFilter implements Filter {
         boolean isExempt = isDashboard ||
                            pathInfo.startsWith("/organizer/events") ||
                            pathInfo.startsWith("/organizer/create-event") ||
-                           pathInfo.startsWith("/organizer/settings");
+                           pathInfo.startsWith("/organizer/settings") ||
+                           pathInfo.startsWith("/organizer/chat");
                            
         if (!isExempt) {
             boolean hasApproved = eventService.hasApprovedEvents(user.getUserId(), user.getRole());

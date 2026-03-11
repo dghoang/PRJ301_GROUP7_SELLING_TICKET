@@ -21,15 +21,15 @@ public class ChatDAO extends DBContext {
     // ========================
 
     public int createSession(int customerId, Integer eventId) {
-        String sql = "INSERT INTO ChatSessions (customer_id, event_id) VALUES (?, ?); SELECT SCOPE_IDENTITY();";
+        String sql = "INSERT INTO ChatSessions (customer_id, event_id) VALUES (?, ?)";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, customerId);
             if (eventId != null) ps.setInt(2, eventId);
             else ps.setNull(2, Types.INTEGER);
-            if (ps.execute()) {
-                ResultSet rs = ps.getResultSet();
-                if (rs.next()) return rs.getInt(1);
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) return keys.getInt(1);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to create chat session", e);
@@ -123,6 +123,65 @@ public class ChatDAO extends DBContext {
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to close session", e);
+        }
+        return false;
+    }
+
+    // ========================
+    // ORGANIZER / STAFF SESSIONS
+    // ========================
+
+    /**
+     * Get active/waiting sessions for events owned by or staffed by this user.
+     * Returns VIP-sorted sessions just like getActiveSessions().
+     */
+    public List<ChatSession> getSessionsByOrganizer(int userId) {
+        String sql = "SELECT " + SESSION_COLS + ", "
+                   + "ISNULL(os.total_spent, 0) AS total_spent, ISNULL(os.order_count, 0) AS order_count, "
+                   + "CASE "
+                   + "  WHEN ISNULL(os.total_spent, 0) >= 5000000 THEN 100 "
+                   + "  WHEN ISNULL(os.order_count, 0) >= 5 OR ISNULL(os.total_spent, 0) >= 2000000 THEN 80 "
+                   + "  WHEN ISNULL(os.order_count, 0) >= 1 THEN 50 "
+                   + "  ELSE 20 END AS priority_score "
+                   + SESSION_FROM
+                   + "LEFT JOIN (SELECT user_id, SUM(total_amount) AS total_spent, COUNT(*) AS order_count "
+                   + "  FROM Orders WHERE status = 'paid' GROUP BY user_id) os ON os.user_id = s.customer_id "
+                   + "WHERE s.status IN ('waiting','active') AND s.event_id IS NOT NULL "
+                   + "AND (e.organizer_id = ? OR EXISTS (SELECT 1 FROM EventStaff es WHERE es.event_id = s.event_id AND es.user_id = ?)) "
+                   + "ORDER BY priority_score DESC, s.created_at ASC";
+        List<ChatSession> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, userId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                ChatSession sess = mapSession(rs);
+                sess.setPriorityScore(rs.getInt("priority_score"));
+                sess.setCustomerTier(computeTierFromScore(rs.getInt("priority_score")));
+                list.add(sess);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to get organizer sessions", e);
+        }
+        return list;
+    }
+
+    /** Check if a user is the organizer or staff of the event linked to this session. */
+    public boolean isOrganizerOfSession(int sessionId, int userId) {
+        String sql = "SELECT 1 FROM ChatSessions s "
+                   + "JOIN Events e ON s.event_id = e.event_id "
+                   + "WHERE s.session_id = ? AND s.event_id IS NOT NULL "
+                   + "AND (e.organizer_id = ? OR EXISTS (SELECT 1 FROM EventStaff es WHERE es.event_id = s.event_id AND es.user_id = ?))";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sessionId);
+            ps.setInt(2, userId);
+            ps.setInt(3, userId);
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to check organizer session ownership", e);
         }
         return false;
     }

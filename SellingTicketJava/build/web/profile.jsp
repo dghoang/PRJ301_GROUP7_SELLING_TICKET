@@ -205,6 +205,22 @@
                     <div class="card-body p-4 p-md-5">
                         <h4 class="fw-bold mb-4">Bảo mật</h4>
                         
+                        <c:choose>
+                        <c:when test="${sessionScope.user.oauthUser}">
+                        <div class="glass p-4 rounded-4 mb-4 animate-on-scroll">
+                            <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                                <i class="fas fa-lock text-primary"></i>Đổi mật khẩu
+                            </h5>
+                            <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background: rgba(59, 130, 246, 0.08);">
+                                <i class="fab fa-google text-danger fs-4"></i>
+                                <div>
+                                    <p class="fw-medium mb-1">Tài khoản đăng nhập bằng Google</p>
+                                    <p class="text-muted small mb-0">Mật khẩu được quản lý bởi Google. Bạn không cần đổi mật khẩu tại đây.</p>
+                                </div>
+                            </div>
+                        </div>
+                        </c:when>
+                        <c:otherwise>
                         <div class="glass p-4 rounded-4 mb-4 animate-on-scroll">
                             <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
                                 <i class="fas fa-lock text-primary"></i>Đổi mật khẩu
@@ -214,7 +230,7 @@
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label fw-medium">Mật khẩu hiện tại</label>
-                                        <input type="password" class="form-control glass rounded-3 py-3" name="currentPassword" required>
+                                        <input type="password" class="form-control glass rounded-3 py-3" name="oldPassword" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-medium">Mật khẩu mới</label>
@@ -222,12 +238,14 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-medium">Xác nhận mật khẩu mới</label>
-                                        <input type="password" class="form-control glass rounded-3 py-3" name="confirmPassword" required>
+                                        <input type="password" class="form-control glass rounded-3 py-3" name="confirmNewPassword" required>
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-gradient rounded-pill px-4 mt-4 hover-glow">Cập nhật mật khẩu</button>
                             </form>
                         </div>
+                        </c:otherwise>
+                        </c:choose>
                         
                         <div class="glass p-4 rounded-4 animate-on-scroll">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">

@@ -21,6 +21,7 @@ public class User {
     private String socialInstagram;
 
     // Security
+    private boolean oauthUser;
     private boolean emailVerified;
     private Date lastLoginAt;
     private String lastLoginIp;
@@ -79,6 +80,9 @@ public class User {
 
     public String getSocialInstagram() { return socialInstagram; }
     public void setSocialInstagram(String socialInstagram) { this.socialInstagram = socialInstagram; }
+
+    public boolean isOauthUser() { return oauthUser; }
+    public void setOauthUser(boolean oauthUser) { this.oauthUser = oauthUser; }
 
     public boolean isEmailVerified() { return emailVerified; }
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }

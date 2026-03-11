@@ -570,7 +570,7 @@ WHERE permission_key IN ('order.view','media.upload');
 GO
 
 -- =============================================
--- SEED DATA — 20 EVENTS (Dữ liệu thật Việt Nam)
+-- SEED DATA — 27 EVENTS (Dữ liệu thật Việt Nam + edge cases)
 -- organizer_id=2 (Live Nation), 4 (Vietravel), 7 (TechViet), 12 (Saigon Sports)
 -- Hình ảnh sử dụng Unsplash (public domain)
 -- =============================================
@@ -848,16 +848,101 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<p>Nội dung đang soạn...</p>',
  NULL,
  N'TBD', N'TBD',
- '2026-12-31 19:00:00', '2027-01-01 02:00:00', 'draft', 0, 0, 0, 0);
+ '2026-12-31 19:00:00', '2027-01-01 02:00:00', 'draft', 0, 0, 0, 0),
+
+-- === BỔ SUNG PENDING CHO ĐỦ ORGANIZER ===
+(7, 7,
+ N'Tech Career Fair 2026',
+ 'tech-career-fair-2026',
+ N'Ngày hội nghề nghiệp công nghệ quy mô toàn quốc.',
+ N'<h2>Tech Career Fair 2026</h2><p>Sự kiện kết nối ứng viên công nghệ với hơn 50 doanh nghiệp tuyển dụng.</p>',
+ 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800',
+ N'Trung tâm Hội nghị Quốc gia', N'57 Phạm Hùng, Nam Từ Liêm, Hà Nội',
+ '2026-08-12 08:00:00', '2026-08-12 18:00:00', 'pending', 0, 0, 0, 0),
+
+(12, 2,
+ N'Giải Bơi Lội TP.HCM Mùa Hè 2026',
+ 'giai-boi-loi-tphcm-mua-he-2026',
+ N'Giải đấu phong trào dành cho vận động viên nghiệp dư và bán chuyên.',
+ N'<h2>Giải Bơi Lội TP.HCM Mùa Hè 2026</h2><p>Thi đấu các nội dung tự do, ếch, bướm theo nhóm tuổi.</p>',
+ 'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=800',
+ N'CLB Bơi Lội Yết Kiêu', N'1 Nguyễn Thị Minh Khai, Quận 1, TP.HCM',
+ '2026-07-19 07:00:00', '2026-07-19 17:00:00', 'pending', 0, 0, 0, 0),
+
+-- === BỔ SUNG DRAFT ===
+(4, 4,
+ N'Food Truck Weekend Draft 2026',
+ 'food-truck-weekend-draft-2026',
+ N'Sự kiện food truck cuối tuần đang chuẩn bị nội dung.',
+ N'<p>Đang hoàn thiện line-up gian hàng và nghệ sĩ biểu diễn.</p>',
+ NULL,
+ N'TBD', N'TBD',
+ '2026-09-05 10:00:00', '2026-09-06 22:00:00', 'draft', 0, 0, 0, 0),
+
+(7, 3,
+ N'AI for Business Workshop Draft 2026',
+ 'ai-for-business-workshop-draft-2026',
+ N'Workshop ứng dụng AI cho doanh nghiệp vừa và nhỏ.',
+ N'<p>Đang xây dựng giáo trình và danh sách diễn giả.</p>',
+ NULL,
+ N'TBD', N'TBD',
+ '2026-09-15 09:00:00', '2026-09-15 17:00:00', 'draft', 0, 0, 0, 0),
+
+-- === BỔ SUNG REJECTED ===
+(7, 6,
+ N'Crypto Investment Night 2026',
+ 'crypto-investment-night-2026',
+ N'Sự kiện chia sẻ đầu tư tài sản số bị từ chối do thiếu thông tin pháp lý.',
+ N'<p>Nội dung sự kiện chưa cung cấp đủ thông tin pháp lý và cảnh báo rủi ro.</p>',
+ 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800',
+ N'Khách sạn Rex', N'141 Nguyễn Huệ, Quận 1, TP.HCM',
+ '2026-04-18 18:30:00', '2026-04-18 21:30:00', 'rejected', 0, 0, 0, 0),
+
+-- === BỔ SUNG APPROVED ĐÃ KẾT THÚC (TEST ended mapping) ===
+(4, 5,
+ N'Indie Sunset Live 2025',
+ 'indie-sunset-live-2025',
+ N'Đêm nhạc indie ngoài trời đã tổ chức thành công.',
+ N'<h2>Indie Sunset Live 2025</h2><p>Sự kiện đã kết thúc, dùng để test luồng ended.</p>',
+ 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800',
+ N'Bãi biển Mỹ An', N'Đường Võ Nguyên Giáp, Đà Nẵng',
+ '2025-11-09 17:00:00', '2025-11-09 22:00:00', 'approved', 0, 1600, 0, 40),
+
+-- === BỔ SUNG CANCELLED ===
+(2, 1,
+ N'Beach Countdown Party 2026 Cancelled',
+ 'beach-countdown-party-2026-cancelled',
+ N'Sự kiện countdown bị hủy do thời tiết xấu.',
+ N'<p>BTC hủy sự kiện để đảm bảo an toàn do ảnh hưởng thời tiết.</p>',
+ 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800',
+ N'Bãi biển Cửa Đại', N'Hội An, Quảng Nam',
+ '2026-12-31 20:00:00', '2027-01-01 01:00:00', 'cancelled', 0, 0, 0, 0);
 GO
 
 -- Cập nhật rejection_reason cho event bị từ chối
 UPDATE Events SET rejection_reason = N'Nội dung sự kiện không đủ thông tin. Vui lòng bổ sung mô tả chi tiết, hình ảnh chất lượng cao, và thông tin đầy đủ về nghệ sĩ/diễn giả.',
     rejected_at = '2026-02-28 14:30:00'
 WHERE slug = 'karaoke-dai-hoi-test';
+
+UPDATE Events SET rejection_reason = N'Sự kiện chưa cung cấp tài liệu pháp lý và cảnh báo rủi ro đầu tư theo quy định.',
+    rejected_at = '2026-03-03 10:15:00'
+WHERE slug = 'crypto-investment-night-2026';
+
+-- Event settings edge cases for business validation
+UPDATE Events
+SET max_tickets_per_order = 4,
+    max_total_tickets = 1500,
+    pre_order_enabled = 1
+WHERE slug = 'tech-career-fair-2026';
+
+UPDATE Events
+SET max_tickets_per_order = 2,
+    max_total_tickets = 300,
+    pre_order_enabled = 0
+WHERE slug = 'indie-sunset-live-2025';
 GO
 
-PRINT '=== 20 events seeded ===';
+PRINT '=== 27 events seeded ===';
 GO
 
 -- =============================================
@@ -945,9 +1030,21 @@ INSERT INTO TicketTypes (event_id, name, description, price, quantity, sold_quan
 
 -- Event 18: Hackathon
 (18, N'Team (3-5 người)',  N'Phí đăng ký 1 đội tham gia hackathon',                                               0, 100, 78, '#FF6B6B', '2026-03-01', '2026-05-22'),
-(18, N'Mentor Pass',       N'Dành cho mentor hỗ trợ các đội',                                                      0, 30, 22, '#9B59B6', '2026-03-01', '2026-05-22');
+(18, N'Mentor Pass',       N'Dành cho mentor hỗ trợ các đội',                                                      0, 30, 22, '#9B59B6', '2026-03-01', '2026-05-22'),
 
--- Events 19, 20 (rejected/draft) — no ticket types needed
+-- Event 21: Tech Career Fair (pending)
+(21, N'Student Pass',      N'Vé tham dự cho sinh viên và fresher',                                                 0, 1000, 0, '#3B82F6', '2026-06-01', '2026-08-11'),
+(21, N'Professional Pass', N'Vé networking ưu tiên cho ứng viên có kinh nghiệm',                                  150000, 500, 0, '#10B981', '2026-06-01', '2026-08-11'),
+
+-- Event 22: Giải Bơi Lội TP.HCM (pending)
+(22, N'VĐV Cá Nhân',       N'Phí đăng ký cho 1 vận động viên thi đấu cá nhân',                                     300000, 400, 0, '#06B6D4', '2026-05-01', '2026-07-18'),
+(22, N'Khán giả',          N'Vé vào xem và cổ vũ tại khu vực khán đài',                                             50000, 1500, 0, '#F59E0B', '2026-05-01', '2026-07-19'),
+
+-- Event 26: Indie Sunset Live 2025 (approved, ended)
+(26, N'General Admission', N'Vé tham dự khu vực tiêu chuẩn',                                                        250000, 800, 0, '#8B5CF6', '2025-09-01', '2025-11-08'),
+(26, N'VIP Deck',          N'Vé khu vực sát sân khấu và lounge riêng',                                             900000, 120, 0, '#F97316', '2025-09-01', '2025-11-08');
+
+-- Events 19, 20, 23, 24, 25, 27 do not require ticket types for draft/rejected/cancelled states
 GO
 
 PRINT '=== Ticket types seeded ===';
@@ -1254,6 +1351,44 @@ SELECT 'TicketMessages', COUNT(*) FROM TicketMessages UNION ALL
 SELECT 'ChatSessions', COUNT(*) FROM ChatSessions UNION ALL
 SELECT 'ChatMessages', COUNT(*) FROM ChatMessages
 ORDER BY [Table];
+
+PRINT '';
+PRINT 'EVENT STATUS DISTRIBUTION:';
+SELECT status, COUNT(*) AS total
+FROM Events
+GROUP BY status
+ORDER BY status;
+
+PRINT '';
+PRINT 'TICKET SOLD QUANTITY CONSISTENCY (diagnostic rows):';
+;WITH SoldByTicketType AS (
+    SELECT
+        oi.ticket_type_id,
+        SUM(CASE WHEN o.status IN ('paid','refunded') THEN oi.quantity ELSE 0 END) AS sold_from_orders
+    FROM OrderItems oi
+    JOIN Orders o ON o.order_id = oi.order_id
+    GROUP BY oi.ticket_type_id
+)
+SELECT
+    tt.ticket_type_id,
+    tt.event_id,
+    tt.sold_quantity AS sold_in_tickettypes,
+    ISNULL(s.sold_from_orders, 0) AS sold_from_orders
+FROM TicketTypes tt
+LEFT JOIN SoldByTicketType s ON s.ticket_type_id = tt.ticket_type_id
+WHERE tt.sold_quantity <> ISNULL(s.sold_from_orders, 0);
+
+PRINT '';
+PRINT 'ORDER AMOUNT CONSISTENCY (expect 0 rows):';
+;WITH OrderCalc AS (
+    SELECT order_id, SUM(subtotal) AS calc_total
+    FROM OrderItems
+    GROUP BY order_id
+)
+SELECT o.order_id, o.total_amount, oc.calc_total
+FROM Orders o
+JOIN OrderCalc oc ON oc.order_id = o.order_id
+WHERE o.total_amount <> oc.calc_total;
 
 PRINT '';
 PRINT 'LOGIN ACCOUNTS:';

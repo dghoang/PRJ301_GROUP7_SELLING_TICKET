@@ -55,6 +55,15 @@ public class AuthFilter implements Filter {
             "/ticket-selection.jsp"
     );
 
+    /** Public root JSPs that do NOT require authentication. */
+    private static final Set<String> PUBLIC_ROOT_JSP = Set.of(
+            "/index.jsp", "/home.jsp", "/events.jsp", "/event-detail.jsp",
+            "/categories.jsp", "/about.jsp", "/faq.jsp", "/terms.jsp",
+            "/login.jsp", "/register.jsp",
+            "/header.jsp", "/footer.jsp",
+            "/404.jsp", "/500.jsp"
+    );
+
     private final AuthTokenService authTokenService = new AuthTokenService();
 
     @Override
@@ -76,6 +85,12 @@ public class AuthFilter implements Filter {
         if (isProtectedJsp(path)) {
             LOGGER.log(Level.WARNING, "Blocked direct access to protected JSP: {0}", path);
             httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        // Public JSPs (home, events, etc.) — skip auth, let them through.
+        if (isPublicJsp(path)) {
+            chain.doFilter(request, response);
             return;
         }
 
@@ -195,5 +210,9 @@ public class AuthFilter implements Filter {
             return true;
         }
         return PROTECTED_ROOT_JSP.contains(path);
+    }
+
+    private boolean isPublicJsp(String path) {
+        return path.endsWith(".jsp") && PUBLIC_ROOT_JSP.contains(path);
     }
 }

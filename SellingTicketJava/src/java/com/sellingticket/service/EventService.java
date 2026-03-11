@@ -10,6 +10,7 @@ import com.sellingticket.model.Category;
 import com.sellingticket.model.EventStaff;
 import com.sellingticket.model.PageResult;
 import java.util.List;
+import java.util.Map;
 
 /**
  * EventService - Business logic layer for Event operations
@@ -94,14 +95,7 @@ public class EventService {
     // ========================
 
     public boolean createEventWithTickets(Event event, List<TicketType> tickets) {
-        boolean eventCreated = eventDAO.createEvent(event);
-        if (eventCreated && tickets != null && !tickets.isEmpty()) {
-            for (TicketType ticket : tickets) {
-                ticket.setEventId(event.getEventId());
-                ticketTypeDAO.createTicketType(ticket);
-            }
-        }
-        return eventCreated;
+        return eventDAO.createEventWithTickets(event, tickets);
     }
 
     public boolean updateEvent(Event event) {
@@ -162,6 +156,10 @@ public class EventService {
 
     public int countSearchEvents(String keyword, String category, String dateFilter) {
         return eventDAO.countSearchEvents(keyword, category, dateFilter);
+    }
+
+    public Map<String, Integer> getAdminEventStatusCounts(String keyword, String category) {
+        return eventDAO.getAdminEventStatusCounts(keyword, category);
     }
 
     // ========================

@@ -9,6 +9,7 @@ import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Map;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,10 +44,14 @@ public class AdminEventApiServlet extends HttpServlet {
         String keyword = request.getParameter("q");
         String[] statuses = request.getParameterValues("status");
         String category = request.getParameter("category");
-        int page = parseIntOrDefault(request.getParameter("page"), 1);
-        int size = parseIntOrDefault(request.getParameter("size"), 20);
+        int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+        int size = Math.max(1, Math.min(100, parseIntOrDefault(request.getParameter("size"), 20)));
 
         PageResult<Event> result = eventService.getAllEventsPaged(keyword, statuses, category, page, size);
+        Map<String, Integer> statusCounts = eventService.getAdminEventStatusCounts(keyword, category);
+        int pendingCount = statusCounts.getOrDefault("pending", 0);
+        int approvedCount = statusCounts.getOrDefault("approved", 0);
+        int rejectedCount = statusCounts.getOrDefault("rejected", 0);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
 
@@ -54,7 +59,11 @@ public class AdminEventApiServlet extends HttpServlet {
                 .put("totalItems", result.getTotalItems())
                 .put("totalPages", result.getTotalPages())
                 .put("currentPage", result.getCurrentPage())
-                .put("pageSize", result.getPageSize());
+            .put("pageSize", result.getPageSize())
+            .put("pendingCount", pendingCount)
+            .put("approvedCount", approvedCount)
+            .put("rejectedCount", rejectedCount)
+            .put("statusTotal", pendingCount + approvedCount + rejectedCount);
 
         json.startArray("items");
         for (Event e : result.getItems()) {

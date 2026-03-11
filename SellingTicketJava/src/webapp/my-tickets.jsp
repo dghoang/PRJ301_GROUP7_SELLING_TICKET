@@ -173,6 +173,11 @@
             }
             card += '</div></div></div>';
 
+            // Chat with event organizer button
+            if (t.eventId) {
+                card += '<div class="px-4 pb-3"><button class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();if(typeof openEventChat===\'function\')openEventChat('+t.eventId+',\''+esc(t.eventTitle).replace(/'/g,"\\'")+'\');else alert(\'Vui lòng tải lại trang\');" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;"><i class="fas fa-comments me-2"></i>Chat hỗ trợ sự kiện</button></div>';
+            }
+
             card += '</div></div></div>';
             card += '</div>';
 

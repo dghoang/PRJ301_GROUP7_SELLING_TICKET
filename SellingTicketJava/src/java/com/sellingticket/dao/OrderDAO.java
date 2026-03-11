@@ -283,6 +283,35 @@ public class OrderDAO extends DBContext {
         return false;
     }
 
+    /**
+     * V10 FIX: Atomically confirm payment — only succeeds if order is still 'pending'.
+     * Prevents duplicate payment processing and race conditions between concurrent webhooks.
+     * Also stores the transaction reference in a single atomic UPDATE.
+     *
+     * @return true if this call actually updated the order, false if already processed
+     */
+    public boolean confirmPaymentAtomic(int orderId, String transactionId) {
+        String sql = "UPDATE Orders SET status = 'paid', payment_date = GETDATE(), " +
+                     "transaction_id = ?, updated_at = GETDATE() " +
+                     "WHERE order_id = ? AND status = 'pending'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, transactionId);
+            ps.setInt(2, orderId);
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                LOGGER.log(Level.INFO, "Payment confirmed atomically: orderId={0}, txRef={1}",
+                        new Object[]{orderId, transactionId});
+                return true;
+            }
+            LOGGER.log(Level.INFO, "Payment confirm skipped (not pending): orderId={0}", orderId);
+            return false;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to confirm payment: id=" + orderId, e);
+        }
+        return false;
+    }
+
     /** Store bank transaction reference from payment gateway webhook. */
     public boolean updateTransactionId(int orderId, String transactionId) {
         String sql = "UPDATE Orders SET transaction_id = ?, updated_at = GETDATE() WHERE order_id = ?";
@@ -299,6 +328,7 @@ public class OrderDAO extends DBContext {
 
     /**
      * Cancel an order and atomically restore ticket quantities.
+     * Only cancels orders in 'pending' or 'paid' status (not already cancelled/refunded/checked_in).
      */
     public boolean cancelOrder(int orderId) {
         Connection conn = null;
@@ -316,11 +346,19 @@ public class OrderDAO extends DBContext {
                 ps.executeUpdate();
             }
 
-            // Update order status
-            String updateSql = "UPDATE Orders SET status = 'cancelled', updated_at = GETDATE() WHERE order_id = ?";
+            // Update order status — only if currently cancellable
+            String updateSql = "UPDATE Orders SET status = 'cancelled', updated_at = GETDATE() " +
+                              "WHERE order_id = ? AND status IN ('pending', 'paid', 'refund_requested')";
+            int rows;
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 ps.setInt(1, orderId);
-                ps.executeUpdate();
+                rows = ps.executeUpdate();
+            }
+
+            if (rows == 0) {
+                conn.rollback();
+                LOGGER.log(Level.INFO, "Cancel skipped (invalid status): orderId={0}", orderId);
+                return false;
             }
 
             conn.commit();

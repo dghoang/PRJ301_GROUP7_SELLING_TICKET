@@ -10,6 +10,7 @@ import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -25,6 +26,9 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AdminSupportController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(AdminSupportController.class.getName());
+    private static final Set<String> VALID_STATUSES = Set.of("open", "in_progress", "resolved", "closed");
+    private static final Set<String> VALID_PRIORITIES = Set.of("low", "medium", "high", "urgent");
+    private static final int MAX_REPLY_LENGTH = 5000;
     private final SupportTicketService ticketService = new SupportTicketService();
     private final DashboardService dashboardService = new DashboardService();
 
@@ -98,13 +102,20 @@ public class AdminSupportController extends HttpServlet {
                 String content = request.getParameter("content");
                 boolean isInternal = "on".equals(request.getParameter("internal"));
                 if (content != null && !content.trim().isEmpty()) {
-                    ticketService.addReply(ticketId, admin.getUserId(), content.trim(), isInternal);
+                    // Truncate to max length to prevent abuse
+                    String trimmed = content.trim();
+                    if (trimmed.length() > MAX_REPLY_LENGTH) {
+                        trimmed = trimmed.substring(0, MAX_REPLY_LENGTH);
+                    }
+                    ticketService.addReply(ticketId, admin.getUserId(), trimmed, isInternal);
                 }
                 break;
             }
             case "/status": {
                 String status = request.getParameter("status");
-                if (status != null) ticketService.updateStatus(ticketId, status);
+                if (status != null && VALID_STATUSES.contains(status)) {
+                    ticketService.updateStatus(ticketId, status);
+                }
                 break;
             }
             case "/assign": {
@@ -113,7 +124,9 @@ public class AdminSupportController extends HttpServlet {
             }
             case "/priority": {
                 String priority = request.getParameter("priority");
-                if (priority != null) ticketService.updatePriority(ticketId, priority);
+                if (priority != null && VALID_PRIORITIES.contains(priority)) {
+                    ticketService.updatePriority(ticketId, priority);
+                }
                 break;
             }
         }

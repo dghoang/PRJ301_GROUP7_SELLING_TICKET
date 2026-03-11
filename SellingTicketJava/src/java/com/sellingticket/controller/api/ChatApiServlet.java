@@ -44,7 +44,7 @@ public class ChatApiServlet extends HttpServlet {
         switch (path) {
             case "/messages": {
                 int sessionId = parseInt(request.getParameter("sessionId"), 0);
-                if (!isAgent && !isOwner(sessionId, user.getUserId())) {
+                if (!canAccessSession(sessionId, user, isAgent)) {
                     sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
                 }
                 int after = parseInt(request.getParameter("after"), 0);
@@ -56,7 +56,7 @@ public class ChatApiServlet extends HttpServlet {
             }
             case "/history": {
                 int sessionId = parseInt(request.getParameter("sessionId"), 0);
-                if (!isAgent && !isOwner(sessionId, user.getUserId())) {
+                if (!canAccessSession(sessionId, user, isAgent)) {
                     sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
                 }
                 int before = parseInt(request.getParameter("before"), Integer.MAX_VALUE);
@@ -66,10 +66,16 @@ public class ChatApiServlet extends HttpServlet {
                 break;
             }
             case "/sessions": {
-                if (!isAgent) { sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return; }
                 String type = request.getParameter("type");
-                List<ChatSession> sessions = chatService.getActiveSessions(type);
-                sendJson(response, buildSessionsJson(sessions));
+                if ("my-events".equals(type)) {
+                    // Organizer/staff: get sessions for their events
+                    List<ChatSession> sessions = chatService.getSessionsByOrganizer(user.getUserId());
+                    sendJson(response, buildSessionsJson(sessions));
+                } else {
+                    if (!isAgent) { sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return; }
+                    List<ChatSession> sessions = chatService.getActiveSessions(type);
+                    sendJson(response, buildSessionsJson(sessions));
+                }
                 break;
             }
             default:
@@ -106,7 +112,7 @@ public class ChatApiServlet extends HttpServlet {
             }
             case "/send": {
                 int sessionId = parseInt(request.getParameter("sessionId"), 0);
-                if (!isAgent && !isOwner(sessionId, user.getUserId())) {
+                if (!canAccessSession(sessionId, user, isAgent)) {
                     sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
                 }
                 String content = request.getParameter("content");
@@ -126,15 +132,19 @@ public class ChatApiServlet extends HttpServlet {
                 break;
             }
             case "/accept": {
-                if (!isAgent) { sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return; }
+                if (!isAgent && !chatService.isOrganizerOfSession(parseInt(request.getParameter("sessionId"), 0), user.getUserId())) {
+                    sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
+                }
                 int sessionId = parseInt(request.getParameter("sessionId"), 0);
                 boolean ok = chatService.acceptSession(sessionId, user.getUserId());
                 sendJson(response, ok ? "{\"ok\":true}" : "{\"error\":\"Failed\"}");
                 break;
             }
             case "/close": {
-                if (!isAgent) { sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return; }
                 int sessionId = parseInt(request.getParameter("sessionId"), 0);
+                if (!isAgent && !chatService.isOrganizerOfSession(sessionId, user.getUserId())) {
+                    sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
+                }
                 boolean ok = chatService.closeSession(sessionId);
                 sendJson(response, ok ? "{\"ok\":true}" : "{\"error\":\"Failed\"}");
                 break;
@@ -142,6 +152,12 @@ public class ChatApiServlet extends HttpServlet {
             default:
                 sendJson(response, 404, "{\"error\":\"Not found\"}");
         }
+    }
+
+    private boolean canAccessSession(int sessionId, User user, boolean isAgent) {
+        if (isAgent) return true;
+        if (isOwner(sessionId, user.getUserId())) return true;
+        return chatService.isOrganizerOfSession(sessionId, user.getUserId());
     }
 
     private boolean isOwner(int sessionId, int userId) {

@@ -53,7 +53,7 @@
                                     <i class="fas fa-layer-group text-white"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 class="fw-bold mb-0 text-dark">${pendingCount + approvedCount + rejectedCount}</h4>
+                                    <h4 id="stat-total-count" class="fw-bold mb-0 text-dark">${pendingCount + approvedCount + rejectedCount}</h4>
                                     <small class="text-muted d-block text-truncate">Tất cả</small>
                                 </div>
                             </div>
@@ -71,7 +71,7 @@
                                     <i class="fas fa-clock text-white"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 class="fw-bold mb-0 text-dark">${pendingCount != null ? pendingCount : 0}</h4>
+                                    <h4 id="stat-pending-count" class="fw-bold mb-0 text-dark">${pendingCount != null ? pendingCount : 0}</h4>
                                     <small class="text-muted d-block text-truncate">Chờ duyệt</small>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@
                                     <i class="fas fa-check text-white"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 class="fw-bold mb-0 text-dark">${approvedCount != null ? approvedCount : 0}</h4>
+                                    <h4 id="stat-approved-count" class="fw-bold mb-0 text-dark">${approvedCount != null ? approvedCount : 0}</h4>
                                     <small class="text-muted d-block text-truncate">Đã duyệt</small>
                                 </div>
                             </div>
@@ -107,7 +107,7 @@
                                     <i class="fas fa-times text-white"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 class="fw-bold mb-0 text-dark">${rejectedCount != null ? rejectedCount : 0}</h4>
+                                    <h4 id="stat-rejected-count" class="fw-bold mb-0 text-dark">${rejectedCount != null ? rejectedCount : 0}</h4>
                                     <small class="text-muted d-block text-truncate">Từ chối</small>
                                 </div>
                             </div>
@@ -276,6 +276,17 @@ function toggleFeatured(eventId, currentState, btn) {
         searchInput: '#admin-event-search',
         pageSize: 20,
         skeletonCols: 6,
+        onDataLoaded: function(data) {
+            var totalEl = document.getElementById('stat-total-count');
+            var pendingEl = document.getElementById('stat-pending-count');
+            var approvedEl = document.getElementById('stat-approved-count');
+            var rejectedEl = document.getElementById('stat-rejected-count');
+
+            if (totalEl && typeof data.statusTotal !== 'undefined') totalEl.textContent = data.statusTotal;
+            if (pendingEl && typeof data.pendingCount !== 'undefined') pendingEl.textContent = data.pendingCount;
+            if (approvedEl && typeof data.approvedCount !== 'undefined') approvedEl.textContent = data.approvedCount;
+            if (rejectedEl && typeof data.rejectedCount !== 'undefined') rejectedEl.textContent = data.rejectedCount;
+        },
         renderRow: function(e) {
             var img = esc(e.bannerImage || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100');
             var actions = '<a href="' + ctxPath + '/admin/events/' + e.eventId + '" class="btn btn-sm glass rounded-pill px-2" title="Xem chi tiết"><i class="fas fa-eye text-primary"></i></a>';

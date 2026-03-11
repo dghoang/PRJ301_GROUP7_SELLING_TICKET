@@ -6,6 +6,7 @@ import com.sellingticket.service.CategoryService;
 import com.sellingticket.service.EventService;
 import static com.sellingticket.util.ServletUtil.*;
 import com.sellingticket.util.FlashUtil;
+import com.sellingticket.util.InputValidator;
 
 import java.io.IOException;
 import java.util.List;
@@ -203,7 +204,15 @@ public class AdminEventController extends HttpServlet {
 
         if (title != null && !title.trim().isEmpty()) event.setTitle(title.trim());
         if (location != null) event.setLocation(location.trim());
-        if (status != null) event.setStatus(status);
+        if (status != null && !status.trim().isEmpty()) {
+            String normalized = status.trim().toLowerCase();
+            if (!InputValidator.isOneOf(normalized, "draft", "pending", "approved", "rejected", "cancelled", "completed")) {
+                FlashUtil.error(request, "Trạng thái sự kiện không hợp lệ!");
+                response.sendRedirect(request.getContextPath() + "/admin/events");
+                return;
+            }
+            event.setStatus(normalized);
+        }
         event.setFeatured(featured);
 
         boolean ok = eventService.updateEvent(event);

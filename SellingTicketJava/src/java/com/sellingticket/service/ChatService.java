@@ -72,6 +72,14 @@ public class ChatService {
         return dao.closeSession(sessionId);
     }
 
+    public List<ChatSession> getSessionsByOrganizer(int userId) {
+        return dao.getSessionsByOrganizer(userId);
+    }
+
+    public boolean isOrganizerOfSession(int sessionId, int userId) {
+        return dao.isOrganizerOfSession(sessionId, userId);
+    }
+
     /** Result wrapper for session creation with anti-spam info. */
     public static class ChatSessionResult {
         public final ChatSession session;

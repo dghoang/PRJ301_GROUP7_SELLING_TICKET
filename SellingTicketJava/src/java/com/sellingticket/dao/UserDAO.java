@@ -24,6 +24,10 @@ public class UserDAO extends DBContext {
         user.setAvatar(rs.getString("avatar"));
         user.setActive(rs.getBoolean("is_active"));
         user.setCreatedAt(rs.getTimestamp("created_at"));
+        try {
+            String hash = rs.getString("password_hash");
+            user.setOauthUser("OAUTH_NO_PASSWORD".equals(hash));
+        } catch (SQLException ignored) {}
         // Extended fields (safe: skip if column doesn't exist)
         try { user.setGender(rs.getString("gender")); } catch (SQLException ignored) {}
         try { user.setDateOfBirth(rs.getDate("date_of_birth")); } catch (SQLException ignored) {}
@@ -141,6 +145,20 @@ public class UserDAO extends DBContext {
             LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
         }
         return false;
+    }
+
+    /** Get user by email regardless of active status (for OAuth deactivation check). */
+    public User getUserByEmailAny(String email) {
+        String sql = "SELECT * FROM Users WHERE email = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email.toLowerCase().trim());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapResultSetToUser(rs);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Database error in UserDAO.getUserByEmailAny", e);
+        }
+        return null;
     }
 
     public User getUserById(int userId) {

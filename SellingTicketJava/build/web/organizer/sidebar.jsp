@@ -119,6 +119,9 @@
         <a class="nav-link ${param.activePage == 'vouchers' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/vouchers">
             <span class="sidebar-icon"><i class="fas fa-gift"></i></span>Voucher
         </a>
+        <a class="nav-link ${param.activePage == 'chat' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/chat">
+            <span class="sidebar-icon"><i class="fas fa-comments"></i></span>Chat
+        </a>
     </nav>
 
     <div class="sidebar-divider"></div>
@@ -175,6 +178,9 @@
             </a>
             <a class="nav-link ${param.activePage == 'vouchers' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/vouchers">
                 <span class="sidebar-icon"><i class="fas fa-gift"></i></span>Voucher
+            </a>
+            <a class="nav-link ${param.activePage == 'chat' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/chat">
+                <span class="sidebar-icon"><i class="fas fa-comments"></i></span>Chat
             </a>
         </nav>
         <div class="sidebar-divider"></div>

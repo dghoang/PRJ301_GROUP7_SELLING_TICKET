@@ -2,11 +2,18 @@ package com.sellingticket.dao;
 
 import com.sellingticket.model.Event;
 import com.sellingticket.model.PageResult;
+import com.sellingticket.model.TicketType;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EventDAO extends BaseDAO {
+
+    private static final Logger LOGGER = Logger.getLogger(EventDAO.class.getName());
 
     private Event mapResultSetToEvent(ResultSet rs) throws SQLException {
         Event event = new Event();
@@ -15,6 +22,9 @@ public class EventDAO extends BaseDAO {
         event.setCategoryId(rs.getInt("category_id"));
         event.setTitle(rs.getString("title"));
         event.setSlug(rs.getString("slug"));
+        if (hasColumn(rs, "short_description")) {
+            event.setShortDescription(rs.getString("short_description"));
+        }
         event.setDescription(rs.getString("description"));
         event.setBannerImage(rs.getString("banner_image"));
         event.setLocation(rs.getString("location"));
@@ -166,7 +176,7 @@ public class EventDAO extends BaseDAO {
                      "           JOIN Orders o ON oi.order_id = o.order_id " +
                      "           WHERE o.status IN ('paid','completed') " +
                      "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
-                     "WHERE e.organizer_id = ? ORDER BY e.created_at DESC";
+                     "WHERE e.organizer_id = ? AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ORDER BY e.created_at DESC";
                      
         return queryList(sql, ps -> ps.setInt(1, organizerId), rs -> {
             Event event = mapResultSetToEvent(rs);
@@ -212,7 +222,7 @@ public class EventDAO extends BaseDAO {
                      "FROM Events e " +
                      "JOIN Categories c ON e.category_id = c.category_id " +
                      "JOIN Users u ON e.organizer_id = u.user_id " +
-                     "WHERE e.status = 'pending' ORDER BY e.created_at DESC";
+                     "WHERE e.status = 'pending' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ORDER BY e.created_at DESC";
                      
         return queryList(sql, NO_PARAMS, rs -> {
             Event event = mapResultSetToEvent(rs);
@@ -223,28 +233,29 @@ public class EventDAO extends BaseDAO {
     }
 
     public boolean createEvent(Event event) {
-        String sql = "INSERT INTO Events (organizer_id, category_id, title, slug, description, banner_image, " +
+        String sql = "INSERT INTO Events (organizer_id, category_id, title, slug, short_description, description, banner_image, " +
                      "location, address, start_date, end_date, status, is_featured, is_private, " +
                      "max_tickets_per_order, max_total_tickets, pre_order_enabled) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                      
         int newId = executeInsertReturnKey(sql, ps -> {
             ps.setInt(1, event.getOrganizerId());
             ps.setInt(2, event.getCategoryId());
             ps.setString(3, event.getTitle());
             ps.setString(4, event.getSlug());
-            ps.setString(5, event.getDescription());
-            ps.setString(6, event.getBannerImage());
-            ps.setString(7, event.getLocation());
-            ps.setString(8, event.getAddress());
-            ps.setTimestamp(9, new Timestamp(event.getStartDate().getTime()));
-            ps.setTimestamp(10, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
-            ps.setString(11, event.getStatus());
-            ps.setBoolean(12, event.isFeatured());
-            ps.setBoolean(13, event.isPrivate());
-            ps.setInt(14, event.getMaxTicketsPerOrder());
-            ps.setInt(15, event.getMaxTotalTickets());
-            ps.setBoolean(16, event.isPreOrderEnabled());
+            ps.setString(5, event.getShortDescription());
+            ps.setString(6, event.getDescription());
+            ps.setString(7, event.getBannerImage());
+            ps.setString(8, event.getLocation());
+            ps.setString(9, event.getAddress());
+            ps.setTimestamp(10, new Timestamp(event.getStartDate().getTime()));
+            ps.setTimestamp(11, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
+            ps.setString(12, event.getStatus());
+            ps.setBoolean(13, event.isFeatured());
+            ps.setBoolean(14, event.isPrivate());
+            ps.setInt(15, event.getMaxTicketsPerOrder());
+            ps.setInt(16, event.getMaxTotalTickets());
+            ps.setBoolean(17, event.isPreOrderEnabled());
         });
         
         if (newId > 0) {
@@ -254,8 +265,128 @@ public class EventDAO extends BaseDAO {
         return false;
     }
 
+    public boolean createEventWithTickets(Event event, List<TicketType> tickets) {
+        if (event == null || event.getStartDate() == null) {
+            return false;
+        }
+        if (tickets == null || tickets.isEmpty()) {
+            return false;
+        }
+
+        String eventSql = "INSERT INTO Events (organizer_id, category_id, title, slug, short_description, description, banner_image, " +
+                "location, address, start_date, end_date, status, is_featured, is_private, " +
+                "max_tickets_per_order, max_total_tickets, pre_order_enabled) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        String ticketSql = "INSERT INTO TicketTypes (event_id, name, description, price, quantity, sale_start, sale_end) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            int eventId;
+            try (PreparedStatement eventPs = conn.prepareStatement(eventSql, Statement.RETURN_GENERATED_KEYS)) {
+                eventPs.setInt(1, event.getOrganizerId());
+                eventPs.setInt(2, event.getCategoryId());
+                eventPs.setString(3, event.getTitle());
+                eventPs.setString(4, event.getSlug());
+                eventPs.setString(5, event.getShortDescription());
+                eventPs.setString(6, event.getDescription());
+                eventPs.setString(7, event.getBannerImage());
+                eventPs.setString(8, event.getLocation());
+                eventPs.setString(9, event.getAddress());
+                eventPs.setTimestamp(10, new Timestamp(event.getStartDate().getTime()));
+                eventPs.setTimestamp(11, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
+                eventPs.setString(12, event.getStatus());
+                eventPs.setBoolean(13, event.isFeatured());
+                eventPs.setBoolean(14, event.isPrivate());
+                eventPs.setInt(15, event.getMaxTicketsPerOrder());
+                eventPs.setInt(16, event.getMaxTotalTickets());
+                eventPs.setBoolean(17, event.isPreOrderEnabled());
+
+                int inserted = eventPs.executeUpdate();
+                if (inserted <= 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                try (ResultSet rs = eventPs.getGeneratedKeys()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    eventId = rs.getInt(1);
+                }
+            }
+
+            try (PreparedStatement ticketPs = conn.prepareStatement(ticketSql)) {
+                for (TicketType ticket : tickets) {
+                    if (!isValidTicketType(ticket)) {
+                        conn.rollback();
+                        return false;
+                    }
+                    ticketPs.setInt(1, eventId);
+                    ticketPs.setString(2, ticket.getName().trim());
+                    ticketPs.setString(3, ticket.getDescription());
+                    ticketPs.setDouble(4, ticket.getPrice());
+                    ticketPs.setInt(5, ticket.getQuantity());
+                    ticketPs.setTimestamp(6, ticket.getSaleStart() != null ? new Timestamp(ticket.getSaleStart().getTime()) : null);
+                    ticketPs.setTimestamp(7, ticket.getSaleEnd() != null ? new Timestamp(ticket.getSaleEnd().getTime()) : null);
+                    ticketPs.addBatch();
+                }
+
+                int[] batchResult = ticketPs.executeBatch();
+                for (int affected : batchResult) {
+                    if (affected == Statement.EXECUTE_FAILED) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            conn.commit();
+            event.setEventId(eventId);
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    LOGGER.log(Level.SEVERE, "Failed to rollback event creation transaction", rollbackEx);
+                }
+            }
+            LOGGER.log(Level.SEVERE, "Failed to create event with tickets transactionally", e);
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Failed to reset auto-commit", e);
+                }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Failed to close connection", e);
+                }
+            }
+        }
+    }
+
+    private boolean isValidTicketType(TicketType ticket) {
+        if (ticket == null) return false;
+        if (ticket.getName() == null || ticket.getName().trim().isEmpty()) return false;
+        if (ticket.getName().trim().length() > 100) return false;
+        if (ticket.getPrice() < 0) return false;
+        return ticket.getQuantity() > 0;
+    }
+
     public boolean updateEventStatus(int eventId, String status) {
-        String sql = "UPDATE Events SET status = ?, updated_at = GETDATE() WHERE event_id = ?";
+        String sql = "UPDATE Events " +
+                     "SET status = ?, rejection_reason = NULL, rejected_at = NULL, updated_at = GETDATE() " +
+                     "WHERE event_id = ? AND status = 'pending' AND (is_deleted = 0 OR is_deleted IS NULL)";
         return executeUpdate(sql, ps -> {
             ps.setString(1, status);
             ps.setInt(2, eventId);
@@ -263,7 +394,9 @@ public class EventDAO extends BaseDAO {
     }
 
     public boolean updateEventStatusWithReason(int eventId, String status, String reason) {
-        String sql = "UPDATE Events SET status = ?, rejection_reason = ?, rejected_at = GETDATE(), updated_at = GETDATE() WHERE event_id = ?";
+        String sql = "UPDATE Events " +
+                     "SET status = ?, rejection_reason = ?, rejected_at = GETDATE(), updated_at = GETDATE() " +
+                     "WHERE event_id = ? AND status = 'pending' AND (is_deleted = 0 OR is_deleted IS NULL)";
         return executeUpdate(sql, ps -> {
             ps.setString(1, status);
             ps.setString(2, reason);
@@ -284,6 +417,7 @@ public class EventDAO extends BaseDAO {
     public List<Event> getRelatedEvents(int categoryId, int currentEventId, int limit) {
         String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) +
                      "WHERE e.status = 'approved' AND e.category_id = ? AND e.event_id != ? AND (e.end_date IS NULL OR e.end_date >= GETDATE()) " +
+                     "AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " +
                      "ORDER BY e.start_date ASC";
         return queryList(sql, ps -> {
             ps.setInt(1, limit);
@@ -294,33 +428,38 @@ public class EventDAO extends BaseDAO {
 
     public boolean updateEvent(Event event) {
         String sql = "UPDATE Events SET " +
-                     "category_id = ?, title = ?, slug = ?, description = ?, banner_image = ?, " +
+                     "category_id = ?, title = ?, slug = ?, short_description = ?, description = ?, banner_image = ?, " +
                      "location = ?, address = ?, start_date = ?, end_date = ?, " +
-                     "is_featured = ?, is_private = ?, " +
+                     "status = ?, is_featured = ?, is_private = ?, " +
                      "max_tickets_per_order = ?, max_total_tickets = ?, pre_order_enabled = ?, " +
                      "updated_at = GETDATE() " +
-                     "WHERE event_id = ?";
+                     "WHERE event_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
         return executeUpdate(sql, ps -> {
             ps.setInt(1, event.getCategoryId());
             ps.setString(2, event.getTitle());
             ps.setString(3, event.getSlug());
-            ps.setString(4, event.getDescription());
-            ps.setString(5, event.getBannerImage());
-            ps.setString(6, event.getLocation());
-            ps.setString(7, event.getAddress());
-            ps.setTimestamp(8, new Timestamp(event.getStartDate().getTime()));
-            ps.setTimestamp(9, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
-            ps.setBoolean(10, event.isFeatured());
-            ps.setBoolean(11, event.isPrivate());
-            ps.setInt(12, event.getMaxTicketsPerOrder());
-            ps.setInt(13, event.getMaxTotalTickets());
-            ps.setBoolean(14, event.isPreOrderEnabled());
-            ps.setInt(15, event.getEventId());
+            ps.setString(4, event.getShortDescription());
+            ps.setString(5, event.getDescription());
+            ps.setString(6, event.getBannerImage());
+            ps.setString(7, event.getLocation());
+            ps.setString(8, event.getAddress());
+            ps.setTimestamp(9, new Timestamp(event.getStartDate().getTime()));
+            ps.setTimestamp(10, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
+            // "ended" is a computed display status; persist as "approved" in DB.
+            String normalizedStatus = "ended".equalsIgnoreCase(event.getStatus()) ? "approved" : event.getStatus();
+            ps.setString(11, normalizedStatus);
+            ps.setBoolean(12, event.isFeatured());
+            ps.setBoolean(13, event.isPrivate());
+            ps.setInt(14, event.getMaxTicketsPerOrder());
+            ps.setInt(15, event.getMaxTotalTickets());
+            ps.setBoolean(16, event.isPreOrderEnabled());
+            ps.setInt(17, event.getEventId());
         }) > 0;
     }
 
     public boolean deleteEvent(int eventId) {
-        String sql = "UPDATE Events SET is_deleted = 1, status = 'cancelled', updated_at = GETDATE() WHERE event_id = ?";
+        String sql = "UPDATE Events SET is_deleted = 1, status = 'cancelled', updated_at = GETDATE() " +
+                     "WHERE event_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
         return executeUpdate(sql, ps -> ps.setInt(1, eventId)) > 0;
     }
 
@@ -339,7 +478,8 @@ public class EventDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
 
         boolean hasStatus = status != null && !status.trim().isEmpty();
-        if (hasStatus) sql.append("WHERE e.status = ? ");
+        sql.append("WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+        if (hasStatus) sql.append("AND e.status = ? ");
         sql.append("ORDER BY e.created_at DESC ");
         sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
 
@@ -352,12 +492,13 @@ public class EventDAO extends BaseDAO {
     }
 
     public int countEventsByStatus(String status) {
-        String sql = "SELECT COUNT(*) FROM Events WHERE status = ?";
+        String sql = "SELECT COUNT(*) FROM Events WHERE status = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
         return queryScalar(sql, ps -> ps.setString(1, status), 0);
     }
 
     public int countPendingEventsByOrganizer(int organizerId) {
-        String sql = "SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'pending'";
+        String sql = "SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'pending' " +
+                     "AND (is_deleted = 0 OR is_deleted IS NULL)";
         return queryScalar(sql, ps -> ps.setInt(1, organizerId), 0);
     }
 
@@ -365,7 +506,7 @@ public class EventDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(*) FROM Events e " +
                 "JOIN Categories c ON e.category_id = c.category_id " +
-                "WHERE e.status = 'approved' ");
+            "WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
@@ -385,6 +526,47 @@ public class EventDAO extends BaseDAO {
                 ps.setString(idx++, category);
             }
         }, 0);
+    }
+
+    public Map<String, Integer> getAdminEventStatusCounts(String keyword, String category) {
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("pending", 0);
+        counts.put("approved", 0);
+        counts.put("rejected", 0);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT e.status, COUNT(*) AS total " +
+                "FROM Events e " +
+                "JOIN Categories c ON e.category_id = c.category_id " +
+                "WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw);
+            params.add(kw);
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            sql.append("AND c.slug = ? ");
+            params.add(category.trim());
+        }
+
+        sql.append("GROUP BY e.status");
+
+        List<Map.Entry<String, Integer>> rows = queryList(sql.toString(), ps -> {
+            int idx = 1;
+            for (Object param : params) {
+                ps.setString(idx++, (String) param);
+            }
+        }, rs -> new java.util.AbstractMap.SimpleEntry<>(rs.getString("status"), rs.getInt("total")));
+
+        for (Map.Entry<String, Integer> row : rows) {
+            if (counts.containsKey(row.getKey())) {
+                counts.put(row.getKey(), row.getValue());
+            }
+        }
+        return counts;
     }
 
     public boolean pinEvent(int eventId, int pinOrder) {

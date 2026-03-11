@@ -126,16 +126,13 @@ public class OrderService {
     }
 
     /**
-     * Confirm payment from IPN webhook — mark paid + store bank transaction reference.
+     * Confirm payment from IPN webhook — atomically mark paid + store txn reference.
+     * Only succeeds if order is still 'pending' (V10 idempotency fix).
      */
     public boolean confirmPayment(int orderId, String transactionId) {
         LOGGER.log(Level.INFO, "Confirming payment: orderId={0}, txRef={1}",
                 new Object[]{orderId, transactionId});
-        boolean statusOk = orderDAO.updateOrderStatus(orderId, "paid");
-        if (statusOk && transactionId != null) {
-            orderDAO.updateTransactionId(orderId, transactionId);
-        }
-        return statusOk;
+        return orderDAO.confirmPaymentAtomic(orderId, transactionId);
     }
 
     public boolean cancelOrder(int orderId) {

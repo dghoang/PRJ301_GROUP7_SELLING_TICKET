@@ -37,6 +37,12 @@ public class ChangePasswordServlet extends HttpServlet {
         String newPassword = request.getParameter("newPassword");
         String confirmPassword = request.getParameter("confirmNewPassword");
 
+        // Block OAuth users from changing password
+        if (userService.isOAuthUser(user.getUserId())) {
+            redirectWithError(request, response, "Tài khoản Google không hỗ trợ đổi mật khẩu tại đây.");
+            return;
+        }
+
         // Validate required fields
         if (isBlank(oldPassword) || isBlank(newPassword) || isBlank(confirmPassword)) {
             redirectWithError(request, response, "Vui lòng điền đầy đủ thông tin!");

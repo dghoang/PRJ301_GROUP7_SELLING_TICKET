@@ -90,6 +90,18 @@ public class UserService {
         return userDAO.getUserByEmail(email);
     }
 
+    /** Get user by email regardless of active status (for OAuth deactivation check). */
+    public User getUserByEmailAny(String email) {
+        if (email == null || email.trim().isEmpty()) return null;
+        return userDAO.getUserByEmailAny(email);
+    }
+
+    /** Check if user is an OAuth-only user (no password set). */
+    public boolean isOAuthUser(int userId) {
+        User user = userDAO.getUserById(userId);
+        return user != null && user.isOauthUser();
+    }
+
     public boolean updateProfile(User user) {
         return userDAO.updateUser(user);
     }

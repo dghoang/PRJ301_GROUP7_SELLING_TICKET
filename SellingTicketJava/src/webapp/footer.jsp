@@ -153,7 +153,7 @@
             <div class="d-flex align-items-center justify-content-between p-3" style="background:linear-gradient(135deg,#3b82f6,#6366f1);">
                 <div class="d-flex align-items-center gap-2 text-white">
                     <i class="fas fa-headset"></i>
-                    <strong class="small">Chat hỗ trợ</strong>
+                    <strong class="small" id="chatHeaderLabel">Chat hỗ trợ</strong>
                     <span id="chatStatus" class="badge bg-white bg-opacity-25 rounded-pill px-2" style="font-size:0.6rem;"></span>
                 </div>
                 <button onclick="toggleChat()" class="btn btn-sm p-0 text-white"><i class="fas fa-times"></i></button>
@@ -193,16 +193,28 @@
     </div>
     <script>
     let chatSessionId=0, chatLastMsgId=0, chatFirstMsgId=0, chatPollTimer=null, chatSessionStatus='', lastSendTime=0;
+    let chatEventId=null;
     const CTX='${pageContext.request.contextPath}', MY_ID=${sessionScope.user.userId};
 
     function toggleChat(){
         const w=document.getElementById('chatWindow');
         w.style.display=w.style.display==='none'?'block':'none';
     }
+    function openEventChat(eventId, eventTitle){
+        chatEventId=eventId;
+        const lbl=document.getElementById('chatHeaderLabel');
+        if(lbl) lbl.textContent=eventTitle?'Chat · '+eventTitle:'Chat sự kiện';
+        const w=document.getElementById('chatWindow');
+        if(w.style.display==='none') w.style.display='block';
+        // Auto-start if not already in a session
+        if(!chatSessionId) startChat();
+    }
     function startChat(){
         const btn=document.querySelector('#chatStartArea button');
         btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Đang kết nối...';
-        fetch(CTX+'/api/chat/start',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'}})
+        let body='';
+        if(chatEventId) body='eventId='+chatEventId;
+        fetch(CTX+'/api/chat/start',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
         .then(r=>r.json()).then(d=>{
             if(d.blocked){
                 document.getElementById('chatStartArea').style.display='none';
