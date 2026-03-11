@@ -78,3 +78,5 @@ memory-bank/
 artifacts/
 scripts/
 tests/
+/SellingTicketJava/nbproject/private/
+SellingTicketJava/nbproject/private/private.properties
