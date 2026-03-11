@@ -439,7 +439,7 @@
     <div class="container position-relative" style="z-index: 2;">
         <div class="hero-badge">
             <i class="fas fa-fire-alt text-white me-2"></i>
-            <span class="text-white fw-medium">Hơn 500+ sự kiện đang chờ bạn</span>
+            <span class="text-white fw-medium">Hơn ${totalResults}+ sự kiện đang chờ bạn</span>
         </div>
         <h1 class="hero-title">Khám phá sự kiện</h1>
         <p class="hero-subtitle">

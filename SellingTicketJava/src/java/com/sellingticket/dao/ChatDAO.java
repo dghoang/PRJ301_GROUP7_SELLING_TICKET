@@ -115,6 +115,19 @@ public class ChatDAO extends DBContext {
         return false;
     }
 
+    /** Auto-activate a session (no agent assignment — used when auto-accept is on). */
+    public boolean autoActivateSession(int sessionId) {
+        String sql = "UPDATE ChatSessions SET status = 'active' WHERE session_id = ? AND status = 'waiting'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sessionId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to auto-activate session", e);
+        }
+        return false;
+    }
+
     public boolean closeSession(int sessionId) {
         String sql = "UPDATE ChatSessions SET status = 'closed', closed_at = GETDATE() WHERE session_id = ?";
         try (Connection conn = getConnection();
@@ -205,7 +218,7 @@ public class ChatDAO extends DBContext {
     }
 
     /** Returns minutes remaining in cooldown, or 0 if no cooldown. */
-    public int getCooldownMinutesRemaining(int customerId) {
+    public int getCooldownMinutesRemaining(int customerId, int cooldownMinutes) {
         String sql = "SELECT TOP 1 DATEDIFF(MINUTE, closed_at, GETDATE()) AS mins_since "
                    + "FROM ChatSessions WHERE customer_id = ? AND status = 'closed' AND closed_at IS NOT NULL "
                    + "ORDER BY closed_at DESC";
@@ -215,7 +228,7 @@ public class ChatDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 int minsSince = rs.getInt("mins_since");
-                if (minsSince < COOLDOWN_MINUTES) return COOLDOWN_MINUTES - minsSince;
+                if (minsSince < cooldownMinutes) return cooldownMinutes - minsSince;
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to check cooldown", e);

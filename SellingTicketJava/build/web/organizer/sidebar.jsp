@@ -93,9 +93,11 @@
 <div class="organizer-sidebar d-none d-lg-block">
     <div class="sidebar-section-title">Sự kiện</div>
     <nav class="sidebar-nav nav flex-column">
+        <c:if test="${orgTotalEvents > 0}">
         <a class="nav-link ${param.activePage == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/dashboard">
             <span class="sidebar-icon"><i class="fas fa-th-large"></i></span>Dashboard
         </a>
+        </c:if>
         <a class="nav-link ${param.activePage == 'events' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/events">
             <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>Sự kiện
         </a>
@@ -104,6 +106,7 @@
         </a>
     </nav>
 
+    <c:if test="${orgHasApproved}">
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-title">Vận hành</div>
     <nav class="sidebar-nav nav flex-column">
@@ -133,6 +136,7 @@
         <a class="nav-link ${param.activePage == 'team' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/team">
             <span class="sidebar-icon"><i class="fas fa-users"></i></span>Nhân sự
         </a>
+    </c:if>
         <a class="nav-link ${param.activePage == 'settings' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/settings">
             <span class="sidebar-icon"><i class="fas fa-cog"></i></span>Cài đặt
         </a>
@@ -154,9 +158,11 @@
     <div class="offcanvas-body p-2">
         <div class="sidebar-section-title">Sự kiện</div>
         <nav class="nav flex-column sidebar-nav">
+            <c:if test="${orgTotalEvents > 0}">
             <a class="nav-link ${param.activePage == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/dashboard">
                 <span class="sidebar-icon"><i class="fas fa-th-large"></i></span>Dashboard
             </a>
+            </c:if>
             <a class="nav-link ${param.activePage == 'events' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/events">
                 <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>Sự kiện
             </a>
@@ -164,6 +170,7 @@
                 <span class="sidebar-icon"><i class="fas fa-plus-circle"></i></span>Tạo mới
             </a>
         </nav>
+        <c:if test="${orgHasApproved}">
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">Vận hành</div>
         <nav class="nav flex-column sidebar-nav">
@@ -192,6 +199,7 @@
             <a class="nav-link ${param.activePage == 'team' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/team">
                 <span class="sidebar-icon"><i class="fas fa-users"></i></span>Nhân sự
             </a>
+        </c:if>
             <a class="nav-link ${param.activePage == 'settings' ? 'active' : ''}" href="${pageContext.request.contextPath}/organizer/settings">
                 <span class="sidebar-icon"><i class="fas fa-cog"></i></span>Cài đặt
             </a>

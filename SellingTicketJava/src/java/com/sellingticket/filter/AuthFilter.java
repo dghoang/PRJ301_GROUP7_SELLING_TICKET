@@ -160,7 +160,7 @@ public class AuthFilter implements Filter {
                 return;
             }
             // All other roles: no admin access
-            httpResponse.sendRedirect(contextPath + "/home?error=unauthorized");
+            httpResponse.sendRedirect(contextPath + "/home?msg=B%E1%BA%A1n+kh%C3%B4ng+c%C3%B3+quy%E1%BB%81n+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=error");
             return;
         }
 
@@ -171,9 +171,21 @@ public class AuthFilter implements Filter {
                 httpResponse.sendRedirect(contextPath + "/admin/chat-dashboard");
                 return;
             }
-            // Only organizer and admin can access organizer area
-            if (!"organizer".equals(role) && !"admin".equals(role)) {
-                httpResponse.sendRedirect(contextPath + "/home?error=unauthorized");
+
+            // Customer role: allow only create-event and events list (to view approval status)
+            if ("customer".equals(role)) {
+                String orgPath = uri.substring((contextPath + "/organizer").length());
+                boolean allowedForCustomer =
+                        orgPath.equals("/create-event") || orgPath.startsWith("/create-event/") ||
+                        orgPath.equals("/events") || orgPath.startsWith("/events?") ||
+                        orgPath.equals("/settings") || orgPath.startsWith("/settings/");
+                if (!allowedForCustomer) {
+                    httpResponse.sendRedirect(contextPath + "/organizer/events?msg=B%E1%BA%A1n+c%E1%BA%A7n+c%C3%B3+s%E1%BB%B1+ki%E1%BB%87n+%C4%91%C6%B0%E1%BB%A3c+duy%E1%BB%87t+%C4%91%E1%BB%83+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=warning");
+                    return;
+                }
+            } else if (!"organizer".equals(role) && !"admin".equals(role)) {
+                // Unknown roles: block entirely
+                httpResponse.sendRedirect(contextPath + "/home?msg=B%E1%BA%A1n+kh%C3%B4ng+c%C3%B3+quy%E1%BB%81n+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=error");
                 return;
             }
         }

@@ -76,11 +76,11 @@
             </p>
             <div class="d-flex gap-4 flex-wrap">
                 <div class="text-center">
-                    <h3 class="fw-bold gradient-text-animate mb-0" data-counter="500">0</h3>
-                    <small class="text-muted">Sự kiện/tháng</small>
+                    <h3 class="fw-bold gradient-text-animate mb-0" data-counter="${not empty totalEvents ? totalEvents : 0}">0</h3>
+                    <small class="text-muted">Sự kiện</small>
                 </div>
                 <div class="text-center">
-                    <h3 class="fw-bold gradient-text-animate mb-0" data-counter="1000000">0</h3>
+                    <h3 class="fw-bold gradient-text-animate mb-0" data-counter="${not empty totalUsers ? totalUsers : 0}">0</h3>
                     <small class="text-muted">Người dùng</small>
                 </div>
                 <div class="text-center">

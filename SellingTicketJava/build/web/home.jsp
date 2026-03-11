@@ -258,7 +258,7 @@
             <h2 class="fw-bold mb-2">
                 <i class="fas fa-quote-left text-primary me-2"></i>Khách hàng nói gì
             </h2>
-            <p class="text-muted">Hơn 500,000+ người dùng tin tưởng</p>
+            <p class="text-muted">Hơn <fmt:formatNumber value="${totalUsers}" pattern="#,###"/>+ người dùng tin tưởng</p>
         </div>
 
         <div class="row g-4">
@@ -350,11 +350,20 @@
                     Đăng tải sự kiện, quản lý vé và tiếp cận hàng ngàn khán giả tiềm năng ngay hôm nay với Ticketbox.
                 </p>
                 <div class="d-flex justify-content-center gap-3 flex-wrap">
-                    <a href="register" class="btn btn-gradient rounded-pill px-4 py-2 hover-glow">
-                        <i class="fas fa-rocket me-2"></i>Đăng ký ngay
-                    </a>
-                    <a href="#" class="btn btn-outline-dark rounded-pill px-4 py-2">
-                        <i class="fas fa-tag me-2"></i>Xem bảng giá
+                    <c:choose>
+                        <c:when test="${not empty sessionScope.account}">
+                            <a href="${pageContext.request.contextPath}/organizer/create-event" class="btn btn-gradient rounded-pill px-4 py-2 hover-glow">
+                                <i class="fas fa-plus-circle me-2"></i>Tạo sự kiện
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <a href="${pageContext.request.contextPath}/register" class="btn btn-gradient rounded-pill px-4 py-2 hover-glow">
+                                <i class="fas fa-rocket me-2"></i>Đăng ký ngay
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
+                    <a href="${pageContext.request.contextPath}/about" class="btn btn-outline-dark rounded-pill px-4 py-2">
+                        <i class="fas fa-info-circle me-2"></i>Tìm hiểu thêm
                     </a>
                 </div>
             </div>

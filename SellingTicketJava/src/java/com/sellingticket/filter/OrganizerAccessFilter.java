@@ -47,6 +47,11 @@ public class OrganizerAccessFilter implements Filter {
         String pathInfo = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
         
         int totalEvents = eventService.getEventsByOrganizer(user.getUserId()).size();
+        boolean hasApproved = eventService.hasApprovedEvents(user.getUserId(), user.getRole());
+
+        // Expose sidebar visibility flags to JSP
+        httpRequest.setAttribute("orgTotalEvents", totalEvents);
+        httpRequest.setAttribute("orgHasApproved", hasApproved);
         
         // 1. Dashboard Lockout: If the user has 0 events, lock them out of the dashboard
         boolean isDashboard = pathInfo.equals("/organizer") || 
@@ -65,12 +70,9 @@ public class OrganizerAccessFilter implements Filter {
                            pathInfo.startsWith("/organizer/settings") ||
                            pathInfo.startsWith("/organizer/chat");
                            
-        if (!isExempt) {
-            boolean hasApproved = eventService.hasApprovedEvents(user.getUserId(), user.getRole());
-            if (!hasApproved) {
-                httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events?error=unapproved_events");
-                return;
-            }
+        if (!isExempt && !hasApproved) {
+            httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events?error=unapproved_events");
+            return;
         }
 
         // 3. Event-Based Permission: If URL targets a specific event, verify ownership

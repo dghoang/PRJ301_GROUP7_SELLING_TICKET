@@ -111,7 +111,7 @@
                                         <p class="text-muted small mb-0">Sự kiện mới cần admin duyệt trước khi hiển thị</p>
                                     </div>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="requireApproval" checked style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
+                                        <input class="form-check-input" type="checkbox" name="requireApproval" ${settings['require_event_approval'] != 'false' ? 'checked' : ''} style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-3">
@@ -120,7 +120,38 @@
                                         <p class="text-muted small mb-0">Người dùng có thể tự đăng ký làm ban tổ chức</p>
                                     </div>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="allowOrganizerReg" checked style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
+                                        <input class="form-check-input" type="checkbox" name="allowOrganizerReg" ${settings['allow_organizer_registration'] != 'false' ? 'checked' : ''} style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
+                                    </div>
+                                </div>
+
+                                <hr style="border-color: rgba(0,0,0,0.06);">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-comments text-primary me-2"></i>Chat hỗ trợ</h6>
+                                <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <div>
+                                        <p class="fw-medium mb-1">Bật tính năng chat</p>
+                                        <p class="text-muted small mb-0">Cho phép khách hàng chat với tư vấn viên. Tắt sẽ ẩn widget chat.</p>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="chatEnabled" ${settings['chat_enabled'] != 'false' ? 'checked' : ''} style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <div>
+                                        <p class="fw-medium mb-1">Tự động chấp nhận chat</p>
+                                        <p class="text-muted small mb-0">Khách gửi tin nhắn ngay mà không cần đợi tư vấn viên chấp nhận</p>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="chatAutoAccept" ${settings['chat_auto_accept'] != 'false' ? 'checked' : ''} style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center py-3">
+                                    <div>
+                                        <p class="fw-medium mb-1">Thời gian chờ giữa 2 phiên (phút)</p>
+                                        <p class="text-muted small mb-0">Cooldown sau khi đóng phiên chat trước khi mở lại</p>
+                                    </div>
+                                    <div style="width: 100px;">
+                                        <input type="number" class="form-control form-control-sm glass-input rounded-3 text-center" name="chatCooldown" 
+                                            value="${not empty settings['chat_cooldown_minutes'] ? settings['chat_cooldown_minutes'] : '30'}" min="0" max="120">
                                     </div>
                                 </div>
                             </div>

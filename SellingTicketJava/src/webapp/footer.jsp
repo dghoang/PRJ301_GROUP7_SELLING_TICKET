@@ -19,53 +19,73 @@
                         Nền tảng đặt vé sự kiện hàng đầu Việt Nam. Khám phá và đặt vé cho các sự kiện âm nhạc, thể thao, hội thảo và nhiều hơn nữa.
                     </p>
                     <div class="d-flex gap-2">
-                        <a href="#" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
                             <i class="fab fa-facebook-f text-primary"></i>
                         </a>
-                        <a href="#" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
                             <i class="fab fa-instagram text-danger"></i>
                         </a>
-                        <a href="#" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
                             <i class="fab fa-youtube text-danger"></i>
                         </a>
-                        <a href="#" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" class="btn btn-sm glass rounded-3 hover-scale" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
                             <i class="fab fa-tiktok"></i>
                         </a>
                     </div>
                 </div>
                 
-                <!-- Discovery -->
+                <!-- Discovery (categories) -->
                 <div class="col-6 col-lg-2">
                     <h6 class="fw-bold mb-3">Khám phá</h6>
                     <ul class="list-unstyled small">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events" class="text-muted text-decoration-none hover-primary">Sự kiện</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=music" class="text-muted text-decoration-none hover-primary">Âm nhạc</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=sports" class="text-muted text-decoration-none hover-primary">Thể thao</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=workshop" class="text-muted text-decoration-none hover-primary">Workshop</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events" class="text-muted text-decoration-none hover-primary">Tất cả sự kiện</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=music" class="text-muted text-decoration-none hover-primary"><i class="fas fa-music me-1" style="font-size:0.7rem;"></i>Âm nhạc</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=sports" class="text-muted text-decoration-none hover-primary"><i class="fas fa-futbol me-1" style="font-size:0.7rem;"></i>Thể thao</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=workshop" class="text-muted text-decoration-none hover-primary"><i class="fas fa-laptop me-1" style="font-size:0.7rem;"></i>Workshop</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=food" class="text-muted text-decoration-none hover-primary"><i class="fas fa-utensils me-1" style="font-size:0.7rem;"></i>Ẩm thực</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=art" class="text-muted text-decoration-none hover-primary"><i class="fas fa-palette me-1" style="font-size:0.7rem;"></i>Nghệ thuật</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=technology" class="text-muted text-decoration-none hover-primary"><i class="fas fa-microchip me-1" style="font-size:0.7rem;"></i>Công nghệ</a></li>
                     </ul>
                 </div>
                 
-                <!-- Organizer -->
+                <!-- Tài khoản - role-based -->
                 <div class="col-6 col-lg-2">
-                    <h6 class="fw-bold mb-3">Ban tổ chức</h6>
+                    <h6 class="fw-bold mb-3">Tài khoản</h6>
                     <ul class="list-unstyled small">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/create-event" class="text-muted text-decoration-none hover-primary" onclick="return requireLogin(this)">Tạo sự kiện</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/events" class="text-muted text-decoration-none hover-primary" onclick="return requireLogin(this)">Quản lý sự kiện</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary">Tính năng</a></li>
+                        <c:choose>
+                            <c:when test="${not empty sessionScope.account}">
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/profile" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user me-1" style="font-size:0.7rem;"></i>Hồ sơ</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/my-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-ticket-alt me-1" style="font-size:0.7rem;"></i>Vé của tôi</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/create-event" class="text-muted text-decoration-none hover-primary"><i class="fas fa-plus-circle me-1" style="font-size:0.7rem;"></i>Tạo sự kiện</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/events" class="text-muted text-decoration-none hover-primary"><i class="fas fa-calendar-check me-1" style="font-size:0.7rem;"></i>Sự kiện của tôi</a></li>
+                                <c:if test="${sessionScope.account.role == 'admin'}">
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/admin/dashboard" class="text-muted text-decoration-none hover-primary"><i class="fas fa-shield-alt me-1" style="font-size:0.7rem;"></i>Quản trị</a></li>
+                                </c:if>
+                            </c:when>
+                            <c:otherwise>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/login" class="text-muted text-decoration-none hover-primary"><i class="fas fa-sign-in-alt me-1" style="font-size:0.7rem;"></i>Đăng nhập</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/register" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-plus me-1" style="font-size:0.7rem;"></i>Đăng ký</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-info-circle me-1" style="font-size:0.7rem;"></i>Giới thiệu</a></li>
+                            </c:otherwise>
+                        </c:choose>
                     </ul>
                 </div>
                 
-                <!-- Support -->
+                <!-- Hỗ trợ -->
                 <div class="col-6 col-lg-2">
                     <h6 class="fw-bold mb-3">Hỗ trợ</h6>
                     <ul class="list-unstyled small">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary">Trung tâm trợ giúp</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary">Điều khoản</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary">Chính sách</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary"><i class="fas fa-question-circle me-1" style="font-size:0.7rem;"></i>Trung tâm trợ giúp</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary"><i class="fas fa-file-contract me-1" style="font-size:0.7rem;"></i>Điều khoản sử dụng</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms#privacy" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-shield me-1" style="font-size:0.7rem;"></i>Chính sách bảo mật</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-building me-1" style="font-size:0.7rem;"></i>Về chúng tôi</a></li>
+                        <c:if test="${not empty sessionScope.account}">
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/my-support-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-headset me-1" style="font-size:0.7rem;"></i>Yêu cầu hỗ trợ</a></li>
+                        </c:if>
                     </ul>
                 </div>
                 
-                <!-- Contact -->
+                <!-- Liên hệ -->
                 <div class="col-6 col-lg-2">
                     <h6 class="fw-bold mb-3">Liên hệ</h6>
                     <ul class="list-unstyled small">
@@ -79,6 +99,18 @@
                                 <i class="fas fa-phone text-primary"></i>1900 6408
                             </a>
                         </li>
+                        <li class="mb-3">
+                            <span class="text-muted d-flex align-items-start gap-2">
+                                <i class="fas fa-map-marker-alt text-primary mt-1"></i>
+                                <span>Hà Nội, Việt Nam</span>
+                            </span>
+                        </li>
+                        <li>
+                            <span class="text-muted d-flex align-items-center gap-2">
+                                <i class="fas fa-clock text-primary"></i>
+                                <span>8:00 - 22:00 hàng ngày</span>
+                            </span>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -86,10 +118,10 @@
             <hr class="my-4 opacity-25">
             
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-                <p class="small text-muted mb-0">&copy; 2026 Ticketbox. All rights reserved.</p>
+                <p class="small text-muted mb-0">&copy; <%= java.time.Year.now().getValue() %> Ticketbox. All rights reserved.</p>
                 <div class="d-flex gap-3">
-                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary">Privacy</a>
-                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary">Terms</a>
+                    <a href="${pageContext.request.contextPath}/terms#privacy" class="small text-muted text-decoration-none hover-primary">Bảo mật</a>
+                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary">Điều khoản</a>
                     <a href="javascript:void(0)" onclick="showInfo('Trang web sử dụng cookies để cải thiện trải nghiệm.')" class="small text-muted text-decoration-none hover-primary">Cookies</a>
                 </div>
             </div>
@@ -221,7 +253,9 @@
                 document.getElementById('chatBlockedArea').style.display='block';
                 const msg=d.reason==='cooldown'
                     ?'Vui lòng chờ '+d.retryAfter+' phút trước khi chat lại'
-                    : d.reason==='active_session_exists'?'Bạn đang có phiên chat khác đang mở':'Không thể tạo phiên chat';
+                    : d.reason==='active_session_exists'?'Bạn đang có phiên chat khác đang mở'
+                    : d.reason==='chat_disabled'?'Chat hỗ trợ hiện đang tạm đóng'
+                    :'Không thể tạo phiên chat';
                 document.getElementById('chatBlockedMsg').textContent=msg;
                 return;
             }
@@ -242,9 +276,12 @@
         if(chatSessionStatus==='active'){
             inp.disabled=false; btn.disabled=false; inp.placeholder='Nhập tin nhắn...';
             st.textContent='Đang kết nối'; st.style.background='rgba(16,185,129,0.7)';
-        } else {
-            inp.disabled=true; btn.disabled=true; inp.placeholder='Chờ tư vấn viên chấp nhận...';
+        } else if(chatSessionStatus==='waiting'){
+            inp.disabled=false; btn.disabled=false; inp.placeholder='Nhập tin nhắn... (chờ tư vấn viên)';
             st.textContent='Đang chờ'; st.style.background='rgba(245,158,11,0.7)';
+        } else {
+            inp.disabled=true; btn.disabled=true; inp.placeholder='Phiên chat đã đóng';
+            st.textContent='Đã đóng'; st.style.background='rgba(107,114,128,0.7)';
         }
     }
     function updateCharCount(){

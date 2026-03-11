@@ -72,7 +72,8 @@
                         </a>
                     </li>
                     
-                    <!-- Tạo sự kiện - Only show when logged in -->
+                    <!-- Tạo sự kiện - Only show for organizer/admin roles -->
+                    <!-- Tạo sự kiện - All logged-in users can create events -->
                     <c:if test="${sessionScope.account != null}">
                         <li class="nav-item">
                             <a class="nav-link nav-cta fw-medium px-3" href="${pageContext.request.contextPath}/organizer/create-event">
@@ -100,7 +101,10 @@
                                 <ul class="dropdown-menu dropdown-menu-end glass-strong border-0 rounded-4 p-2 mt-2 shadow">
                                     <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/profile"><i class="fas fa-user me-2 text-primary"></i>Hồ sơ</a></li>
                                     <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/my-tickets"><i class="fas fa-ticket-alt me-2 text-primary"></i>Vé của tôi</a></li>
-                                    <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/organizer/events"><i class="fas fa-calendar-check me-2 text-primary"></i>Quản lý sự kiện</a></li>
+                                    <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/organizer/events"><i class="fas fa-calendar-check me-2 text-primary"></i>Sự kiện của tôi</a></li>
+                                    <c:if test="${sessionScope.account.role == 'admin'}">
+                                    <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/admin/dashboard"><i class="fas fa-shield-alt me-2 text-primary"></i>Quản trị</a></li>
+                                    </c:if>
                                     <li><hr class="dropdown-divider my-2"></li>
                                     <li><a class="dropdown-item rounded-3 py-2 text-danger" href="${pageContext.request.contextPath}/logout"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
                                 </ul>

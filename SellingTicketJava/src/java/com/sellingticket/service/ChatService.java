@@ -1,6 +1,7 @@
 package com.sellingticket.service;
 
 import com.sellingticket.dao.ChatDAO;
+import com.sellingticket.dao.SiteSettingsDAO;
 import com.sellingticket.model.ChatMessage;
 import com.sellingticket.model.ChatSession;
 
@@ -9,12 +10,27 @@ import java.util.List;
 public class ChatService {
 
     private final ChatDAO dao = new ChatDAO();
+    private final SiteSettingsDAO settingsDAO = new SiteSettingsDAO();
+
+    /** Check if chat feature is enabled globally by admin. */
+    public boolean isChatEnabled() {
+        return settingsDAO.getBoolean("chat_enabled", true);
+    }
+
+    /** Check if sessions should be auto-accepted (no waiting for agent). */
+    public boolean isAutoAcceptEnabled() {
+        return settingsDAO.getBoolean("chat_auto_accept", true);
+    }
 
     /**
      * Get or create a chat session with anti-spam checks.
-     * Returns null and sets reason if blocked.
+     * If auto_accept is enabled, sessions start as 'active' immediately.
      */
     public ChatSessionResult getOrCreateSession(int customerId, Integer eventId) {
+        if (!isChatEnabled()) {
+            return new ChatSessionResult(null, "chat_disabled");
+        }
+
         // Check: already has an active/waiting session
         if (dao.countActiveSessionsByCustomer(customerId) > 0) {
             ChatSession existing = dao.findActiveSession(customerId, eventId);
@@ -25,16 +41,21 @@ public class ChatService {
         }
 
         // Check: cooldown after last closed session
-        int cooldownRemaining = dao.getCooldownMinutesRemaining(customerId);
+        int cooldownMinutes = settingsDAO.getInt("chat_cooldown_minutes", 30);
+        int cooldownRemaining = dao.getCooldownMinutesRemaining(customerId, cooldownMinutes);
         if (cooldownRemaining > 0) {
             ChatSessionResult result = new ChatSessionResult(null, "cooldown");
             result.retryAfterMinutes = cooldownRemaining;
             return result;
         }
 
-        // Create new session (starts as 'waiting')
+        // Create new session
         int id = dao.createSession(customerId, eventId);
         if (id > 0) {
+            // Auto-accept: set session to 'active' immediately
+            if (isAutoAcceptEnabled()) {
+                dao.autoActivateSession(id);
+            }
             return new ChatSessionResult(dao.getSession(id), null);
         }
         return new ChatSessionResult(null, "create_failed");
