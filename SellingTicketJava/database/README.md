@@ -1,26 +1,50 @@
 # Database Setup Guide
 
-## Yêu cầu
-- SQL Server 2019 hoặc mới hơn
-- Java 17+
-- Apache Tomcat 10+ hoặc GlassFish
+## Cau truc thu muc
 
-## Bước 1: Tạo Database
-
-Mở SQL Server Management Studio và chạy file:
 ```
-database/ticketbox_schema.sql
+database/
+	README.md
+	schema/
+		ticketbox_schema.sql
+		full_reset_seed.sql
+	migrations/
+		migration_*.sql
+		fix_roles.sql
+	seeds/
+		mock_data.sql
+		seed_orders_tickets.sql
+		support_tickets.sql
+		event_staff.sql
 ```
 
-File này sẽ:
-- Tạo database `SellingTicketDB`
-- Tạo tất cả tables (Users, Events, Categories, TicketTypes, Orders, OrderItems, Tickets, Vouchers)
-- Tạo indexes
-- Insert dữ liệu mẫu (categories, users, events, ticket types)
+## Cach khoi tao nhanh (khuyen dung)
 
-## Bước 2: Cấu hình kết nối
+Chay file:
 
-Chỉnh sửa file `src/java/com/sellingticket/util/DBContext.java`:
+```
+database/schema/full_reset_seed.sql
+```
+
+File nay se:
+- Tao lai database `SellingTicketDB`
+- Tao day du 21 bang
+- Tao indexes
+- Seed du lieu phong phu cho test (users, events, tickets, orders, vouchers, support, chat, media, settings)
+
+## Cach khoi tao toi gian
+
+Neu ban chi muon schema co ban, chay:
+
+```
+database/schema/ticketbox_schema.sql
+```
+
+Sau do co the chay them cac file trong `database/migrations/` va `database/seeds/` theo nhu cau.
+
+## Cau hinh ket noi
+
+Chinh sua file `src/java/com/sellingticket/util/DBContext.java`:
 
 ```java
 private static final String SERVER_NAME = "localhost";
@@ -30,29 +54,21 @@ private static final String USER_ID = "sa";
 private static final String PASSWORD = "your_password_here";
 ```
 
-## Bước 3: Thêm thư viện
-
-Các file JAR đã được download vào `src/webapp/WEB-INF/lib/`:
-- `mssql-jdbc-12.4.2.jre11.jar` - SQL Server JDBC Driver
-- `javax.servlet-api-4.0.1.jar` - Servlet API
-- `javax.servlet.jsp-api-2.3.3.jar` - JSP API
-- `jstl-1.2.jar` - JSTL
-
-Trong NetBeans/IntelliJ, thêm các JAR này vào Libraries của project.
-
-## Tài khoản mẫu
+## Tai khoan mau chinh
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@ticketbox.vn | admin123 | Admin |
-| organizer@ticketbox.vn | organizer123 | Organizer |
-| customer@ticketbox.vn | customer123 | Customer |
+| admin@ticketbox.vn | Admin@123 | Admin |
+| support@ticketbox.vn | Admin@123 | Support Agent |
+| organizer@ticketbox.vn | Organizer@123 | Organizer |
+| customer@ticketbox.vn | Customer@123 | Customer |
 
-## Kiểm tra kết nối
+## Kiem tra ket noi
 
-Chạy class `DBContext` với method `main()` để test kết nối:
+Chay class `DBContext` voi method `main()`:
+
 ```
 java com.sellingticket.util.DBContext
 ```
 
-Output: `Connection successful!` = Kết nối thành công.
+Output `Connection successful!` la ket noi thanh cong.

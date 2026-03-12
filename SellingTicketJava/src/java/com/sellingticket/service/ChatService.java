@@ -4,7 +4,6 @@ import com.sellingticket.dao.ChatDAO;
 import com.sellingticket.dao.SiteSettingsDAO;
 import com.sellingticket.model.ChatMessage;
 import com.sellingticket.model.ChatSession;
-
 import java.util.List;
 
 public class ChatService {

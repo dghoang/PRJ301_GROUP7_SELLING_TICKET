@@ -1,0 +1,20 @@
+# Build output
+build/
+dist/
+out/
+
+# IDE
+.vscode/*.log
+.idea/
+*.iml
+
+# NetBeans local/private
+nbproject/private/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
