@@ -24,6 +24,8 @@ public class Ticket {
     private int eventId;
     private String ticketTypeName;
     private String orderCode;
+    private String orderStatus;
+    private int orderId;
 
     public Ticket() {}
 
@@ -69,6 +71,12 @@ public class Ticket {
 
     public String getOrderCode() { return orderCode; }
     public void setOrderCode(String orderCode) { this.orderCode = orderCode; }
+
+    public String getOrderStatus() { return orderStatus; }
+    public void setOrderStatus(String orderStatus) { this.orderStatus = orderStatus; }
+
+    public int getOrderId() { return orderId; }
+    public void setOrderId(int orderId) { this.orderId = orderId; }
 
     @Override
     public String toString() {

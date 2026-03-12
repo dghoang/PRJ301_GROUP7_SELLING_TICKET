@@ -73,6 +73,8 @@ public class MyTicketApiServlet extends HttpServlet {
             item.append("\"attendeeEmail\":\"").append(esc(t.getAttendeeEmail())).append("\",");
             item.append("\"qrCode\":\"").append(esc(t.getQrCode())).append("\",");
             item.append("\"isCheckedIn\":").append(t.isCheckedIn()).append(",");
+            item.append("\"orderStatus\":\"").append(esc(t.getOrderStatus() != null ? t.getOrderStatus() : "paid")).append("\",");
+            item.append("\"orderId\":").append(t.getOrderId()).append(",");
             item.append("\"checkedInAt\":\"").append(t.getCheckedInAt() != null ? sdf.format(t.getCheckedInAt()) : "").append("\",");
             item.append("\"createdAt\":\"").append(t.getCreatedAt() != null ? sdf.format(t.getCreatedAt()) : "").append("\"");
             item.append("}");

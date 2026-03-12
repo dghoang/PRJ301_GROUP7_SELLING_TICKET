@@ -202,7 +202,10 @@ public class TicketTypeDAO extends DBContext {
      * Check ticket availability
      */
     public boolean checkAvailability(int ticketTypeId, int requestedQuantity) {
-        String sql = "SELECT (quantity - sold_quantity) as available FROM TicketTypes WHERE ticket_type_id = ? AND is_active = 1";
+        String sql = "SELECT (quantity - sold_quantity) as available FROM TicketTypes " +
+                     "WHERE ticket_type_id = ? AND is_active = 1 " +
+                     "AND (sale_start IS NULL OR sale_start <= GETDATE()) " +
+                     "AND (sale_end IS NULL OR sale_end >= GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ticketTypeId);

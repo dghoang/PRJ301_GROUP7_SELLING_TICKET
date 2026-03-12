@@ -108,6 +108,9 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
+        // Normalize email to lowercase before all checks
+        email = email.toLowerCase();
+
         // Email uniqueness
         if (userService.isEmailExists(email)) {
             showError(request, response, "Email đã tồn tại!");
@@ -142,9 +145,12 @@ public class RegisterServlet extends HttpServlet {
         if (dateStr == null || dateStr.trim().isEmpty()) return null;
         try {
             LocalDate ld = LocalDate.parse(dateStr.trim(), DATE_FORMAT);
-            // Reject future dates and dates too far in the past
+            // Reject future dates, too old, and under 13 years old
             if (ld.isAfter(LocalDate.now()) || ld.isBefore(LocalDate.of(1900, 1, 1))) {
                 return null;
+            }
+            if (ld.isAfter(LocalDate.now().minusYears(13))) {
+                return null; // Must be at least 13 years old
             }
             return Date.from(ld.atStartOfDay(ZoneId.systemDefault()).toInstant());
         } catch (DateTimeParseException e) {

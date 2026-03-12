@@ -43,6 +43,14 @@ public class OrderService {
     }
 
     /**
+     * Count how many tickets a user already has for a specific event
+     * (across all non-cancelled orders).
+     */
+    public int countUserTicketsForEvent(int userId, int eventId) {
+        return orderDAO.countUserTicketsForEvent(userId, eventId);
+    }
+
+    /**
      * Generate unique order code using UUID for better uniqueness than timestamp.
      */
     public String generateOrderCode() {

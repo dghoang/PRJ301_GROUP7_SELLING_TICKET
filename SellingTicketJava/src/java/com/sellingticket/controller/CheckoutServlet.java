@@ -16,6 +16,7 @@ import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,10 @@ public class CheckoutServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(CheckoutServlet.class.getName());
     private static final int MAX_QUANTITY = 10;
+    private static final int MAX_BUYER_NAME_LEN = 100;
+    private static final int MAX_BUYER_EMAIL_LEN = 255;
+    private static final int MAX_BUYER_PHONE_LEN = 20;
+    private static final int MAX_NOTES_LEN = 500;
     private static final Set<String> ALLOWED_PAYMENT_METHODS = Set.of(
             "seepay", "bank_transfer", "cash");
 
@@ -111,6 +116,16 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
+        // Double-submit guard: check for in-flight checkout
+        synchronized (request.getSession()) {
+            Boolean checkoutInProgress = (Boolean) request.getSession().getAttribute("checkoutInProgress");
+            if (Boolean.TRUE.equals(checkoutInProgress)) {
+                showError(request, response, "Đơn hàng đang được xử lý. Vui lòng không nhấn nút nhiều lần.");
+                return;
+            }
+            request.getSession().setAttribute("checkoutInProgress", true);
+        }
+
         try {
             Order order = buildOrderFromRequest(request, user);
             if (order == null) {
@@ -160,14 +175,17 @@ public class CheckoutServlet extends HttpServlet {
                 return;
             }
 
-            // Non-SeePay: issue tickets immediately + redirect
+            // Non-SeePay: mark as paid + issue tickets + redirect
+            orderService.markAsPaid(orderId);
             int ticketsIssued = orderService.issueTickets(orderId, order.getBuyerName(), order.getBuyerEmail());
             LOGGER.log(Level.INFO, "Tickets issued: orderId={0}, count={1}", new Object[]{orderId, ticketsIssued});
-            redirectAfterPayment(response, orderId, order.getPaymentMethod());
+            response.sendRedirect("order-confirmation?id=" + orderId);
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Checkout error for user=" + user.getUserId(), e);
             showError(request, response, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.");
+        } finally {
+            request.getSession().removeAttribute("checkoutInProgress");
         }
     }
 
@@ -247,7 +265,8 @@ public class CheckoutServlet extends HttpServlet {
         if (!"approved".equals(event.getStatus())) return null;
 
         // Block checkout for past events
-        if (event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
+        Date now = new Date();
+        if (event.getEndDate() != null && event.getEndDate().before(now)) {
             return null;
         }
 
@@ -273,6 +292,9 @@ public class CheckoutServlet extends HttpServlet {
                 if (ticket == null) continue;
                 // V9 FIX: Verify ticket belongs to this event
                 if (ticket.getEventId() != eventId) continue;
+                // Sale window enforcement
+                if (ticket.getSaleStart() != null && ticket.getSaleStart().after(now)) continue;
+                if (ticket.getSaleEnd() != null && ticket.getSaleEnd().before(now)) continue;
                 if (!ticketService.checkAvailability(typeId, qty)) return null;
 
                 double subtotal = ticket.getPrice() * qty;
@@ -294,6 +316,9 @@ public class CheckoutServlet extends HttpServlet {
             if (ticket == null) return null;
             // V9 FIX: Verify ticket belongs to this event
             if (ticket.getEventId() != eventId) return null;
+            // Sale window enforcement
+            if (ticket.getSaleStart() != null && ticket.getSaleStart().after(now)) return null;
+            if (ticket.getSaleEnd() != null && ticket.getSaleEnd().before(now)) return null;
             if (!ticketService.checkAvailability(ticketTypeId, quantity)) return null;
 
             totalAmount = ticket.getPrice() * quantity;
@@ -315,6 +340,10 @@ public class CheckoutServlet extends HttpServlet {
         int eventMaxTotal = event.getMaxTotalTickets();
         if (eventMaxTotal > 0 && (event.getSoldTickets() + totalTicketsInOrder) > eventMaxTotal) return null;
 
+        // Per-user purchase limit: existing tickets + new tickets <= maxQty
+        int existingUserTickets = orderService.countUserTicketsForEvent(user.getUserId(), eventId);
+        if ((existingUserTickets + totalTicketsInOrder) > maxQty) return null;
+
         // V4 FIX: Whitelist payment methods
         String paymentMethod = request.getParameter("paymentMethod");
         if (paymentMethod == null || !ALLOWED_PAYMENT_METHODS.contains(paymentMethod)) {
@@ -328,25 +357,26 @@ public class CheckoutServlet extends HttpServlet {
         order.setTotalAmount(totalAmount);
         order.setDiscountAmount(0);
         order.setFinalAmount(totalAmount);
-        order.setPaymentMethod(paymentMethod != null ? paymentMethod : "bank_transfer");
-        order.setBuyerName(getParamOrDefault(request, "buyerName", user.getFullName()));
-        order.setBuyerEmail(getParamOrDefault(request, "buyerEmail", user.getEmail()));
-        order.setBuyerPhone(getParamOrDefault(request, "buyerPhone", user.getPhone()));
-        order.setNotes(request.getParameter("notes"));
+        order.setPaymentMethod(paymentMethod);
+
+        // Sanitize buyer info with length limits
+        String buyerName = truncate(getParamOrDefault(request, "buyerName", user.getFullName()), MAX_BUYER_NAME_LEN);
+        String buyerEmail = truncate(getParamOrDefault(request, "buyerEmail", user.getEmail()), MAX_BUYER_EMAIL_LEN);
+        String buyerPhone = truncate(getParamOrDefault(request, "buyerPhone", user.getPhone()), MAX_BUYER_PHONE_LEN);
+        String notes = truncate(request.getParameter("notes"), MAX_NOTES_LEN);
+
+        // Validate buyer email format
+        if (buyerEmail != null && !buyerEmail.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            buyerEmail = user.getEmail();
+        }
+
+        order.setBuyerName(buyerName);
+        order.setBuyerEmail(buyerEmail);
+        order.setBuyerPhone(buyerPhone);
+        order.setNotes(notes);
         order.setItems(items);
 
         return order;
-    }
-
-    private void redirectAfterPayment(HttpServletResponse response, int orderId, String paymentMethod)
-            throws IOException {
-
-        if ("bank_transfer".equals(paymentMethod) || "cash".equals(paymentMethod)) {
-            response.sendRedirect("order-confirmation?id=" + orderId);
-        } else {
-            orderService.processPayment(orderId, paymentMethod);
-            response.sendRedirect("order-confirmation?id=" + orderId + "&paid=true");
-        }
     }
 
     private void showError(HttpServletRequest request, HttpServletResponse response, String message)
@@ -357,7 +387,12 @@ public class CheckoutServlet extends HttpServlet {
 
     private String getParamOrDefault(HttpServletRequest request, String param, String defaultValue) {
         String value = request.getParameter(param);
-        return (value != null && !value.isEmpty()) ? value : defaultValue;
+        return (value != null && !value.isEmpty()) ? value.trim() : defaultValue;
+    }
+
+    private String truncate(String value, int maxLen) {
+        if (value == null) return null;
+        return value.length() > maxLen ? value.substring(0, maxLen) : value;
     }
 
     private String getBankDisplayName(String bankId) {

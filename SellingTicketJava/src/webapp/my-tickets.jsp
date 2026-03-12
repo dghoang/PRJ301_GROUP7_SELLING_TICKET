@@ -73,6 +73,9 @@
         </div>
     </div>
 
+    <%-- Cards Container (required by AjaxCards) --%>
+    <div id="myTicketsContainer"></div>
+
     <%-- Pagination --%>
     <div id="myTicketsPagination" class="d-flex justify-content-center mt-4"></div>
 </div>
@@ -90,11 +93,13 @@
     }
 
     function statusBadge(ticket) {
+        if (ticket.orderStatus === 'pending') return '<span class="badge rounded-pill px-3 py-2 status-pulse" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"><i class="fas fa-clock me-1"></i>Chờ thanh toán</span>';
         if (ticket.isCheckedIn) return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;"><i class="fas fa-door-open me-1"></i>Đã check-in</span>';
         return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;"><i class="fas fa-check-circle me-1"></i>Hiệu lực</span>';
     }
 
     function statusIcon(ticket) {
+        if (ticket.orderStatus === 'pending') return {gradient: '#f59e0b,#d97706', icon: 'fa-clock'};
         if (ticket.isCheckedIn) return {gradient: '#8b5cf6,#6366f1', icon: 'fa-door-open'};
         return {gradient: '#10b981,#06b6d4', icon: 'fa-check-circle'};
     }
@@ -161,7 +166,9 @@
             card += '<div class="text-start"><span class="font-monospace fw-bold small">' + esc(t.ticketCode) + '</span><br><small class="text-muted">' + esc(t.ticketTypeName) + '</small></div>';
             card += t.isCheckedIn
                 ? '<span class="badge bg-danger rounded-pill" style="font-size:10px;">ĐÃ DÙNG</span>'
-                : '<span class="badge rounded-pill" style="font-size:10px;background:linear-gradient(135deg,#10b981,#06b6d4);color:white;">HIỆU LỰC</span>';
+                : (t.orderStatus === 'pending'
+                    ? '<span class="badge rounded-pill" style="font-size:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;">CHỜ TT</span>'
+                    : '<span class="badge rounded-pill" style="font-size:10px;background:linear-gradient(135deg,#10b981,#06b6d4);color:white;">HIỆU LỰC</span>');
             card += '</div>';
             card += '<div class="qr-box mb-2"><img src="' + qrUrl + '" alt="QR ' + esc(t.ticketCode) + '" width="160" height="160"' + (t.isCheckedIn ? ' style="filter:grayscale(100%) opacity(0.5);"' : '') + '></div>';
             card += '<small class="text-muted d-block mb-2">' + esc(t.attendeeName) + '</small>';
@@ -173,10 +180,15 @@
             }
             card += '</div></div></div>';
 
-            // Chat with event organizer button
-            if (t.eventId) {
-                card += '<div class="px-4 pb-3"><button class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();if(typeof openEventChat===\'function\')openEventChat('+t.eventId+',\''+esc(t.eventTitle).replace(/'/g,"\\'")+'\');else alert(\'Vui lòng tải lại trang\');" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;"><i class="fas fa-comments me-2"></i>Chat hỗ trợ sự kiện</button></div>';
+            // Chat with event organizer button + Resume payment for pending orders
+            card += '<div class="px-4 pb-3 d-flex flex-wrap gap-2">';
+            if (t.orderStatus === 'pending') {
+                card += '<a href="' + ctxPath + '/resume-payment?orderId=' + (t.orderId || '') + '" class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-2"></i>Thanh toán ngay</a>';
             }
+            if (t.eventId) {
+                card += '<button class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();if(typeof openEventChat===\'function\')openEventChat('+t.eventId+',\''+esc(t.eventTitle).replace(/'/g,"\\'")+'\');else alert(\'Vui lòng tải lại trang\');" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;"><i class="fas fa-comments me-2"></i>Chat hỗ trợ sự kiện</button>';
+            }
+            card += '</div>';
 
             card += '</div></div></div>';
             card += '</div>';

@@ -135,6 +135,28 @@ public class OrderDAO extends DBContext {
     }
 
     /**
+     * Count total tickets a user has purchased for a specific event
+     * (only from non-cancelled/non-refunded orders).
+     */
+    public int countUserTicketsForEvent(int userId, int eventId) {
+        String sql = "SELECT COALESCE(SUM(oi.quantity), 0) as total " +
+                     "FROM Orders o JOIN OrderItems oi ON o.order_id = oi.order_id " +
+                     "WHERE o.user_id = ? AND o.event_id = ? " +
+                     "AND o.status NOT IN ('cancelled', 'refunded') " +
+                     "AND (o.is_deleted = 0 OR o.is_deleted IS NULL)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, eventId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("total");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed countUserTicketsForEvent", e);
+        }
+        return 0;
+    }
+
+    /**
      * @deprecated Use {@link #createOrderAtomic(Order)} instead. This method has a race condition.
      */
     @Deprecated

@@ -234,6 +234,19 @@ public class TicketDAO extends DBContext {
         t.setEventTitle(rs.getString("event_title"));
         t.setEventId(rs.getInt("event_id"));
         t.setOrderCode(rs.getString("order_code"));
+
+        // order_status is only available in paged queries
+        try {
+            t.setOrderStatus(rs.getString("order_status"));
+        } catch (SQLException ignored) {
+            // Column not present in non-paged queries
+        }
+        try {
+            t.setOrderId(rs.getInt("order_order_id"));
+        } catch (SQLException ignored) {
+            // Column not present in non-paged queries
+        }
+
         return t;
     }
 
@@ -253,7 +266,7 @@ public class TicketDAO extends DBContext {
                 + "JOIN Events e ON tt.event_id = e.event_id "
                 + "JOIN Orders o ON oi.order_id = o.order_id ";
 
-        StringBuilder where = new StringBuilder("WHERE o.user_id = ? AND o.status = 'paid' ");
+        StringBuilder where = new StringBuilder("WHERE o.user_id = ? AND o.status NOT IN ('cancelled', 'refunded') AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ");
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -268,7 +281,7 @@ public class TicketDAO extends DBContext {
 
         String countSql = "SELECT COUNT(*) " + baseJoin + where.toString();
         String dataSql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, "
-                + "e.event_id, o.order_code "
+                + "e.event_id, o.order_code, o.status as order_status, o.order_id as order_order_id "
                 + baseJoin + where.toString()
                 + "ORDER BY t.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
