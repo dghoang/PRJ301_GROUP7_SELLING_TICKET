@@ -326,12 +326,34 @@ public class OrganizerEventController extends HttpServlet {
         }
 
         try {
+            String title = request.getParameter("title");
+            String description = request.getParameter("description");
+            String location = request.getParameter("location");
+            String address = request.getParameter("address");
+
+            // Validate text fields (same rules as create)
+            if (!InputValidator.isValidEventTitle(title)) {
+                setToast(request, "Tên sự kiện phải từ 3-200 ký tự", "error");
+                response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
+                return;
+            }
+            if (!InputValidator.isValidDescription(description)) {
+                setToast(request, "Mô tả phải từ 10 ký tự trở lên", "error");
+                response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
+                return;
+            }
+            if (InputValidator.isBlank(location)) {
+                setToast(request, "Địa điểm không được để trống", "error");
+                response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
+                return;
+            }
+
             existing.setCategoryId(Integer.parseInt(request.getParameter("categoryId")));
-            existing.setTitle(request.getParameter("title"));
-            existing.setDescription(request.getParameter("description"));
-            existing.setBannerImage(request.getParameter("bannerImage"));
-            existing.setLocation(request.getParameter("location"));
-            existing.setAddress(request.getParameter("address"));
+            existing.setTitle(title.trim());
+            existing.setDescription(description.trim());
+            existing.setBannerImage(InputValidator.truncate(request.getParameter("bannerImage"), 2000));
+            existing.setLocation(InputValidator.truncate(location.trim(), 500));
+            existing.setAddress(InputValidator.truncate(address != null ? address.trim() : "", 500));
             existing.setStartDate(parseDateOrNull(request.getParameter("startDate")));
 
             String endDateStr = request.getParameter("endDate");

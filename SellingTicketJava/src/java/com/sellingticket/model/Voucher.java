@@ -7,7 +7,7 @@ import java.util.Date;
  */
 public class Voucher {
     private int voucherId;
-    private int eventId;
+    private int eventId; // <=0 means system/global scope
     private int organizerId;
     private String code;
     private String discountType; // "percentage" or "fixed"
@@ -20,6 +20,10 @@ public class Voucher {
     private Date endDate;
     private boolean isActive;
     private Date createdAt;
+
+    // Scope/funding metadata
+    private String voucherScope;      // EVENT | SYSTEM
+    private String fundSource;        // ORGANIZER | SYSTEM
 
     // Joined fields (not stored directly)
     private String eventName;
@@ -68,6 +72,12 @@ public class Voucher {
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+
+    public String getVoucherScope() { return voucherScope; }
+    public void setVoucherScope(String voucherScope) { this.voucherScope = voucherScope; }
+
+    public String getFundSource() { return fundSource; }
+    public void setFundSource(String fundSource) { this.fundSource = fundSource; }
 
     public String getEventName() { return eventName; }
     public void setEventName(String eventName) { this.eventName = eventName; }

@@ -141,4 +141,35 @@ public class DashboardService {
             return new java.util.ArrayList<>();
         }
     }
+
+    // ========================
+    // VOUCHER SETTLEMENT REPORTS
+    // ========================
+
+    public Map<String, Object> getVoucherSettlementStats() {
+        try {
+            return dashboardDAO.getVoucherSettlementStats();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getVoucherSettlementStats", e);
+            return new java.util.HashMap<>();
+        }
+    }
+
+    public Map<String, Object> getOrganizerSettlementStats(int organizerId) {
+        try {
+            return dashboardDAO.getOrganizerSettlementStats(organizerId);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getOrganizerSettlementStats", e);
+            return new java.util.HashMap<>();
+        }
+    }
+
+    public List<Map<String, Object>> getEventSettlementBreakdown(int limit) {
+        try {
+            return dashboardDAO.getEventSettlementBreakdown(limit);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getEventSettlementBreakdown", e);
+            return new java.util.ArrayList<>();
+        }
+    }
 }

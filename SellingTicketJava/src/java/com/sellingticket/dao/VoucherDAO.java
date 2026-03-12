@@ -31,6 +31,8 @@ public class VoucherDAO extends DBContext {
         v.setEndDate(rs.getTimestamp("end_date"));
         v.setActive(rs.getBoolean("is_active"));
         v.setCreatedAt(rs.getTimestamp("created_at"));
+        try { v.setVoucherScope(rs.getString("voucher_scope")); } catch (SQLException ignored) {}
+        try { v.setFundSource(rs.getString("fund_source")); } catch (SQLException ignored) {}
         try { v.setEventName(rs.getString("event_name")); } catch (SQLException ignored) {}
         return v;
     }
@@ -39,7 +41,8 @@ public class VoucherDAO extends DBContext {
         List<Voucher> vouchers = new ArrayList<>();
         String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
                      "LEFT JOIN Events e ON v.event_id = e.event_id " +
-                     "WHERE v.organizer_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
+                     "WHERE v.organizer_id = ? AND v.event_id IS NOT NULL AND v.event_id > 0 " +
+                     "AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, organizerId);
@@ -52,19 +55,20 @@ public class VoucherDAO extends DBContext {
     }
 
     /**
-     * Admin: get all vouchers in the system (including event-bound and global vouchers).
+     * Admin: get all system vouchers only (global scope).
      */
-    public List<Voucher> getAllVouchers() {
+    public List<Voucher> getSystemVouchers() {
         List<Voucher> vouchers = new ArrayList<>();
         String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
                      "LEFT JOIN Events e ON v.event_id = e.event_id " +
-                     "WHERE (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
+                     "WHERE (v.event_id IS NULL OR v.event_id <= 0) " +
+                     "AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) vouchers.add(mapResultSetToVoucher(rs));
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error getting all vouchers", e);
+            LOGGER.log(Level.SEVERE, "Error getting system vouchers", e);
         }
         return vouchers;
     }
@@ -101,8 +105,8 @@ public class VoucherDAO extends DBContext {
 
     public boolean createVoucher(Voucher v) {
         String sql = "INSERT INTO Vouchers (event_id, organizer_id, code, discount_type, discount_value, " +
-                     "min_order_amount, max_discount, usage_limit, start_date, end_date) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "min_order_amount, max_discount, usage_limit, start_date, end_date, voucher_scope, fund_source) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             if (v.getEventId() > 0) {
@@ -119,6 +123,8 @@ public class VoucherDAO extends DBContext {
             ps.setInt(8, v.getUsageLimit());
             ps.setTimestamp(9, v.getStartDate() != null ? new Timestamp(v.getStartDate().getTime()) : null);
             ps.setTimestamp(10, v.getEndDate() != null ? new Timestamp(v.getEndDate().getTime()) : null);
+            ps.setString(11, v.getVoucherScope() != null ? v.getVoucherScope() : (v.getEventId() > 0 ? "EVENT" : "SYSTEM"));
+            ps.setString(12, v.getFundSource() != null ? v.getFundSource() : (v.getEventId() > 0 ? "ORGANIZER" : "SYSTEM"));
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error creating voucher", e);

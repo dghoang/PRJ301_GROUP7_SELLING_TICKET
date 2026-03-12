@@ -202,6 +202,7 @@ var usersTable = new AjaxTable({
     searchInput: '#admin-user-search',
     pageSize: 20,
     skeletonCols: 6,
+    debounceDelay: 500,
     renderRow: function(u) {
         var avatar = u.avatar
             ? '<img src="' + esc(u.avatar) + '" class="rounded-circle object-fit-cover shadow-sm" style="width:40px;height:40px;">'

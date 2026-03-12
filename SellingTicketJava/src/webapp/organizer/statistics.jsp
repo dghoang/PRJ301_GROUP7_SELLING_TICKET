@@ -91,6 +91,59 @@
 
             <!-- Charts -->
             <div class="row g-4 mb-4">
+
+            <!-- ====== SETTLEMENT BREAKDOWN (Đối soát doanh thu) ====== -->
+            <div class="col-12 animate-on-scroll">
+                <div class="card glass-strong border-0 rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-3"><i class="fas fa-balance-scale text-primary me-2"></i>Chi tiết Doanh thu & Đối soát</h5>
+                        <p class="text-muted small mb-3">Tách bạch rõ: [Giá vé] − [Voucher Sự kiện] − [Voucher Hệ thống] = [Doanh thu thực tế]</p>
+                        <div class="row g-3">
+                            <div class="col-md">
+                                <div class="text-center p-3 rounded-4" style="background: rgba(16,185,129,0.06);">
+                                    <div class="fw-bold text-success fs-5"><fmt:formatNumber value="${totalFaceValue}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                    <small class="text-muted">Giá vé gốc (Face Value)</small>
+                                </div>
+                            </div>
+                            <div class="col-md">
+                                <div class="text-center p-3 rounded-4" style="background: rgba(245,158,11,0.06);">
+                                    <div class="fw-bold text-warning fs-5">-<fmt:formatNumber value="${totalEventDiscount}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                    <small class="text-muted">Voucher Sự kiện (bạn chịu)</small>
+                                </div>
+                            </div>
+                            <div class="col-md">
+                                <div class="text-center p-3 rounded-4" style="background: rgba(99,102,241,0.06);">
+                                    <div class="fw-bold text-primary fs-5"><fmt:formatNumber value="${totalSystemDiscount}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                    <small class="text-muted">Voucher Hệ thống (HT trợ giá)</small>
+                                </div>
+                            </div>
+                            <div class="col-md">
+                                <div class="text-center p-3 rounded-4" style="background: rgba(239,68,68,0.06);">
+                                    <div class="fw-bold text-danger fs-5">-<fmt:formatNumber value="${totalPlatformFee}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                    <small class="text-muted">Phí sàn</small>
+                                </div>
+                            </div>
+                            <div class="col-md">
+                                <div class="text-center p-3 rounded-4" style="background: rgba(6,182,212,0.08);">
+                                    <div class="fw-bold fs-5" style="color:#06b6d4;"><fmt:formatNumber value="${totalPayout}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                    <small class="text-muted fw-medium">Doanh thu thực nhận</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 rounded-3" style="background: rgba(99,102,241,0.04); border: 1px dashed rgba(99,102,241,0.2);">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle text-primary me-1"></i>
+                                <strong>Ghi chú:</strong> Khi khách dùng voucher hệ thống, bạn vẫn nhận đủ giá vé gốc (trừ phí sàn). 
+                                Khoản trợ giá do hệ thống chi trả, không trừ vào doanh thu của bạn.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row g-4 mb-4">
                 <div class="col-lg-8 animate-on-scroll">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">

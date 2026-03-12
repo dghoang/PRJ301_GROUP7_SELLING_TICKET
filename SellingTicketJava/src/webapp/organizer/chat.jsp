@@ -115,8 +115,8 @@ function orgLoadSessions() {
             return '<div class="org-session-item d-flex align-items-center gap-3 p-3 mb-2 ' + (isActive ? 'active-session' : '') + '" onclick="orgSelectSession(' + s.id + ')">'
             + '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;background:' + statusColor + ';"><i class="fas fa-user text-white" style="font-size:0.8rem;"></i></div>'
             + '<div class="flex-grow-1" style="min-width:0;">'
-            + '<div class="fw-medium small text-truncate">' + (s.customerName || 'Khách') + '</div>'
-            + '<small class="text-muted">' + (s.eventTitle || 'Sự kiện') + ' · ' + (s.time || '') + '</small></div>'
+            + '<div class="fw-medium small text-truncate">' + escHtml(s.customerName || 'Khách') + '</div>'
+            + '<small class="text-muted">' + escHtml(s.eventTitle || 'Sự kiện') + ' · ' + escHtml(s.time || '') + '</small></div>'
             + '<span class="badge rounded-pill px-2" style="background:' + statusColor + ';color:white;font-size:0.6rem;">' + statusLabel + '</span>'
             + '</div>';
         }).join('');
@@ -130,7 +130,7 @@ function orgSelectSession(id) {
     orgLastMsgId = 0;
     document.getElementById('orgChatInput').style.display = 'block';
     document.getElementById('orgCloseBtn').style.display = 'inline-block';
-    fetch(CTX + '/api/chat/accept', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'sessionId=' + id}).catch(() => {});
+    fetch(CTX + '/api/chat/accept', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + id}).catch(() => {});
     orgLoadMessages();
     if (orgPollTimer) clearInterval(orgPollTimer);
     orgPollTimer = setInterval(orgLoadMessages, 5000);
@@ -139,7 +139,7 @@ function orgSelectSession(id) {
 
 function orgCloseSession() {
     if (!orgActiveSessionId || !confirm('Đóng phiên chat này?')) return;
-    fetch(CTX + '/api/chat/close', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'sessionId=' + orgActiveSessionId})
+    fetch(CTX + '/api/chat/close', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + orgActiveSessionId})
     .then(r => r.json()).then(() => {
         orgActiveSessionId = 0;
         orgLastMsgId = 0;
@@ -182,7 +182,7 @@ function orgSend() {
     const msg = inp.value.trim();
     if (!msg || !orgActiveSessionId) return;
     inp.value = '';
-    fetch(CTX + '/api/chat/send', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'sessionId=' + orgActiveSessionId + '&content=' + encodeURIComponent(msg)})
+    fetch(CTX + '/api/chat/send', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + orgActiveSessionId + '&content=' + encodeURIComponent(msg)})
     .then(() => orgLoadMessages()).catch(() => {});
 }
 

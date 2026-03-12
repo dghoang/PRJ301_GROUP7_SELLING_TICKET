@@ -117,7 +117,7 @@ public class OrganizerTicketController extends HttpServlet {
         tt.setName(name.trim());
         tt.setPrice(price);
         tt.setQuantity(quantity);
-        tt.setDescription(request.getParameter("description"));
+        tt.setDescription(InputValidator.truncate(request.getParameter("description"), 2000));
 
         boolean ok = ticketService.createTicketType(tt);
         setToast(request, ok ? "Tạo loại vé thành công!" : "Tạo loại vé thất bại!", ok ? "success" : "error");
@@ -150,7 +150,7 @@ public class OrganizerTicketController extends HttpServlet {
         tt.setName(name.trim());
         tt.setPrice(price);
         tt.setQuantity(quantity);
-        tt.setDescription(request.getParameter("description"));
+        tt.setDescription(InputValidator.truncate(request.getParameter("description"), 2000));
         ticketService.updateTicketType(tt);
         setToast(request, "Cập nhật loại vé thành công!", "success");
     }

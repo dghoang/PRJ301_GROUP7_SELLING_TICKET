@@ -2,6 +2,7 @@ package com.sellingticket.controller.admin;
 
 import com.sellingticket.dao.SiteSettingsDAO;
 import com.sellingticket.service.DashboardService;
+import com.sellingticket.util.InputValidator;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +46,8 @@ public class AdminSettingsController extends HttpServlet {
         Map<String, String> updates = new HashMap<>();
         updates.put("chat_enabled", request.getParameter("chatEnabled") != null ? "true" : "false");
         updates.put("chat_auto_accept", request.getParameter("chatAutoAccept") != null ? "true" : "false");
-        updates.put("chat_cooldown_minutes", getParamOrDefault(request, "chatCooldown", "30"));
+        updates.put("chat_cooldown_minutes", String.valueOf(
+                InputValidator.parseIntInRange(request.getParameter("chatCooldown"), 1, 1440, 30)));
         updates.put("require_event_approval", request.getParameter("requireApproval") != null ? "true" : "false");
         updates.put("allow_organizer_registration", request.getParameter("allowOrganizerReg") != null ? "true" : "false");
 

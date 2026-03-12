@@ -89,8 +89,8 @@ public class AdminCategoryController extends HttpServlet {
 
         Category category = new Category();
         category.setName(name);
-        category.setIcon(request.getParameter("icon"));
-        category.setDescription(request.getParameter("description"));
+        category.setIcon(InputValidator.truncate(request.getParameter("icon"), 500));
+        category.setDescription(InputValidator.truncate(request.getParameter("description"), 1000));
 
         if (categoryService.createCategory(category)) {
             FlashUtil.success(request, "Danh mục đã được tạo!");
@@ -114,8 +114,8 @@ public class AdminCategoryController extends HttpServlet {
         category.setCategoryId(categoryId);
         category.setName(name);
         category.setSlug(request.getParameter("slug"));
-        category.setIcon(request.getParameter("icon"));
-        category.setDescription(request.getParameter("description"));
+        category.setIcon(InputValidator.truncate(request.getParameter("icon"), 500));
+        category.setDescription(InputValidator.truncate(request.getParameter("description"), 1000));
 
         if (categoryService.updateCategory(category)) {
             FlashUtil.success(request, "Danh mục đã được cập nhật!");

@@ -30,8 +30,10 @@ public class OrderDAO extends DBContext {
                 "WHERE ticket_type_id = ? AND (quantity - sold_quantity) >= ? AND is_active = 1";
         String insertOrderSQL =
                 "INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, " +
-                "final_amount, status, payment_method, buyer_name, buyer_email, buyer_phone, notes) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "final_amount, status, payment_method, buyer_name, buyer_email, buyer_phone, notes, " +
+                "voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, " +
+                "platform_fee_amount, organizer_payout_amount) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         String insertItemSQL =
                 "INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) " +
                 "VALUES (?, ?, ?, ?, ?)";
@@ -90,6 +92,18 @@ public class OrderDAO extends DBContext {
                 psOrder.setString(10, order.getBuyerEmail());
                 psOrder.setString(11, order.getBuyerPhone());
                 psOrder.setString(12, order.getNotes());
+                // Settlement fields
+                if (order.getVoucherId() != null) {
+                    psOrder.setInt(13, order.getVoucherId());
+                } else {
+                    psOrder.setNull(13, Types.INTEGER);
+                }
+                psOrder.setString(14, order.getVoucherScope() != null ? order.getVoucherScope() : "NONE");
+                psOrder.setString(15, order.getVoucherFundSource() != null ? order.getVoucherFundSource() : "NONE");
+                psOrder.setDouble(16, order.getEventDiscountAmount());
+                psOrder.setDouble(17, order.getSystemDiscountAmount());
+                psOrder.setDouble(18, order.getPlatformFeeAmount());
+                psOrder.setDouble(19, order.getOrganizerPayoutAmount());
                 psOrder.executeUpdate();
 
                 ResultSet rs = psOrder.getGeneratedKeys();
@@ -285,6 +299,17 @@ public class OrderDAO extends DBContext {
         order.setNotes(rs.getString("notes"));
         order.setCreatedAt(rs.getTimestamp("created_at"));
         order.setEventTitle(rs.getString("event_title"));
+        // Settlement fields (graceful if columns don't exist yet)
+        try {
+            int vid = rs.getInt("voucher_id");
+            order.setVoucherId(rs.wasNull() ? null : vid);
+        } catch (SQLException ignored) {}
+        try { order.setVoucherScope(rs.getString("voucher_scope")); } catch (SQLException ignored) {}
+        try { order.setVoucherFundSource(rs.getString("voucher_fund_source")); } catch (SQLException ignored) {}
+        try { order.setEventDiscountAmount(rs.getDouble("event_discount_amount")); } catch (SQLException ignored) {}
+        try { order.setSystemDiscountAmount(rs.getDouble("system_discount_amount")); } catch (SQLException ignored) {}
+        try { order.setPlatformFeeAmount(rs.getDouble("platform_fee_amount")); } catch (SQLException ignored) {}
+        try { order.setOrganizerPayoutAmount(rs.getDouble("organizer_payout_amount")); } catch (SQLException ignored) {}
         return order;
     }
 
@@ -313,13 +338,14 @@ public class OrderDAO extends DBContext {
      * @return true if this call actually updated the order, false if already processed
      */
     public boolean confirmPaymentAtomic(int orderId, String transactionId) {
+        // V11 FIX: Removed reference to non-existent transaction_id column in Orders table.
+        // Transaction tracking lives in PaymentTransactions table (separate from Orders).
         String sql = "UPDATE Orders SET status = 'paid', payment_date = GETDATE(), " +
-                     "transaction_id = ?, updated_at = GETDATE() " +
+                     "updated_at = GETDATE() " +
                      "WHERE order_id = ? AND status = 'pending'";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, transactionId);
-            ps.setInt(2, orderId);
+            ps.setInt(1, orderId);
             int rows = ps.executeUpdate();
             if (rows > 0) {
                 LOGGER.log(Level.INFO, "Payment confirmed atomically: orderId={0}, txRef={1}",

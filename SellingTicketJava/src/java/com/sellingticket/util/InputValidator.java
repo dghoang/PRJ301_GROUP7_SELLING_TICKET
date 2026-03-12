@@ -154,4 +154,31 @@ public final class InputValidator {
         }
         return false;
     }
+
+    /** Validate a URL (http/https, max length). */
+    public static boolean isValidUrl(String url) {
+        if (isBlank(url)) return true; // optional
+        String trimmed = url.trim();
+        return trimmed.length() <= 2000
+                && (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
+                && !trimmed.contains("<") && !trimmed.contains(">");
+    }
+
+    /** Truncate a string to max length (null-safe). */
+    public static String truncate(String value, int maxLen) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.length() > maxLen ? trimmed.substring(0, maxLen) : trimmed;
+    }
+
+    /** Parse string as int within range, returning defaultVal if invalid. */
+    public static int parseIntInRange(String value, int min, int max, int defaultVal) {
+        if (isBlank(value)) return defaultVal;
+        try {
+            int v = Integer.parseInt(value.trim());
+            return (v >= min && v <= max) ? v : defaultVal;
+        } catch (NumberFormatException e) {
+            return defaultVal;
+        }
+    }
 }

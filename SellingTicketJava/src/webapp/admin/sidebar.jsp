@@ -41,6 +41,10 @@
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'chat' ? 'active' : ''}">
                 <i class="fas fa-comments" style="width: 20px; text-align: center;"></i>Chat
             </a>
+            <a href="${pageContext.request.contextPath}/admin/system-vouchers" 
+               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'system-vouchers' ? 'active' : ''}">
+                <i class="fas fa-gift" style="width: 20px; text-align: center;"></i>Voucher HT
+            </a>
             <a href="${pageContext.request.contextPath}/admin/reports" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'reports' ? 'active' : ''}">
                 <i class="fas fa-chart-bar" style="width: 20px; text-align: center;"></i>Báo cáo

@@ -72,6 +72,14 @@ public class OrganizerStatisticsController extends HttpServlet {
             request.setAttribute("totalRevenue", data.totalRevenue);
             request.setAttribute("totalOrders", data.totalOrders);
             request.setAttribute("totalEvents", data.events.size());
+            // Settlement breakdown for organizer
+            if (data.settlement != null) {
+                request.setAttribute("totalFaceValue", data.settlement.getOrDefault("totalFaceValue", 0.0));
+                request.setAttribute("totalEventDiscount", data.settlement.getOrDefault("totalEventDiscount", 0.0));
+                request.setAttribute("totalSystemDiscount", data.settlement.getOrDefault("totalSystemDiscount", 0.0));
+                request.setAttribute("totalPlatformFee", data.settlement.getOrDefault("totalPlatformFee", 0.0));
+                request.setAttribute("totalPayout", data.settlement.getOrDefault("totalPayout", 0.0));
+            }
             request.getRequestDispatcher("/organizer/statistics.jsp").forward(request, response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load organizer statistics", e);
@@ -113,6 +121,12 @@ public class OrganizerStatisticsController extends HttpServlet {
         if (type == null) type = "revenue";
         int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
 
+        // SECURITY: Verify organizer has access to the requested event
+        if (eventId > 0 && !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
+            sendJson(response, 403, "{\"error\":\"Access denied\"}");
+            return;
+        }
+
         try {
             switch (type) {
                 case "revenue": {
@@ -153,6 +167,11 @@ public class OrganizerStatisticsController extends HttpServlet {
             sendJson(response, 400, "{\"error\":\"Missing eventId\"}");
             return;
         }
+        // SECURITY: Verify organizer has access to the requested event
+        if (!eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
+            sendJson(response, 403, "{\"error\":\"Access denied\"}");
+            return;
+        }
         try {
             Map<String, Object> stats = dashboardService.getEventSpecificStats(eventId);
             StringBuilder json = new StringBuilder("{");
@@ -173,6 +192,9 @@ public class OrganizerStatisticsController extends HttpServlet {
     private StatsData buildStatsData(User user) {
         Map<String, Object> stats = dashboardService.getOrganizerDashboardStats(user.getUserId());
         List<Map<String, Object>> perEventStats = dashboardService.getOrganizerEventStats(user.getUserId());
+
+        // Settlement breakdown for organizer
+        Map<String, Object> settlement = dashboardService.getOrganizerSettlementStats(user.getUserId());
 
         Map<Integer, Map<String, Object>> statsLookup = new HashMap<>();
         for (Map<String, Object> row : perEventStats) {
@@ -196,6 +218,7 @@ public class OrganizerStatisticsController extends HttpServlet {
         data.eventStats = eventStats;
         data.totalRevenue = ((Number) stats.getOrDefault("myRevenue", 0.0)).doubleValue();
         data.totalOrders = ((Number) stats.getOrDefault("myTotalOrders", 0)).intValue();
+        data.settlement = settlement;
         return data;
     }
 
@@ -232,5 +255,6 @@ public class OrganizerStatisticsController extends HttpServlet {
         List<Map<String, Object>> eventStats;
         double totalRevenue;
         int totalOrders;
+        Map<String, Object> settlement;
     }
 }

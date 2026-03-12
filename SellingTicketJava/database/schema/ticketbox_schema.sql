@@ -197,7 +197,7 @@ BEGIN
         discount_amount DECIMAL(18,2) DEFAULT 0,
         final_amount DECIMAL(18,2) NOT NULL,
         status NVARCHAR(20) DEFAULT 'pending' CHECK (status IN (
-            'pending', 'paid', 'cancelled', 'refunded'
+            'pending', 'paid', 'cancelled', 'refunded', 'refund_requested', 'checked_in'
         )),
         payment_method NVARCHAR(30) DEFAULT 'seepay' CHECK (payment_method IN (
             'seepay', 'bank_transfer', 'cash'

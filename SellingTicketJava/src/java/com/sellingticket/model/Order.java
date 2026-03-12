@@ -8,9 +8,9 @@ public class Order {
     private String orderCode;
     private int userId;
     private int eventId;
-    private double totalAmount;
-    private double discountAmount;
-    private double finalAmount;
+    private double totalAmount;          // Face value (gia ve goc)
+    private double discountAmount;       // Total discount (event + system)
+    private double finalAmount;          // Customer paid
     private String status;
     private String paymentMethod;
     private Date paymentDate;
@@ -20,7 +20,17 @@ public class Order {
     private String notes;
     private String voucherCode;
     private Date createdAt;
-    
+
+    // Voucher/settlement tracking (for reconcile)
+    private Integer voucherId;
+    private String voucherScope;         // NONE | EVENT | SYSTEM
+    private String voucherFundSource;    // NONE | ORGANIZER | SYSTEM
+    private double eventDiscountAmount;  // deducted from organizer revenue
+    private double systemDiscountAmount; // platform subsidy
+    private double platformFeeAmount;    // platform fee (if any)
+    private double organizerGrossAmount; // totalAmount - eventDiscountAmount
+    private double organizerPayoutAmount;// organizerGrossAmount - platformFeeAmount
+
     // Joined fields
     private String eventTitle;
     private List<OrderItem> items;
@@ -75,6 +85,30 @@ public class Order {
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+
+    public Integer getVoucherId() { return voucherId; }
+    public void setVoucherId(Integer voucherId) { this.voucherId = voucherId; }
+
+    public String getVoucherScope() { return voucherScope; }
+    public void setVoucherScope(String voucherScope) { this.voucherScope = voucherScope; }
+
+    public String getVoucherFundSource() { return voucherFundSource; }
+    public void setVoucherFundSource(String voucherFundSource) { this.voucherFundSource = voucherFundSource; }
+
+    public double getEventDiscountAmount() { return eventDiscountAmount; }
+    public void setEventDiscountAmount(double eventDiscountAmount) { this.eventDiscountAmount = eventDiscountAmount; }
+
+    public double getSystemDiscountAmount() { return systemDiscountAmount; }
+    public void setSystemDiscountAmount(double systemDiscountAmount) { this.systemDiscountAmount = systemDiscountAmount; }
+
+    public double getPlatformFeeAmount() { return platformFeeAmount; }
+    public void setPlatformFeeAmount(double platformFeeAmount) { this.platformFeeAmount = platformFeeAmount; }
+
+    public double getOrganizerGrossAmount() { return organizerGrossAmount; }
+    public void setOrganizerGrossAmount(double organizerGrossAmount) { this.organizerGrossAmount = organizerGrossAmount; }
+
+    public double getOrganizerPayoutAmount() { return organizerPayoutAmount; }
+    public void setOrganizerPayoutAmount(double organizerPayoutAmount) { this.organizerPayoutAmount = organizerPayoutAmount; }
 
     public String getEventTitle() { return eventTitle; }
     public void setEventTitle(String eventTitle) { this.eventTitle = eventTitle; }

@@ -19,8 +19,8 @@ public class VoucherService {
         return voucherDAO.getVouchersByOrganizer(organizerId);
     }
 
-    public List<Voucher> getAllVouchers() {
-        return voucherDAO.getAllVouchers();
+    public List<Voucher> getSystemVouchers() {
+        return voucherDAO.getSystemVouchers();
     }
 
     public Voucher getVoucherById(int voucherId) {
@@ -56,29 +56,31 @@ public class VoucherService {
      */
     public VoucherResult validateVoucher(String code, int eventId, double orderAmount) {
         if (code == null || code.trim().isEmpty()) {
-            return new VoucherResult(false, 0, "Vui lòng nhập mã giảm giá");
+            return VoucherResult.invalid("Vui lòng nhập mã giảm giá");
         }
 
         Voucher v = voucherDAO.getVoucherByCode(code.trim());
         if (v == null) {
-            return new VoucherResult(false, 0, "Mã giảm giá không tồn tại");
+            return VoucherResult.invalid("Mã giảm giá không tồn tại");
         }
         if (!v.isActive()) {
-            return new VoucherResult(false, 0, "Mã giảm giá đã bị vô hiệu hóa");
+            return VoucherResult.invalid("Mã giảm giá đã bị vô hiệu hóa");
         }
         if (v.isExpired()) {
-            return new VoucherResult(false, 0, "Mã giảm giá đã hết hạn");
+            return VoucherResult.invalid("Mã giảm giá đã hết hạn");
         }
         if (v.getUsageLimit() > 0 && v.getUsedCount() >= v.getUsageLimit()) {
-            return new VoucherResult(false, 0, "Mã giảm giá đã hết lượt sử dụng");
+            return VoucherResult.invalid("Mã giảm giá đã hết lượt sử dụng");
         }
-        // Check event scope (0 = all events)
-        if (v.getEventId() > 0 && v.getEventId() != eventId) {
-            return new VoucherResult(false, 0, "Mã giảm giá không áp dụng cho sự kiện này");
+
+        // Event voucher must match event; system voucher (eventId <= 0) applies to all events.
+        boolean isSystemVoucher = v.getEventId() <= 0;
+        if (!isSystemVoucher && v.getEventId() != eventId) {
+            return VoucherResult.invalid("Mã giảm giá không áp dụng cho sự kiện này");
         }
+
         if (v.getMinOrderAmount() > 0 && orderAmount < v.getMinOrderAmount()) {
-            return new VoucherResult(false, 0,
-                    "Đơn hàng tối thiểu " + String.format("%,.0f", v.getMinOrderAmount()) + "đ");
+            return VoucherResult.invalid("Đơn hàng tối thiểu " + String.format("%,.0f", v.getMinOrderAmount()) + "đ");
         }
 
         // Calculate discount
@@ -91,25 +93,47 @@ public class VoucherService {
         } else {
             discount = v.getDiscountValue();
         }
-        discount = Math.min(discount, orderAmount); // cannot exceed order
+        discount = Math.min(discount, orderAmount);
+
+        double eventDiscount = isSystemVoucher ? 0 : discount;
+        double systemDiscount = isSystemVoucher ? discount : 0;
+        String scope = isSystemVoucher ? "SYSTEM" : "EVENT";
+        String source = isSystemVoucher ? "SYSTEM" : "ORGANIZER";
 
         String msg = "Giảm " + String.format("%,.0f", discount) + "đ";
         if ("percentage".equals(v.getDiscountType())) {
             msg = "Giảm " + (int) v.getDiscountValue() + "% (-" + String.format("%,.0f", discount) + "đ)";
         }
-        return new VoucherResult(true, discount, msg);
+
+        return new VoucherResult(true, v.getVoucherId(), scope, source,
+                discount, eventDiscount, systemDiscount, msg);
     }
 
-    /** Simple result holder for voucher validation. */
+    /** Result holder for voucher validation + settlement split. */
     public static class VoucherResult {
         public final boolean valid;
+        public final Integer voucherId;
+        public final String voucherScope;
+        public final String fundSource;
         public final double discountAmount;
+        public final double eventDiscountAmount;
+        public final double systemDiscountAmount;
         public final String message;
 
-        public VoucherResult(boolean valid, double discountAmount, String message) {
+        public VoucherResult(boolean valid, Integer voucherId, String voucherScope, String fundSource,
+                double discountAmount, double eventDiscountAmount, double systemDiscountAmount, String message) {
             this.valid = valid;
+            this.voucherId = voucherId;
+            this.voucherScope = voucherScope;
+            this.fundSource = fundSource;
             this.discountAmount = discountAmount;
+            this.eventDiscountAmount = eventDiscountAmount;
+            this.systemDiscountAmount = systemDiscountAmount;
             this.message = message;
+        }
+
+        public static VoucherResult invalid(String message) {
+            return new VoucherResult(false, null, "NONE", "NONE", 0, 0, 0, message);
         }
     }
 }

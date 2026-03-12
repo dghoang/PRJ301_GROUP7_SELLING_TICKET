@@ -319,10 +319,13 @@ function applyPromo() {
 
     var ctx = '${pageContext.request.contextPath}';
     var eventId = '${event.eventId}';
-    var url = ctx + '/checkout?action=validate-voucher&code=' + encodeURIComponent(code)
-            + '&eventId=' + eventId + '&amount=' + baseSubtotal;
 
-    fetch(url, { method: 'POST' })
+    fetch(ctx + '/api/voucher/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        credentials: 'same-origin',
+        body: 'code=' + encodeURIComponent(code) + '&eventId=' + encodeURIComponent(eventId) + '&amount=' + encodeURIComponent(baseSubtotal)
+    })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             btn.disabled = false;

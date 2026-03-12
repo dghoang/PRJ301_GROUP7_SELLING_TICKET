@@ -225,12 +225,16 @@ function prepareReject() {
 
 function toggleFeatured(eventId, currentState, btn) {
     var basePath = document.querySelector('meta[name="ctx"]')?.content || '';
-    fetch(basePath + '/admin/events/feature', {
+    btn.disabled = true;
+    fetch(basePath + '/api/admin/events/feature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        credentials: 'same-origin',
         body: 'eventId=' + eventId + '&featured=' + (!currentState)
     })
-    .then(function(res) { if (res.ok) window.adminEventsTable.load(); });
+    .then(function(res) { return res.json(); })
+    .then(function(data) { btn.disabled = false; if (data.success) window.adminEventsTable.load(); })
+    .catch(function() { btn.disabled = false; });
 }
 </script>
 
@@ -276,6 +280,7 @@ function toggleFeatured(eventId, currentState, btn) {
         searchInput: '#admin-event-search',
         pageSize: 20,
         skeletonCols: 6,
+        debounceDelay: 500,
         onDataLoaded: function(data) {
             var totalEl = document.getElementById('stat-total-count');
             var pendingEl = document.getElementById('stat-pending-count');

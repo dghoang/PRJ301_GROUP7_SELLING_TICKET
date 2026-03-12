@@ -3,6 +3,7 @@ package com.sellingticket.controller.organizer;
 import com.sellingticket.model.User;
 import com.sellingticket.service.SupportTicketService;
 import com.sellingticket.service.UserService;
+import com.sellingticket.util.InputValidator;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -78,14 +79,35 @@ public class OrganizerSettingsController extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        // 1. Update profile fields
+        // 1. Update profile fields (with validation)
         User updated = userService.getUserById(user.getUserId());
-        updated.setFullName(trim(request.getParameter("fullName")));
-        updated.setPhone(trim(request.getParameter("phone")));
-        updated.setBio(trim(request.getParameter("bio")));
-        updated.setWebsite(trim(request.getParameter("website")));
-        updated.setSocialFacebook(trim(request.getParameter("socialFacebook")));
-        updated.setSocialInstagram(trim(request.getParameter("socialInstagram")));
+        String fullName = trim(request.getParameter("fullName"));
+        String phone = trim(request.getParameter("phone"));
+
+        if (!InputValidator.isValidFullName(fullName)) {
+            setToast(request, "Họ tên phải từ 2-100 ký tự", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/settings");
+            return;
+        }
+        if (!InputValidator.isValidPhone(phone)) {
+            setToast(request, "Số điện thoại không hợp lệ", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/settings");
+            return;
+        }
+
+        String website = trim(request.getParameter("website"));
+        if (website != null && !website.isEmpty() && !InputValidator.isValidUrl(website)) {
+            setToast(request, "URL website không hợp lệ (phải bắt đầu bằng http:// hoặc https://)", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/settings");
+            return;
+        }
+
+        updated.setFullName(fullName);
+        updated.setPhone(phone);
+        updated.setBio(InputValidator.truncate(trim(request.getParameter("bio")), 2000));
+        updated.setWebsite(InputValidator.truncate(website, 2000));
+        updated.setSocialFacebook(InputValidator.truncate(trim(request.getParameter("socialFacebook")), 2000));
+        updated.setSocialInstagram(InputValidator.truncate(trim(request.getParameter("socialInstagram")), 2000));
 
         boolean profileOk = userService.updateOrganizerProfile(updated);
 
@@ -95,8 +117,10 @@ public class OrganizerSettingsController extends HttpServlet {
         prefs.put("notifyTicketIssue", request.getParameter("notifyTicketIssue") != null ? "true" : "false");
         prefs.put("notifyCheckin", request.getParameter("notifyCheckin") != null ? "true" : "false");
         prefs.put("notifyDailyReport", request.getParameter("notifyDailyReport") != null ? "true" : "false");
-        prefs.put("defaultMaxTickets", trim(request.getParameter("defaultMaxTickets")));
-        prefs.put("paymentTimeout", trim(request.getParameter("paymentTimeout")));
+        prefs.put("defaultMaxTickets", String.valueOf(
+                InputValidator.parseIntInRange(request.getParameter("defaultMaxTickets"), 1, 10000, 10)));
+        prefs.put("paymentTimeout", String.valueOf(
+                InputValidator.parseIntInRange(request.getParameter("paymentTimeout"), 1, 480, 60)));
         prefs.put("allowEarlyCheckin", request.getParameter("allowEarlyCheckin") != null ? "true" : "false");
         prefs.put("allowTicketTransfer", request.getParameter("allowTicketTransfer") != null ? "true" : "false");
         prefs.put("staffCanCancel", request.getParameter("staffCanCancel") != null ? "true" : "false");

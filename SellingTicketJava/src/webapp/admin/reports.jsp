@@ -160,6 +160,99 @@
                 </div>
             </div>
 
+            <!-- ====== VOUCHER SETTLEMENT SECTION ====== -->
+            <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4"><i class="fas fa-balance-scale text-primary me-2"></i>Đối soát Voucher & Doanh thu</h5>
+                    <div class="row g-4">
+                        <div class="col-md-4 col-xl-2">
+                            <div class="text-center p-3 rounded-4" style="background: rgba(16,185,129,0.06);">
+                                <div class="fw-bold text-success fs-5"><fmt:formatNumber value="${totalCustomerPaid}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                <small class="text-muted">Khách trả thực</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xl-2">
+                            <div class="text-center p-3 rounded-4" style="background: rgba(99,102,241,0.06);">
+                                <div class="fw-bold text-primary fs-5"><fmt:formatNumber value="${totalSystemSubsidy}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                <small class="text-muted">HT trợ giá (${systemVoucherCount} đơn)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xl-2">
+                            <div class="text-center p-3 rounded-4" style="background: rgba(245,158,11,0.06);">
+                                <div class="fw-bold text-warning fs-5"><fmt:formatNumber value="${totalEventDiscount}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                <small class="text-muted">BTC giảm giá (${eventVoucherCount} đơn)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xl-2">
+                            <div class="text-center p-3 rounded-4" style="background: rgba(239,68,68,0.06);">
+                                <div class="fw-bold text-danger fs-5"><fmt:formatNumber value="${totalPlatformFee}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                <small class="text-muted">Phí sàn</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xl-2">
+                            <div class="text-center p-3 rounded-4" style="background: rgba(6,182,212,0.06);">
+                                <div class="fw-bold" style="color:#06b6d4; font-size:1.15rem;"><fmt:formatNumber value="${totalOrganizerPayout}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                <small class="text-muted">Chuyển cho BTC</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-xl-2">
+                            <div class="text-center p-3 rounded-4" style="background: rgba(139,92,246,0.06);">
+                                <div class="fw-bold" style="color:#8b5cf6; font-size:1.15rem;"><fmt:formatNumber value="${totalRevenue}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</div>
+                                <small class="text-muted">Tổng doanh thu sàn</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== PER-EVENT SETTLEMENT BREAKDOWN ====== -->
+            <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll">
+                <div class="card-body p-0">
+                    <div class="d-flex justify-content-between align-items-center p-4 pb-2">
+                        <h5 class="fw-bold mb-0"><i class="fas fa-table text-primary me-2"></i>Chi tiết đối soát theo sự kiện</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-glass align-middle mb-0" style="font-size:0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Sự kiện</th>
+                                    <th>Organizer</th>
+                                    <th class="text-end">Giá vé gốc</th>
+                                    <th class="text-end">Voucher SK</th>
+                                    <th class="text-end">Voucher HT</th>
+                                    <th class="text-end">Khách trả</th>
+                                    <th class="text-end">Chuyển BTC</th>
+                                    <th class="text-center">Đơn</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <c:choose>
+                                    <c:when test="${empty eventSettlement}">
+                                        <tr><td colspan="9" class="text-center py-4 text-muted">Chưa có dữ liệu đối soát</td></tr>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:forEach var="es" items="${eventSettlement}" varStatus="loop">
+                                            <tr>
+                                                <td>${loop.count}</td>
+                                                <td class="fw-medium" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${es.title}</td>
+                                                <td class="text-muted">${es.organizerName}</td>
+                                                <td class="text-end"><fmt:formatNumber value="${es.faceValue}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</td>
+                                                <td class="text-end text-warning">-<fmt:formatNumber value="${es.eventDiscount}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</td>
+                                                <td class="text-end text-primary">-<fmt:formatNumber value="${es.systemSubsidy}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</td>
+                                                <td class="text-end text-success fw-bold"><fmt:formatNumber value="${es.customerPaid}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</td>
+                                                <td class="text-end fw-bold" style="color:#06b6d4;"><fmt:formatNumber value="${es.organizerPayout}" type="number" maxFractionDigits="0" groupingUsed="true"/>đ</td>
+                                                <td class="text-center"><span class="badge bg-light text-dark border rounded-pill">${es.paidOrders}</span></td>
+                                            </tr>
+                                        </c:forEach>
+                                    </c:otherwise>
+                                </c:choose>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Top Events Table -->
             <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                 <div class="card-body p-0">

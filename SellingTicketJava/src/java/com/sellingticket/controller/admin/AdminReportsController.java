@@ -45,6 +45,20 @@ public class AdminReportsController extends HttpServlet {
             request.setAttribute("totalCancelledOrders", stats.getOrDefault("cancelledOrders", 0));
             request.setAttribute("totalEvents", stats.getOrDefault("totalEvents", 0));
 
+            // Voucher settlement stats
+            Map<String, Object> settlement = dashboardService.getVoucherSettlementStats();
+            request.setAttribute("totalCustomerPaid", settlement.getOrDefault("totalCustomerPaid", 0.0));
+            request.setAttribute("totalSystemSubsidy", settlement.getOrDefault("totalSystemSubsidy", 0.0));
+            request.setAttribute("totalEventDiscount", settlement.getOrDefault("totalEventDiscount", 0.0));
+            request.setAttribute("totalPlatformFee", settlement.getOrDefault("totalPlatformFee", 0.0));
+            request.setAttribute("totalOrganizerPayout", settlement.getOrDefault("totalOrganizerPayout", 0.0));
+            request.setAttribute("systemVoucherCount", settlement.getOrDefault("systemVoucherCount", 0));
+            request.setAttribute("eventVoucherCount", settlement.getOrDefault("eventVoucherCount", 0));
+
+            // Per-event settlement breakdown table
+            List<Map<String, Object>> eventSettlement = dashboardService.getEventSettlementBreakdown(20);
+            request.setAttribute("eventSettlement", eventSettlement);
+
             // Top events for reports table
             List<Map<String, Object>> topEvents = dashboardService.getTopEventsByRevenue(8);
             request.setAttribute("topEvents", topEvents);

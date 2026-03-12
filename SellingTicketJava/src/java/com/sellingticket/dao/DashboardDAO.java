@@ -379,4 +379,117 @@ public class DashboardDAO extends DBContext {
         }
         return result;
     }
+
+    // ================================================================
+    // VOUCHER SETTLEMENT REPORTS
+    // ================================================================
+
+    /**
+     * Admin: get totals for voucher subsidy reporting.
+     * Returns: totalCustomerPaid, totalSystemSubsidy, totalEventDiscount,
+     *          totalPlatformFee, totalOrganizerPayout, systemVoucherCount
+     */
+    public Map<String, Object> getVoucherSettlementStats() {
+        Map<String, Object> stats = new HashMap<>();
+        String sql = "SELECT " +
+            "ISNULL(SUM(CASE WHEN status='paid' THEN final_amount ELSE 0 END), 0) as total_customer_paid, " +
+            "ISNULL(SUM(CASE WHEN status='paid' THEN system_discount_amount ELSE 0 END), 0) as total_system_subsidy, " +
+            "ISNULL(SUM(CASE WHEN status='paid' THEN event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
+            "ISNULL(SUM(CASE WHEN status='paid' THEN platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
+            "ISNULL(SUM(CASE WHEN status='paid' THEN organizer_payout_amount ELSE 0 END), 0) as total_organizer_payout, " +
+            "COUNT(CASE WHEN status='paid' AND voucher_scope='SYSTEM' THEN 1 END) as system_voucher_count, " +
+            "COUNT(CASE WHEN status='paid' AND voucher_scope='EVENT' THEN 1 END) as event_voucher_count " +
+            "FROM Orders";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                stats.put("totalCustomerPaid", rs.getDouble("total_customer_paid"));
+                stats.put("totalSystemSubsidy", rs.getDouble("total_system_subsidy"));
+                stats.put("totalEventDiscount", rs.getDouble("total_event_discount"));
+                stats.put("totalPlatformFee", rs.getDouble("total_platform_fee"));
+                stats.put("totalOrganizerPayout", rs.getDouble("total_organizer_payout"));
+                stats.put("systemVoucherCount", rs.getInt("system_voucher_count"));
+                stats.put("eventVoucherCount", rs.getInt("event_voucher_count"));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load voucher settlement stats", e);
+        }
+        return stats;
+    }
+
+    /**
+     * Organizer: get settlement breakdown for a specific organizer's events.
+     * Shows face-value revenue, event discounts, system discounts, payout.
+     */
+    public Map<String, Object> getOrganizerSettlementStats(int organizerId) {
+        Map<String, Object> stats = new HashMap<>();
+        String sql = "SELECT " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.total_amount ELSE 0 END), 0) as total_face_value, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.system_discount_amount ELSE 0 END), 0) as total_system_discount, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.organizer_payout_amount ELSE 0 END), 0) as total_payout " +
+            "FROM Orders o JOIN Events e ON o.event_id = e.event_id " +
+            "WHERE e.organizer_id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, organizerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    stats.put("totalFaceValue", rs.getDouble("total_face_value"));
+                    stats.put("totalEventDiscount", rs.getDouble("total_event_discount"));
+                    stats.put("totalSystemDiscount", rs.getDouble("total_system_discount"));
+                    stats.put("totalPlatformFee", rs.getDouble("total_platform_fee"));
+                    stats.put("totalPayout", rs.getDouble("total_payout"));
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load organizer settlement stats for id=" + organizerId, e);
+        }
+        return stats;
+    }
+
+    /**
+     * Admin: per-event settlement breakdown for reports table.
+     */
+    public List<Map<String, Object>> getEventSettlementBreakdown(int limit) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        String sql = "SELECT TOP (?) e.event_id, e.title, u.full_name as organizer_name, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.total_amount ELSE 0 END), 0) as face_value, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.final_amount ELSE 0 END), 0) as customer_paid, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.system_discount_amount ELSE 0 END), 0) as system_subsidy, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.event_discount_amount ELSE 0 END), 0) as event_discount, " +
+            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.organizer_payout_amount ELSE 0 END), 0) as organizer_payout, " +
+            "COUNT(CASE WHEN o.status='paid' THEN 1 END) as paid_orders " +
+            "FROM Events e LEFT JOIN Orders o ON e.event_id = o.event_id " +
+            "LEFT JOIN Users u ON e.organizer_id = u.user_id " +
+            "GROUP BY e.event_id, e.title, u.full_name " +
+            "ORDER BY face_value DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("eventId", rs.getInt("event_id"));
+                    row.put("title", rs.getString("title"));
+                    row.put("organizerName", rs.getString("organizer_name"));
+                    row.put("faceValue", rs.getDouble("face_value"));
+                    row.put("customerPaid", rs.getDouble("customer_paid"));
+                    row.put("systemSubsidy", rs.getDouble("system_subsidy"));
+                    row.put("eventDiscount", rs.getDouble("event_discount"));
+                    row.put("organizerPayout", rs.getDouble("organizer_payout"));
+                    row.put("paidOrders", rs.getInt("paid_orders"));
+                    result.add(row);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load event settlement breakdown", e);
+        }
+        return result;
+    }
 }

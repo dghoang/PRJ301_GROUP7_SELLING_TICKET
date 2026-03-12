@@ -142,6 +142,11 @@ public class AdminEventController extends HttpServlet {
     private void rejectEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         String reason = request.getParameter("reason");
+        // Validate & truncate reason to prevent abuse
+        if (reason != null) {
+            reason = reason.trim();
+            if (reason.length() > 1000) reason = reason.substring(0, 1000);
+        }
         boolean ok = eventId > 0 && eventService.rejectEvent(eventId, reason);
         if (ok) {
             FlashUtil.success(request, "Sự kiện đã bị từ chối!");
@@ -202,8 +207,15 @@ public class AdminEventController extends HttpServlet {
         String status = request.getParameter("status");
         boolean featured = request.getParameter("featured") != null;
 
-        if (title != null && !title.trim().isEmpty()) event.setTitle(title.trim());
-        if (location != null) event.setLocation(location.trim());
+        if (title != null && !title.trim().isEmpty()) {
+            if (!InputValidator.isValidEventTitle(title)) {
+                FlashUtil.error(request, "Tên sự kiện phải từ 3-200 ký tự!");
+                response.sendRedirect(request.getContextPath() + "/admin/events/" + eventId);
+                return;
+            }
+            event.setTitle(title.trim());
+        }
+        if (location != null) event.setLocation(InputValidator.truncate(location.trim(), 500));
         if (status != null && !status.trim().isEmpty()) {
             String normalized = status.trim().toLowerCase();
             if (!InputValidator.isOneOf(normalized, "draft", "pending", "approved", "rejected", "cancelled", "completed")) {

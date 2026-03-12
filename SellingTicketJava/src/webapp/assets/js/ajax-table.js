@@ -37,6 +37,7 @@ class AjaxTable {
         this.currentPage = 1;
         this.totalPages = 0;
         this.totalItems = 0;
+        this.debounceDelay = config.debounceDelay || 500;
         this.debounceTimer = null;
         this.isLoading = false;
         this.filters = {};
@@ -102,7 +103,7 @@ class AjaxTable {
             this.debounceTimer = setTimeout(() => {
                 this.currentPage = 1;
                 this.load();
-            }, 300);
+            }, this.debounceDelay);
         });
 
         // Also handle clear button

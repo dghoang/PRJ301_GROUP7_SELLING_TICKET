@@ -168,7 +168,7 @@ CREATE TABLE Orders (
     total_amount DECIMAL(18,2) NOT NULL,
     discount_amount DECIMAL(18,2) DEFAULT 0,
     final_amount DECIMAL(18,2) NOT NULL,
-    status NVARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','paid','cancelled','refunded')),
+    status NVARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','paid','cancelled','refunded','refund_requested','checked_in')),
     payment_method NVARCHAR(30) DEFAULT 'seepay' CHECK (payment_method IN ('seepay','bank_transfer','cash')),
     payment_date DATETIME,
     payment_expires_at DATETIME,
@@ -177,6 +177,13 @@ CREATE TABLE Orders (
     buyer_email NVARCHAR(255),
     buyer_phone NVARCHAR(20),
     notes NVARCHAR(500),
+    voucher_id INT NULL,
+    voucher_scope NVARCHAR(10) DEFAULT 'NONE',
+    voucher_fund_source NVARCHAR(10) DEFAULT 'NONE',
+    event_discount_amount DECIMAL(18,2) DEFAULT 0,
+    system_discount_amount DECIMAL(18,2) DEFAULT 0,
+    platform_fee_amount DECIMAL(18,2) DEFAULT 0,
+    organizer_payout_amount DECIMAL(18,2) DEFAULT 0,
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE()
 );
@@ -238,12 +245,15 @@ CREATE TABLE Vouchers (
     discount_type NVARCHAR(20) CHECK (discount_type IN ('percentage','fixed')),
     discount_value DECIMAL(18,2) NOT NULL,
     min_order_amount DECIMAL(18,2) DEFAULT 0,
-    max_uses INT,
+    max_discount DECIMAL(18,2) DEFAULT 0,
+    usage_limit INT DEFAULT 0,
     used_count INT DEFAULT 0,
     start_date DATETIME,
     end_date DATETIME,
     is_active BIT DEFAULT 1,
     is_deleted BIT DEFAULT 0,
+    voucher_scope NVARCHAR(10) DEFAULT 'EVENT',
+    fund_source NVARCHAR(10) DEFAULT 'ORGANIZER',
     created_at DATETIME DEFAULT GETDATE()
 );
 GO
@@ -1453,17 +1463,25 @@ INSERT INTO PaymentTransactions (order_id, payment_method, seepay_transaction_id
 GO
 
 -- =============================================
--- SEED DATA — VOUCHERS (8 vouchers, diverse types)
+-- SEED DATA — VOUCHERS (12 vouchers: 8 EVENT + 4 SYSTEM)
+-- EVENT vouchers: organizer-funded → trừ doanh thu BTC
+-- SYSTEM vouchers: platform-funded → hệ thống bù lỗ, BTC nhận full giá vé
 -- =============================================
-INSERT INTO Vouchers (organizer_id, event_id, code, discount_type, discount_value, min_order_amount, max_uses, used_count, start_date, end_date, is_active) VALUES
-(4, 1,    'HAT2026VIP',   'percentage', 10, 2000000, 50, 15,  '2026-01-15', '2026-04-20', 1),
-(4, NULL, 'LIVENATION15', 'percentage', 15, 1000000, 100, 40, '2026-01-01', '2026-12-31', 1),
-(6, 26,   'AITECH50K',    'fixed',      50000, 500000, 200, 95, '2026-03-01', '2026-06-20', 1),
-(7, 8,    'RUN2026',      'fixed',      100000, 500000, 300, 180, '2026-01-01', '2026-05-01', 1),
-(5, 17,   'FOODIE20',     'percentage', 20, 100000, 500, 220, '2026-04-01', '2026-05-04', 1),
-(8, 6,    'SUNSET10',     'percentage', 10, 500000, 100, 18,  '2026-02-01', '2026-04-11', 1),
-(6, NULL, 'TECHVIET100K', 'fixed',      100000, 1000000, 50, 8, '2026-01-01', '2026-12-31', 1),
-(4, NULL, 'EXPIRED2025',  'percentage', 25, 500000, 100, 45, '2025-01-01', '2025-12-31', 0);
+INSERT INTO Vouchers (organizer_id, event_id, code, discount_type, discount_value, min_order_amount, max_discount, usage_limit, used_count, start_date, end_date, is_active, voucher_scope, fund_source) VALUES
+-- EVENT vouchers (organizer-funded, trừ vào doanh thu BTC)
+(4, 1,    'HAT2026VIP',   'percentage', 10, 2000000, 500000, 50, 15,  '2026-01-15', '2026-04-20', 1, 'EVENT', 'ORGANIZER'),
+(4, NULL, 'LIVENATION15', 'percentage', 15, 1000000, 750000, 100, 42, '2026-01-01', '2026-12-31', 1, 'EVENT', 'ORGANIZER'),
+(6, 26,   'AITECH50K',    'fixed',      50000, 500000, 0, 200, 97,    '2026-03-01', '2026-06-20', 1, 'EVENT', 'ORGANIZER'),
+(7, 8,    'RUN2026',      'fixed',      100000, 500000, 0, 300, 182,  '2026-01-01', '2026-05-01', 1, 'EVENT', 'ORGANIZER'),
+(5, 17,   'FOODIE20',     'percentage', 20, 100000, 200000, 500, 222, '2026-04-01', '2026-05-04', 1, 'EVENT', 'ORGANIZER'),
+(8, 6,    'SUNSET10',     'percentage', 10, 500000, 300000, 100, 20,  '2026-02-01', '2026-04-11', 1, 'EVENT', 'ORGANIZER'),
+(6, NULL, 'TECHVIET100K', 'fixed',      100000, 1000000, 0, 50, 10,  '2026-01-01', '2026-12-31', 1, 'EVENT', 'ORGANIZER'),
+(4, NULL, 'EXPIRED2025',  'percentage', 25, 500000, 1000000, 100, 45, '2025-01-01', '2025-12-31', 0, 'EVENT', 'ORGANIZER'),
+-- SYSTEM vouchers (platform-funded subsidy — BTC nhận full giá vé, HT bù lỗ)
+(1, NULL, 'SYSLAUNCH50',  'fixed',      50000, 200000, 0, 1000, 130, '2026-01-01', '2026-06-30', 1, 'SYSTEM', 'SYSTEM'),
+(1, NULL, 'SYSVIP10',     'percentage', 10, 3000000, 500000, 500, 92, '2026-01-15', '2026-12-31', 1, 'SYSTEM', 'SYSTEM'),
+(1, NULL, 'SYSFLASH200K', 'fixed',      200000, 1000000, 0, 200, 68,  '2026-03-01', '2026-03-31', 1, 'SYSTEM', 'SYSTEM'),
+(1, NULL, 'SYSWELCOME30', 'fixed',      30000, 50000, 0, 5000, 415,  '2026-01-01', '2026-12-31', 1, 'SYSTEM', 'SYSTEM');
 GO
 
 -- =============================================
@@ -1696,6 +1714,265 @@ PRINT '=== Site settings seeded ===';
 GO
 
 -- =============================================
+-- SETTLEMENT DATA — BACKFILL EXISTING + NEW ORDERS
+-- Covers: NONE, EVENT voucher, SYSTEM voucher cases
+-- =============================================
+
+-- -----------------------------------------------
+-- 1. Backfill existing O1-O35 settlement fields
+-- -----------------------------------------------
+-- Orders WITHOUT voucher → scope=NONE, organizer gets full total_amount
+UPDATE Orders SET
+    voucher_scope = 'NONE', voucher_fund_source = 'NONE',
+    event_discount_amount = 0, system_discount_amount = 0,
+    platform_fee_amount = 0, organizer_payout_amount = total_amount
+WHERE order_id <= 35 AND discount_amount = 0;
+
+-- O11 (Bình — Triển lãm, LIVENATION15 = EVENT voucher 15%)
+UPDATE Orders SET
+    voucher_id = 2, voucher_scope = 'EVENT', voucher_fund_source = 'ORGANIZER',
+    event_discount_amount = 90000, system_discount_amount = 0,
+    platform_fee_amount = 0, organizer_payout_amount = 600000 - 90000
+WHERE order_id = 11;
+
+-- O24 (Bảo — Indie Sunset, LIVENATION15 = 15% of 2.4M = 360K, EVENT vch)
+UPDATE Orders SET
+    voucher_id = 2, voucher_scope = 'EVENT', voucher_fund_source = 'ORGANIZER',
+    event_discount_amount = 360000, system_discount_amount = 0,
+    platform_fee_amount = 0, organizer_payout_amount = 2400000 - 360000
+WHERE order_id = 24;
+
+-- O25 (Bảo — AI Summit, AITECH50K = EVENT voucher fixed 50K)
+UPDATE Orders SET
+    voucher_id = 3, voucher_scope = 'EVENT', voucher_fund_source = 'ORGANIZER',
+    event_discount_amount = 50000, system_discount_amount = 0,
+    platform_fee_amount = 0, organizer_payout_amount = 1500000 - 50000
+WHERE order_id = 25;
+GO
+
+PRINT '=== Settlement fields backfilled for O1-O35 ===';
+GO
+
+-- -----------------------------------------------
+-- 2. NEW ORDERS (O36-O50) — SYSTEM voucher + EVENT voucher + mixed scenarios
+--    Đầy đủ các trường hợp test đối soát voucher
+-- -----------------------------------------------
+DECLARE @now2 DATETIME = GETDATE();
+
+-- =============================================
+-- CASE A: SYSTEM VOUCHER ORDERS (platform subsidy)
+-- BTC nhận FULL giá vé, HT chịu khoản giảm
+-- =============================================
+
+-- O36: Customer 9 (An) — E1 HAT, SYSVIP10 (10% of 1.5M = 150K system subsidy)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0036', 9, 1, 1500000, 150000, 1350000, 'paid', 'seepay', DATEADD(DAY,-5,@now2), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678',
+    10, 'SYSTEM', 'SYSTEM', 0, 150000, 0, 1500000, DATEADD(DAY,-5,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (36, 3, 1, 1500000, 1500000);
+
+-- O37: Customer 10 (Bình) — E3 Sơn Tùng, SYSLAUNCH50 (fixed 50K system subsidy) trên vé Gold 2M
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0037', 10, 3, 2000000, 50000, 1950000, 'paid', 'seepay', DATEADD(DAY,-4,@now2), N'Trần Thị Bình', 'binh.tran@gmail.com', '0987654321',
+    9, 'SYSTEM', 'SYSTEM', 0, 50000, 0, 2000000, DATEADD(DAY,-4,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (37, 10, 1, 2000000, 2000000);
+
+-- O38: Customer 15 (Tùng) — E17 Ẩm thực VIP, SYSWELCOME30 (30K, system subsidy on cheap ticket)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0038', 15, 17, 250000, 30000, 220000, 'paid', 'seepay', DATEADD(DAY,-3,@now2), N'Ngô Thanh Tùng', 'tung.ngo@gmail.com', '0923456789',
+    12, 'SYSTEM', 'SYSTEM', 0, 30000, 0, 250000, DATEADD(DAY,-3,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (38, 41, 1, 250000, 250000);
+
+-- O39: Customer 19 (Long — first order!) — E8 Marathon 21K, SYSFLASH200K (200K subsidy on 800K)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0039', 19, 8, 800000, 200000, 600000, 'paid', 'seepay', DATEADD(DAY,-2,@now2), N'Trịnh Hoàng Long', 'long.trinh@gmail.com', '0939876543',
+    11, 'SYSTEM', 'SYSTEM', 0, 200000, 0, 800000, DATEADD(DAY,-2,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (39, 23, 1, 800000, 800000);
+
+-- O40: Customer 20 (Diễm) — E26 AI Summit VIP 3M, SYSVIP10 (10% but cap 500K = 300K system subsidy)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0040', 20, 26, 3000000, 300000, 2700000, 'paid', 'seepay', DATEADD(DAY,-2,@now2), N'Phan Ngọc Diễm', 'diem.phan@gmail.com', '0967890123',
+    10, 'SYSTEM', 'SYSTEM', 0, 300000, 0, 3000000, DATEADD(DAY,-2,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (40, 53, 1, 3000000, 3000000);
+
+-- O41: Customer 25 (Phúc) — E2 Mỹ Tâm Hạng A, SYSLAUNCH50 (50K system subsidy on 2M)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0041', 25, 2, 2000000, 50000, 1950000, 'paid', 'seepay', DATEADD(DAY,-1,@now2), N'Nguyễn Hoàng Phúc', 'fullprofile@gmail.com', '0918765432',
+    9, 'SYSTEM', 'SYSTEM', 0, 50000, 0, 2000000, DATEADD(DAY,-1,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (41, 6, 1, 2000000, 2000000);
+
+-- =============================================
+-- CASE B: EVENT VOUCHER ORDERS (organizer-funded)
+-- Khoản giảm trừ vào doanh thu BTC
+-- =============================================
+
+-- O42: Customer 21 (Kiên) — E8 Marathon Full 42K, RUN2026 (100K event discount)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0042', 21, 8, 1200000, 100000, 1100000, 'paid', 'seepay', DATEADD(DAY,-3,@now2), N'Đặng Trung Kiên', 'kien.dang@gmail.com', '0941234567',
+    4, 'EVENT', 'ORGANIZER', 100000, 0, 0, 1100000, DATEADD(DAY,-3,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (42, 22, 1, 1200000, 1200000);
+
+-- O43: Customer 14 (Khải) — E26 AI Summit Standard 1.5M, AITECH50K (50K event discount)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0043', 14, 26, 1500000, 50000, 1450000, 'paid', 'seepay', DATEADD(DAY,-4,@now2), N'Đỗ Quang Khải', 'khai.do@gmail.com', '0934567890',
+    3, 'EVENT', 'ORGANIZER', 50000, 0, 0, 1450000, DATEADD(DAY,-4,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (43, 54, 1, 1500000, 1500000);
+
+-- O44: Customer 17 (Bảo) — E17 Ẩm thực cuối tuần, FOODIE20 (20% of 160K = 32K event disc)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0044', 17, 17, 160000, 32000, 128000, 'paid', 'seepay', DATEADD(DAY,-2,@now2), N'Bùi Quốc Bảo', 'bao.bui@gmail.com', '0913579246',
+    5, 'EVENT', 'ORGANIZER', 32000, 0, 0, 128000, DATEADD(DAY,-2,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (44, 40, 2, 80000, 160000);
+
+-- O45: Customer 13 (Hà) — E1 HAT CAT2 × 2, HAT2026VIP (10% of 1.6M = 160K event disc)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0045', 13, 1, 1600000, 160000, 1440000, 'paid', 'seepay', DATEADD(DAY,-3,@now2), N'Vũ Thị Hà', 'ha.vu@gmail.com', '0945678901',
+    1, 'EVENT', 'ORGANIZER', 160000, 0, 0, 1440000, DATEADD(DAY,-3,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (45, 4, 2, 800000, 1600000);
+
+-- =============================================
+-- CASE C: NO VOUCHER — pure orders (more data volume)
+-- =============================================
+
+-- O46: Customer 19 (Long) — E6 Indie Sunset GA × 3 (no voucher, first large order)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0046', 19, 6, 1500000, 0, 1500000, 'paid', 'seepay', DATEADD(DAY,-5,@now2), N'Trịnh Hoàng Long', 'long.trinh@gmail.com', '0939876543',
+    NULL, 'NONE', 'NONE', 0, 0, 0, 1500000, DATEADD(DAY,-5,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (46, 20, 3, 500000, 1500000);
+
+-- O47: Customer 16 (Yến — unverified email) — E20 Triển lãm tham quan (no voucher)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0047', 16, 20, 100000, 0, 100000, 'paid', 'seepay', DATEADD(DAY,-6,@now2), N'Hoàng Thị Yến', 'yen.hoang@yahoo.com', '0956789012',
+    NULL, 'NONE', 'NONE', 0, 0, 0, 100000, DATEADD(DAY,-6,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (47, 43, 1, 100000, 100000);
+
+-- =============================================
+-- CASE D: EDGE CASES — cancelled/pending/refunded WITH voucher
+-- =============================================
+
+-- O48: Customer 11 (Cường) — E1 HAT VIP, SYSLAUNCH50 → CANCELLED (system voucher on cancelled order)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0048', 11, 1, 3000000, 50000, 2950000, 'cancelled', 'seepay', N'Lê Hoàng Cường', 'cuong.le@yahoo.com', '0976543210',
+    9, 'SYSTEM', 'SYSTEM', 0, 50000, 0, 3000000, DATEADD(DAY,-7,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (48, 2, 1, 3000000, 3000000);
+
+-- O49: Customer 18 (Châu) — E26 AI Summit Student, SYSVIP10 → REFUNDED (system voucher refund)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0049', 18, 26, 500000, 50000, 450000, 'refunded', 'seepay', DATEADD(DAY,-8,@now2), N'Lý Minh Châu', 'chau.ly@gmail.com', '0978901234',
+    10, 'SYSTEM', 'SYSTEM', 0, 50000, 0, 500000, DATEADD(DAY,-8,@now2));
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (49, 55, 1, 500000, 500000);
+
+-- O50: Customer 12 (Đức) — E13 UI/UX Student, PENDING + SYSTEM voucher (waiting payment)
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_expires_at, buyer_name, buyer_email, buyer_phone,
+    voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, system_discount_amount, platform_fee_amount, organizer_payout_amount, created_at)
+VALUES ('ORD-2026-0050', 12, 13, 500000, 30000, 470000, 'pending', 'seepay', DATEADD(HOUR,2,@now2), N'Phạm Minh Đức', 'duc.pham@outlook.com', '0965432109',
+    12, 'SYSTEM', 'SYSTEM', 0, 30000, 0, 500000, @now2);
+INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (50, 33, 1, 500000, 500000);
+GO
+
+PRINT '=== 15 new orders (O36-O50) with settlement fields seeded ===';
+PRINT '  SYSTEM voucher: O36-O41, O48(cancelled), O49(refunded), O50(pending)';
+PRINT '  EVENT voucher: O42-O45';
+PRINT '  No voucher: O46-O47';
+GO
+
+-- -----------------------------------------------
+-- 3. TICKETS for new paid orders (O36-O47)
+-- -----------------------------------------------
+INSERT INTO Tickets (ticket_code, order_item_id, attendee_name, attendee_email, qr_code, is_checked_in) VALUES
+-- O36 (order_item_id=37): E1 HAT CAT1 — system voucher paid
+('TIX-HAT-006', 37, N'Nguyễn Văn An',    'customer@ticketbox.vn', 'TIX-HAT-006|E1|CAT1|20260420', 0),
+-- O37 (item=38): E3 Sơn Tùng Gold Standing — system voucher paid
+('TIX-STU-003', 38, N'Trần Thị Bình',    'binh.tran@gmail.com', 'TIX-STU-003|E3|GOLD|20260615', 0),
+-- O38 (item=39): E17 Ẩm thực VIP — system voucher paid
+('TIX-FDF-005', 39, N'Ngô Thanh Tùng',   'tung.ngo@gmail.com', 'TIX-FDF-005|E17|VIP|20260501', 0),
+-- O39 (item=40): E8 Marathon Half — system voucher paid (Long's first order!)
+('TIX-MRT-003', 40, N'Trịnh Hoàng Long', 'long.trinh@gmail.com', 'TIX-MRT-003|E8|HALF|20260503', 0),
+-- O40 (item=41): E26 AI Summit VIP — system voucher paid
+('TIX-AIS-004', 41, N'Phan Ngọc Diễm',   'diem.phan@gmail.com', 'TIX-AIS-004|E26|VIP|20260620', 0),
+-- O41 (item=42): E2 Mỹ Tâm Hạng A — system voucher paid
+('TIX-MTM-004', 42, N'Nguyễn Hoàng Phúc', 'fullprofile@gmail.com', 'TIX-MTM-004|E2|A|20260510', 0),
+-- O42 (item=43): E8 Marathon Full — event voucher paid
+('TIX-MRT-004', 43, N'Đặng Trung Kiên', 'kien.dang@gmail.com', 'TIX-MRT-004|E8|FULL|20260503', 0),
+-- O43 (item=44): E26 AI Summit Standard — event voucher paid
+('TIX-AIS-005', 44, N'Đỗ Quang Khải',   'khai.do@gmail.com', 'TIX-AIS-005|E26|STD|20260620', 0),
+-- O44 (item=45): E17 Ẩm thực cuối tuần × 2 — event voucher paid
+('TIX-FDF-006', 45, N'Bùi Quốc Bảo',    'bao.bui@gmail.com', 'TIX-FDF-006|E17|WE|20260503', 0),
+('TIX-FDF-007', 45, N'Nguyễn Thùy Linh', 'linh.nguyen@gmail.com', 'TIX-FDF-007|E17|WE|20260503', 0),
+-- O45 (item=46): E1 HAT CAT2 × 2 — event voucher paid
+('TIX-HAT-007', 46, N'Vũ Thị Hà',       'ha.vu@gmail.com', 'TIX-HAT-007|E1|CAT2|20260420', 0),
+('TIX-HAT-008', 46, N'Vũ Minh Tuấn',    'tuan.vu@gmail.com', 'TIX-HAT-008|E1|CAT2|20260420', 0),
+-- O46 (item=47): E6 Indie GA × 3 — no voucher
+('TIX-IND-005', 47, N'Trịnh Hoàng Long', 'long.trinh@gmail.com', 'TIX-IND-005|E6|GA|20260412', 0),
+('TIX-IND-006', 47, N'Trần Minh Châu',   'chau.friend@gmail.com', 'TIX-IND-006|E6|GA|20260412', 0),
+('TIX-IND-007', 47, N'Nguyễn Thùy Dung', 'dung.friend@gmail.com', 'TIX-IND-007|E6|GA|20260412', 0),
+-- O47 (item=48): E20 Triển lãm — no voucher, unverified email user
+('TIX-ART-004', 48, N'Hoàng Thị Yến',   'yen.hoang@yahoo.com', 'TIX-ART-004|E20|GA|20260415', 0);
+GO
+
+PRINT '=== 17 new tickets seeded for O36-O47 ===';
+GO
+
+-- -----------------------------------------------
+-- 4. PAYMENT TRANSACTIONS for new orders
+-- -----------------------------------------------
+INSERT INTO PaymentTransactions (order_id, payment_method, seepay_transaction_id, amount, status, completed_at) VALUES
+(36, 'seepay', 'SP-202603-036', 1350000, 'completed', DATEADD(DAY,-5,GETDATE())),
+(37, 'seepay', 'SP-202603-037', 1950000, 'completed', DATEADD(DAY,-4,GETDATE())),
+(38, 'seepay', 'SP-202603-038', 220000,  'completed', DATEADD(DAY,-3,GETDATE())),
+(39, 'seepay', 'SP-202603-039', 600000,  'completed', DATEADD(DAY,-2,GETDATE())),
+(40, 'seepay', 'SP-202603-040', 2700000, 'completed', DATEADD(DAY,-2,GETDATE())),
+(41, 'seepay', 'SP-202603-041', 1950000, 'completed', DATEADD(DAY,-1,GETDATE())),
+(42, 'seepay', 'SP-202603-042', 1100000, 'completed', DATEADD(DAY,-3,GETDATE())),
+(43, 'seepay', 'SP-202603-043', 1450000, 'completed', DATEADD(DAY,-4,GETDATE())),
+(44, 'seepay', 'SP-202603-044', 128000,  'completed', DATEADD(DAY,-2,GETDATE())),
+(45, 'seepay', 'SP-202603-045', 1440000, 'completed', DATEADD(DAY,-3,GETDATE())),
+(46, 'seepay', 'SP-202603-046', 1500000, 'completed', DATEADD(DAY,-5,GETDATE())),
+(47, 'seepay', 'SP-202603-047', 100000,  'completed', DATEADD(DAY,-6,GETDATE())),
+(48, 'seepay', NULL,            2950000, 'cancelled', NULL),
+(49, 'seepay', 'SP-202603-049', 450000,  'refunded',  DATEADD(DAY,-8,GETDATE())),
+(50, 'seepay', NULL,            470000,  'pending',   NULL);
+GO
+
+-- -----------------------------------------------
+-- 5. VOUCHER USAGES for new orders (link voucher to order)
+-- -----------------------------------------------
+INSERT INTO VoucherUsages (voucher_id, order_id, discount_applied, used_at) VALUES
+-- System voucher usages
+(10, 36, 150000, DATEADD(DAY,-5,GETDATE())),  -- SYSVIP10 on O36
+(9,  37, 50000,  DATEADD(DAY,-4,GETDATE())),  -- SYSLAUNCH50 on O37
+(12, 38, 30000,  DATEADD(DAY,-3,GETDATE())),  -- SYSWELCOME30 on O38
+(11, 39, 200000, DATEADD(DAY,-2,GETDATE())),  -- SYSFLASH200K on O39
+(10, 40, 300000, DATEADD(DAY,-2,GETDATE())),  -- SYSVIP10 on O40
+(9,  41, 50000,  DATEADD(DAY,-1,GETDATE())),  -- SYSLAUNCH50 on O41
+-- Event voucher usages
+(4,  42, 100000, DATEADD(DAY,-3,GETDATE())),  -- RUN2026 on O42
+(3,  43, 50000,  DATEADD(DAY,-4,GETDATE())),  -- AITECH50K on O43
+(5,  44, 32000,  DATEADD(DAY,-2,GETDATE())),  -- FOODIE20 on O44
+(1,  45, 160000, DATEADD(DAY,-3,GETDATE())),  -- HAT2026VIP on O45
+-- Cancelled/refunded with system voucher
+(9,  48, 50000,  DATEADD(DAY,-7,GETDATE())),  -- SYSLAUNCH50 on O48 (cancelled)
+(10, 49, 50000,  DATEADD(DAY,-8,GETDATE())),  -- SYSVIP10 on O49 (refunded)
+(12, 50, 30000,  GETDATE());                   -- SYSWELCOME30 on O50 (pending)
+GO
+
+PRINT '=== 13 new voucher usages seeded (new orders) ===';
+GO
+
+-- =============================================
 -- VERIFICATION QUERIES
 -- =============================================
 PRINT '';
@@ -1733,6 +2010,41 @@ PRINT 'ORDER STATUS DISTRIBUTION:';
 SELECT status, COUNT(*) AS total FROM Orders GROUP BY status ORDER BY status;
 
 PRINT '';
+PRINT 'VOUCHER SCOPE DISTRIBUTION:';
+SELECT voucher_scope, COUNT(*) AS total FROM Vouchers GROUP BY voucher_scope ORDER BY voucher_scope;
+
+PRINT '';
+PRINT '=== SETTLEMENT REPORT (đối soát) ===';
+SELECT
+    voucher_scope AS [Loại voucher],
+    voucher_fund_source AS [Nguồn tiền],
+    COUNT(*) AS [Số đơn],
+    FORMAT(SUM(total_amount), 'N0') AS [Giá vé gốc],
+    FORMAT(SUM(event_discount_amount), 'N0') AS [BTC giảm giá],
+    FORMAT(SUM(system_discount_amount), 'N0') AS [HT trợ giá],
+    FORMAT(SUM(final_amount), 'N0') AS [Khách trả],
+    FORMAT(SUM(organizer_payout_amount), 'N0') AS [BTC nhận]
+FROM Orders WHERE status = 'paid'
+GROUP BY voucher_scope, voucher_fund_source
+ORDER BY voucher_scope;
+
+PRINT '';
+PRINT 'PER-ORGANIZER SETTLEMENT:';
+SELECT
+    u.full_name AS [BTC],
+    COUNT(o.order_id) AS [Đơn paid],
+    FORMAT(SUM(o.total_amount), 'N0') AS [Giá vé gốc],
+    FORMAT(SUM(o.event_discount_amount), 'N0') AS [Voucher SK (BTC chịu)],
+    FORMAT(SUM(o.system_discount_amount), 'N0') AS [Voucher HT (sàn bù)],
+    FORMAT(SUM(o.organizer_payout_amount), 'N0') AS [BTC thực nhận]
+FROM Orders o
+JOIN Events e ON o.event_id = e.event_id
+JOIN Users u ON e.organizer_id = u.user_id
+WHERE o.status = 'paid'
+GROUP BY u.full_name
+ORDER BY SUM(o.organizer_payout_amount) DESC;
+
+PRINT '';
 PRINT 'CUSTOMER VIP TIERS:';
 SELECT u.full_name, u.email,
     ISNULL(SUM(o.final_amount), 0) AS total_spent,
@@ -1766,6 +2078,13 @@ SELECT o.order_id, o.order_code, o.total_amount, oc.calc_total
 FROM Orders o JOIN OrderCalc oc ON oc.order_id = o.order_id WHERE o.total_amount <> oc.calc_total;
 
 PRINT '';
+PRINT 'SETTLEMENT CONSISTENCY (expect 0 rows):';
+SELECT order_id, order_code, voucher_scope, organizer_payout_amount,
+    total_amount - event_discount_amount AS expected_payout
+FROM Orders
+WHERE status = 'paid' AND organizer_payout_amount <> (total_amount - event_discount_amount);
+
+PRINT '';
 PRINT 'SUPPORT TICKET STATUS:';
 SELECT status, COUNT(*) AS total FROM SupportTickets GROUP BY status ORDER BY status;
 
@@ -1789,6 +2108,11 @@ PRINT '  banned.user@test.com    → is_active=0 (banned)';
 PRINT '  deleted.user@test.com   → is_deleted=1 (soft deleted)';
 PRINT '  yen.hoang@yahoo.com     → email_verified=0';
 PRINT '  minimal@test.com        → no gender/dob/avatar';
-PRINT '  long.trinh@gmail.com    → no orders (new user)';
+PRINT '  long.trinh@gmail.com    → 2 orders (system voucher)';
+PRINT '';
+PRINT '  Voucher test:';
+PRINT '  SYSTEM vouchers: SYSLAUNCH50, SYSVIP10, SYSFLASH200K, SYSWELCOME30';
+PRINT '  EVENT vouchers:  HAT2026VIP, LIVENATION15, AITECH50K, RUN2026, FOODIE20, SUNSET10';
+PRINT '  EXPIRED:         EXPIRED2025 (inactive)';
 PRINT '============================================';
 GO

@@ -1,6 +1,7 @@
 package com.sellingticket.controller.api;
 
 import com.sellingticket.model.User;
+import com.sellingticket.service.EventService;
 import com.sellingticket.util.CloudinaryUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
@@ -39,6 +40,7 @@ import jakarta.servlet.http.Part;
 public class UploadServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(UploadServlet.class.getName());
+    private final EventService eventService = new EventService();
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final String[] ALLOWED_IMAGE_TYPES = {
@@ -128,6 +130,42 @@ public class UploadServlet extends HttpServlet {
                 response.setStatus(403);
                 response.getWriter().write("{\"error\":\"Folder not allowed\"}");
                 return;
+            }
+
+            // ===== SECURITY: Verify ownership for event and user folders =====
+            if (folder.startsWith("ticketbox/events/")) {
+                String[] parts = folder.split("/");
+                if (parts.length >= 3) {
+                    try {
+                        int eventId = Integer.parseInt(parts[2]);
+                        boolean isAdmin = "admin".equals(user.getRole());
+                        if (!isAdmin && !eventService.hasEditPermission(eventId, user.getUserId(), user.getRole())) {
+                            LOGGER.log(Level.WARNING, "Upload blocked: no event permission user={0}, eventId={1}",
+                                    new Object[]{user.getUserId(), eventId});
+                            response.setStatus(403);
+                            response.getWriter().write("{\"error\":\"No permission for this event\"}");
+                            return;
+                        }
+                    } catch (NumberFormatException ignored) {
+                        response.setStatus(400);
+                        response.getWriter().write("{\"error\":\"Invalid event ID in folder path\"}");
+                        return;
+                    }
+                }
+            } else if (folder.startsWith("ticketbox/users/")) {
+                String[] parts = folder.split("/");
+                if (parts.length >= 3) {
+                    try {
+                        int targetUserId = Integer.parseInt(parts[2]);
+                        if (targetUserId != user.getUserId() && !"admin".equals(user.getRole())) {
+                            response.setStatus(403);
+                            response.getWriter().write("{\"error\":\"Cannot upload for another user\"}");
+                            return;
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // Non-numeric user path — allow (e.g. ticketbox/users/avatars)
+                    }
+                }
             }
 
             // Read file bytes

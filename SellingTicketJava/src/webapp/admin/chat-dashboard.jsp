@@ -105,6 +105,12 @@ const AGENT_ID = ${sessionScope.user != null ? sessionScope.user.userId : 0};
 let activeSessionId = 0, agentLastMsgId = 0, agentPollTimer = null;
 const chatType = new URLSearchParams(window.location.search).get('type') || 'system';
 
+function escHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
 function loadSessions() {
     fetch(CTX + '/api/chat/sessions?type=' + chatType)
     .then(r => r.json()).then(sessions => {
@@ -120,8 +126,8 @@ function loadSessions() {
             return '<div class="chat-session-item d-flex align-items-center gap-3 p-3 mb-2 ' + (isActive ? 'active-session' : '') + '" onclick="selectSession(' + s.id + ')">'
             + '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;background:' + statusColor + ';"><i class="fas fa-user text-white" style="font-size:0.8rem;"></i></div>'
             + '<div class="flex-grow-1" style="min-width:0;">'
-            + '<div class="fw-medium small text-truncate">' + (s.customerName || 'Khách') + '</div>'
-            + '<small class="text-muted">' + (s.eventTitle || 'Hệ thống') + ' · ' + (s.time || '') + '</small></div>'
+            + '<div class="fw-medium small text-truncate">' + escHtml(s.customerName || 'Khách') + '</div>'
+            + '<small class="text-muted">' + escHtml(s.eventTitle || 'Hệ thống') + ' · ' + escHtml(s.time || '') + '</small></div>'
             + '<span class="badge rounded-pill px-2" style="background:' + statusColor + ';color:white;font-size:0.6rem;">' + statusLabel + '</span>'
             + '</div>';
         }).join('');
@@ -134,7 +140,7 @@ function selectSession(id) {
     activeSessionId = id;
     agentLastMsgId = 0;
     document.getElementById('adminChatInput').style.display = 'block';
-    fetch(CTX + '/api/chat/accept', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'sessionId=' + id}).catch(() => {});
+    fetch(CTX + '/api/chat/accept', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + id}).catch(() => {});
     loadMessages();
     if (agentPollTimer) clearInterval(agentPollTimer);
     agentPollTimer = setInterval(loadMessages, 5000);
@@ -159,8 +165,8 @@ function loadMessages() {
             const div = document.createElement('div');
             div.className = 'd-flex mb-3 ' + (isMe ? 'justify-content-end' : 'justify-content-start');
             div.innerHTML = '<div class="px-3 py-2 small ' + (isMe ? 'chat-bubble-admin' : 'chat-bubble-user') + '" style="max-width:75%;word-wrap:break-word;">'
-                + '<div class="d-flex justify-content-between gap-3 mb-1"><small class="fw-bold" style="opacity:0.85;">' + (m.senderName || '') + '</small><small style="opacity:0.6;font-size:0.7rem;">' + (m.time || '') + '</small></div>'
-                + '<div>' + (m.content || '') + '</div></div>';
+                + '<div class="d-flex justify-content-between gap-3 mb-1"><small class="fw-bold" style="opacity:0.85;">' + escHtml(m.senderName || '') + '</small><small style="opacity:0.6;font-size:0.7rem;">' + escHtml(m.time || '') + '</small></div>'
+                + '<div>' + escHtml(m.content || '') + '</div></div>';
             box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
@@ -172,7 +178,7 @@ function agentSend() {
     const msg = inp.value.trim();
     if (!msg || !activeSessionId) return;
     inp.value = '';
-    fetch(CTX + '/api/chat/send', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'sessionId=' + activeSessionId + '&content=' + encodeURIComponent(msg)})
+    fetch(CTX + '/api/chat/send', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + activeSessionId + '&content=' + encodeURIComponent(msg)})
     .then(() => loadMessages()).catch(() => {});
 }
 

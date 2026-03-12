@@ -133,18 +133,37 @@ public class CheckoutServlet extends HttpServlet {
                 return;
             }
 
-            // Apply voucher if provided
+            // Apply voucher if provided (max 50 chars, alphanumeric only)
             String voucherCode = request.getParameter("voucherCode");
             if (voucherCode != null && !voucherCode.trim().isEmpty()) {
+                voucherCode = voucherCode.trim();
+                if (voucherCode.length() > 50) voucherCode = voucherCode.substring(0, 50);
                 VoucherResult vr = voucherService.validateVoucher(
-                        voucherCode.trim(), order.getEventId(), order.getTotalAmount());
+                        voucherCode, order.getEventId(), order.getTotalAmount());
                 if (vr.valid && vr.discountAmount > 0) {
                     order.setDiscountAmount(vr.discountAmount);
                     order.setFinalAmount(order.getTotalAmount() - vr.discountAmount);
-                    order.setVoucherCode(voucherCode.trim()); // Set to be applied atomically
-                    LOGGER.log(Level.INFO, "Voucher {0} validated: discount={1}",
-                            new Object[]{voucherCode, vr.discountAmount});
+                    order.setVoucherCode(voucherCode.trim());
+                    // Settlement split: track voucher scope and fund source
+                    order.setVoucherId(vr.voucherId);
+                    order.setVoucherScope(vr.voucherScope);
+                    order.setVoucherFundSource(vr.fundSource);
+                    order.setEventDiscountAmount(vr.eventDiscountAmount);
+                    order.setSystemDiscountAmount(vr.systemDiscountAmount);
+                    // Organizer payout: full face value minus event discount minus platform fee
+                    double platformFee = 0; // TODO: configurable platform fee rate
+                    order.setPlatformFeeAmount(platformFee);
+                    order.setOrganizerPayoutAmount(order.getTotalAmount() - vr.eventDiscountAmount - platformFee);
+                    LOGGER.log(Level.INFO, "Voucher {0} validated: discount={1}, scope={2}, source={3}",
+                            new Object[]{voucherCode, vr.discountAmount, vr.voucherScope, vr.fundSource});
                 }
+            }
+
+            // If no voucher was applied, set default settlement values
+            if (order.getVoucherScope() == null) {
+                order.setVoucherScope("NONE");
+                order.setVoucherFundSource("NONE");
+                order.setOrganizerPayoutAmount(order.getTotalAmount());
             }
 
             int orderId = orderService.createOrder(order);
@@ -201,6 +220,8 @@ public class CheckoutServlet extends HttpServlet {
         VoucherResult result = voucherService.validateVoucher(code, eventId, amount);
         String json = "{\"valid\":" + result.valid
                 + ",\"discountAmount\":" + result.discountAmount
+                + ",\"voucherScope\":\"" + escapeJson(result.voucherScope) + "\""
+                + ",\"fundSource\":\"" + escapeJson(result.fundSource) + "\""
                 + ",\"message\":\"" + escapeJson(result.message) + "\"}";
         response.getWriter().write(json);
     }

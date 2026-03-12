@@ -36,6 +36,7 @@ class AjaxCards {
         this.currentPage = 1;
         this.totalPages = 0;
         this.totalItems = 0;
+        this.debounceDelay = config.debounceDelay || 500;
         this.debounceTimer = null;
         this.isLoading = false;
         this.skeletonCount = config.skeletonCount || 6;
@@ -101,7 +102,7 @@ class AjaxCards {
             this.debounceTimer = setTimeout(() => {
                 this.currentPage = 1;
                 this.load();
-            }, 300);
+            }, this.debounceDelay);
         });
 
         const clearBtn = this.searchInput.parentElement?.querySelector('.search-clear');

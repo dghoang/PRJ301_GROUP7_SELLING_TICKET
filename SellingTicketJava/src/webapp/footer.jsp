@@ -246,7 +246,7 @@
         btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Đang kết nối...';
         let body='';
         if(chatEventId) body='eventId='+chatEventId;
-        fetch(CTX+'/api/chat/start',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
+        fetch(CTX+'/api/chat/start',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},credentials:'same-origin',body:body})
         .then(r=>r.json()).then(d=>{
             if(d.blocked){
                 document.getElementById('chatStartArea').style.display='none';
@@ -302,7 +302,7 @@
         if(!msg||!chatSessionId||chatSessionStatus!=='active')return;
         lastSendTime=now; inp.value=''; updateCharCount();
         appendMsg(msg,'me');
-        fetch(CTX+'/api/chat/send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        fetch(CTX+'/api/chat/send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},credentials:'same-origin',
             body:'sessionId='+chatSessionId+'&content='+encodeURIComponent(msg)})
         .then(r=>r.json()).then(d=>{
             if(d.error) appendMsg('⚠ '+d.error,'system');
@@ -352,8 +352,8 @@
                 d.className='mb-2 d-flex '+(m.senderId===MY_ID?'justify-content-end':'');
                 const bg=m.senderId===MY_ID?'background:rgba(59,130,246,0.1);':'background:rgba(0,0,0,0.03);';
                 d.innerHTML='<div class="rounded-3 px-3 py-2 small" style="max-width:80%;'+bg+'">'
-                    +(m.senderId!==MY_ID?'<small class="fw-bold d-block text-primary">'+m.senderName+'</small>':'')
-                    +m.content+'</div>';
+                    +(m.senderId!==MY_ID?'<small class="fw-bold d-block text-primary">'+escChat(m.senderName)+'</small>':'')
+                    +escChat(m.content)+'</div>';
                 frag.appendChild(d);
             });
             const loadBtn=document.getElementById('chatLoadMore');
@@ -363,6 +363,7 @@
             if(msgs.length<30)document.getElementById('chatLoadMore')?.remove();
         });
     }
+    function escChat(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
     function appendMsg(text,type,name,time){
         const box=document.getElementById('chatMessages');
         // Remove placeholder
@@ -370,11 +371,11 @@
         if(ph&&!document.getElementById('chatLoadMore'))ph.remove();
         const d=document.createElement('div');
         d.className='mb-2 d-flex '+(type==='me'?'justify-content-end':'');
-        if(type==='system'){d.className='mb-2 text-center';d.innerHTML='<small class="text-muted">'+text+'</small>';box.appendChild(d);return;}
+        if(type==='system'){d.className='mb-2 text-center';d.innerHTML='<small class="text-muted">'+escChat(text)+'</small>';box.appendChild(d);return;}
         const bg=type==='me'?'background:rgba(59,130,246,0.1);':'background:rgba(0,0,0,0.03);';
         d.innerHTML='<div class="rounded-3 px-3 py-2 small" style="max-width:80%;'+bg+'">'
-            +(name&&type!=='me'?'<small class="fw-bold d-block text-primary">'+name+'</small>':'')
-            +text+'</div>';
+            +(name&&type!=='me'?'<small class="fw-bold d-block text-primary">'+escChat(name)+'</small>':'')
+            +escChat(text)+'</div>';
         box.appendChild(d);
         box.scrollTop=box.scrollHeight;
     }

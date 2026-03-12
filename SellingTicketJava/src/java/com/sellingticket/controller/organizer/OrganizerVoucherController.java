@@ -39,6 +39,12 @@ public class OrganizerVoucherController extends HttpServlet {
         User user = getSessionUser(request);
         if (user == null) { redirectToLogin(request, response); return; }
 
+        // Strict separation: system admins manage vouchers only in /admin/system-vouchers.
+        if (isSystemAdmin(user)) {
+            response.sendRedirect(request.getContextPath() + "/admin/system-vouchers");
+            return;
+        }
+
         try {
             String pathInfo = request.getPathInfo();
 
@@ -73,6 +79,12 @@ public class OrganizerVoucherController extends HttpServlet {
         User user = getSessionUser(request);
         if (user == null) { redirectToLogin(request, response); return; }
 
+        // Strict separation: system admins manage vouchers only in /admin/system-vouchers.
+        if (isSystemAdmin(user)) {
+            response.sendRedirect(request.getContextPath() + "/admin/system-vouchers");
+            return;
+        }
+
         try {
             request.setCharacterEncoding("UTF-8");
             String action = request.getParameter("action");
@@ -97,12 +109,9 @@ public class OrganizerVoucherController extends HttpServlet {
 
     private void listVouchers(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        boolean isAdmin = isSystemAdmin(user);
-        request.setAttribute("vouchers", isAdmin
-                ? voucherService.getAllVouchers()
-                : voucherService.getVouchersByOrganizer(user.getUserId()));
+        request.setAttribute("vouchers", voucherService.getVouchersByOrganizer(user.getUserId()));
         request.setAttribute("events", getVoucherManageableEvents(user));
-        request.setAttribute("isSystemAdmin", isAdmin);
+        request.setAttribute("isSystemAdmin", false);
         request.getRequestDispatcher("/organizer/vouchers.jsp").forward(request, response);
     }
 
@@ -110,7 +119,7 @@ public class OrganizerVoucherController extends HttpServlet {
             throws ServletException, IOException {
         if (voucher != null) request.setAttribute("voucher", voucher);
         request.setAttribute("events", getVoucherManageableEvents(user));
-        request.setAttribute("isSystemAdmin", isSystemAdmin(user));
+        request.setAttribute("isSystemAdmin", false);
         request.getRequestDispatcher("/organizer/voucher-form.jsp").forward(request, response);
     }
 
@@ -140,16 +149,19 @@ public class OrganizerVoucherController extends HttpServlet {
             setToast(request, "Ngày kết thúc không được trong quá khứ", "error"); return;
         }
 
-        // Only admin can create system/global vouchers.
-        if (v.getEventId() <= 0 && !isSystemAdmin(user)) {
-            setToast(request, "Chỉ Admin hệ thống mới được tạo mã giảm giá toàn hệ thống", "error");
+        // Organizer dashboard only supports event vouchers.
+        if (v.getEventId() <= 0) {
+            setToast(request, "Voucher trong khu vực Organizer phải gắn với một sự kiện cụ thể", "error");
             return;
         }
 
-        if (v.getEventId() > 0 && !eventService.hasVoucherPermission(v.getEventId(), user.getUserId(), user.getRole())) {
+        if (!eventService.hasVoucherPermission(v.getEventId(), user.getUserId(), user.getRole())) {
             setToast(request, "Bạn chỉ có thể tạo mã cho sự kiện mà bạn là owner/manager", "error");
             return;
         }
+
+        v.setVoucherScope("EVENT");
+        v.setFundSource("ORGANIZER");
         v.setOrganizerId(user.getUserId());
         boolean ok = voucherService.createVoucher(v);
         setToast(request, ok ? "Tạo mã giảm giá thành công!" : "Tạo mã thất bại!", ok ? "success" : "error");
@@ -214,6 +226,9 @@ public class OrganizerVoucherController extends HttpServlet {
         v.setUsageLimit(parseIntOrDefault(request.getParameter("usageLimit"), 0));
         v.setStartDate(parseDateOrNull(request.getParameter("startDate")));
         v.setEndDate(parseDateOrNull(request.getParameter("endDate")));
+        // Organizer vouchers always funded by organizer and scoped to event.
+        v.setVoucherScope("EVENT");
+        v.setFundSource("ORGANIZER");
         return v;
     }
 

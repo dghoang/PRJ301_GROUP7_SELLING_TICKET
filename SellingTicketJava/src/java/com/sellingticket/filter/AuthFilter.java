@@ -37,7 +37,7 @@ import jakarta.servlet.http.HttpSession;
     "/order-confirmation", "/profile", "/change-password",
     "/resume-payment", "/support/*",
     "/api/admin/*", "/api/organizer/*", "/api/my-tickets", "/api/my-orders",
-    "/api/chat/*", "/api/payment/*", "/api/upload",
+    "/api/chat/*", "/api/payment/*", "/api/voucher/*", "/api/upload",
     "/media/upload", "*.jsp"
 })
 public class AuthFilter implements Filter {
