@@ -84,7 +84,20 @@ public class CsrfFilter implements Filter {
 
             if (submittedToken == null || !submittedToken.equals(sessionToken)) {
                 LOGGER.warning("CSRF validation failed for " + uri
-                        + " from " + request.getRemoteAddr());
+                        + " from " + request.getRemoteAddr()
+                        + " (submitted=" + (submittedToken != null ? "present" : "null")
+                        + ", session=" + (sessionToken != null ? "present" : "null") + ")");
+
+                // For login/register pages, redirect back to the GET form instead of raw 403
+                // This handles edge cases: expired session, back-button resubmit, token desync
+                String ctxPath = request.getContextPath();
+                if (uri.endsWith("/login") || uri.endsWith("/register")) {
+                    session.removeAttribute(TOKEN_NAME); // force fresh token on next GET
+                    response.sendRedirect(ctxPath + (uri.endsWith("/login") ? "/login" : "/register")
+                            + "?error=csrf");
+                    return;
+                }
+
                 response.sendError(HttpServletResponse.SC_FORBIDDEN,
                         "Invalid or missing CSRF token. Please refresh the page and try again.");
                 return;

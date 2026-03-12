@@ -336,8 +336,10 @@ async function loadProfileOrders() {
     container.innerHTML = '<div class="text-muted">Đang tải đơn hàng...</div>';
 
     try {
-        const res = await fetch(ctxPath + '/api/my-orders?' + params.toString(), { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) throw new Error('Failed');
+        const res = await fetch(ctxPath + '/api/my-orders?' + params.toString(), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) throw new Error('Invalid response');
         const data = await res.json();
         const items = data.items || [];
 
@@ -383,8 +385,10 @@ async function loadProfileTickets() {
     container.innerHTML = '<div class="text-muted">Đang tải vé...</div>';
 
     try {
-        const res = await fetch(ctxPath + '/api/my-tickets?' + params.toString(), { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) throw new Error('Failed');
+        const res = await fetch(ctxPath + '/api/my-tickets?' + params.toString(), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) throw new Error('Invalid response');
         const data = await res.json();
         const items = data.items || [];
 

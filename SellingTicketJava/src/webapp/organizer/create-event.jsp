@@ -303,7 +303,7 @@
                             </div>
                             <div>
                                 <strong class="d-block mb-1"><i class="fas fa-lightbulb text-warning me-1"></i>Mẹo tạo sự kiện thu hút</strong>
-                                <small class="text-muted">Tên sự kiện rõ ràng + ảnh bìa đẹp + mô tả chi tiết = tăng 3x lượt mua vé. Sự kiện sau khi tạo sẽ ở trạng thái <strong>Chờ duyệt</strong> — Admin sẽ xem và phê duyệt trước khi đăng bán.</small>
+                                <small class="text-muted">Tên sự kiện rõ ràng + ảnh bìa đẹp + mô tả chi tiết = tăng 3x lượt mua vé. Khi tạo xong sự kiện sẽ được lưu thành <strong>Bản nháp</strong> — bạn có thể chỉnh sửa rồi bấm <strong>Gửi duyệt</strong> để Admin phê duyệt trước khi đăng bán vé.</small>
                             </div>
                         </div>
                     </div>
@@ -689,7 +689,7 @@
                             <i class="fas fa-arrow-left me-2"></i>Quay lại
                         </button>
                         <button type="submit" class="btn btn-gradient btn-lg rounded-pill px-5 py-2 hover-glow" id="submitBtn">
-                            <i class="fas fa-rocket me-2"></i>Tạo sự kiện
+                            <i class="fas fa-save me-2"></i>Lưu bản nháp
                         </button>
                     </div>
                 </div>
@@ -745,10 +745,32 @@ function validateCurrentStep() {
         var title = document.getElementById('eventTitle');
         var cat = document.getElementById('eventCategory');
         var shortDesc = document.getElementById('shortDescription');
-        if (!title.value.trim()) { title.classList.add('field-error'); valid = false; }
+        var descEditor = document.getElementById('descEditor');
+        // Sync editor before validation
+        document.getElementById('descHidden').value = descEditor.innerHTML;
+
+        if (!title.value.trim() || title.value.trim().length < 3 || title.value.trim().length > 200) {
+            title.classList.add('field-error'); valid = false;
+            if (!title.value.trim()) {
+                if (typeof showToast === 'function') showToast('Vui lòng nhập tên sự kiện (3–200 ký tự)', 'error');
+            } else {
+                if (typeof showToast === 'function') showToast('Tên sự kiện phải từ 3–200 ký tự', 'error');
+            }
+        }
         if (!cat.value) { cat.classList.add('field-error'); valid = false; }
-        if (!shortDesc.value.trim()) { shortDesc.classList.add('field-error'); valid = false; }
-        document.getElementById('descHidden').value = document.getElementById('descEditor').innerHTML;
+        if (!shortDesc.value.trim() || shortDesc.value.trim().length < 10) {
+            shortDesc.classList.add('field-error'); valid = false;
+            if (shortDesc.value.trim().length > 0 && shortDesc.value.trim().length < 10) {
+                if (typeof showToast === 'function') showToast('Mô tả ngắn cần ít nhất 10 ký tự', 'error');
+            }
+        }
+        var descText = descEditor.innerText ? descEditor.innerText.trim() : '';
+        if (descText.length < 10) {
+            descEditor.classList.add('field-error'); valid = false;
+            if (typeof showToast === 'function') showToast('Mô tả sự kiện cần ít nhất 10 ký tự', 'error');
+        } else {
+            descEditor.classList.remove('field-error');
+        }
     }
 
     if (currentStep === 2) {
@@ -761,12 +783,12 @@ function validateCurrentStep() {
         // Client-side past date validation
         if (start.value) {
             var startDateTime = new Date(start.value);
-            var now = new Date();
-            if (startDateTime < now) {
+                var today = new Date(); today.setHours(0, 0, 0, 0);
+                if (startDateTime < today) {
                 start.classList.add('field-error');
                 if (pastDateErr) pastDateErr.style.display = 'block';
                 valid = false;
-                if (typeof showToast === 'function') showToast('Ngày bắt đầu không được trong quá khứ!', 'error');
+                    if (typeof showToast === 'function') showToast('Ngày bắt đầu phải từ hôm nay trở đi!', 'error');
             }
         }
 
@@ -783,11 +805,26 @@ function validateCurrentStep() {
             if (typeof showToast === 'function') showToast('Vui lòng thêm ít nhất 1 loại vé', 'error');
             valid = false;
         }
+        var hasTicketError = false;
         cards.forEach(function(card) {
-            card.querySelectorAll('input[required]').forEach(function(inp) {
-                if (!inp.value.trim()) { inp.classList.add('field-error'); valid = false; }
-            });
+            var nameInp = card.querySelector('input[name="ticketName[]"]');
+            var priceInp = card.querySelector('input[name="ticketPrice[]"]');
+            var qtyInp  = card.querySelector('input[name="ticketQuantity[]"]');
+            if (!nameInp.value.trim() || nameInp.value.trim().length < 2) {
+                nameInp.classList.add('field-error'); valid = false; hasTicketError = true;
+            } else { nameInp.classList.remove('field-error'); }
+            var price = parseFloat(priceInp.value);
+            if (priceInp.value === '' || isNaN(price) || price < 0) {
+                priceInp.classList.add('field-error'); valid = false; hasTicketError = true;
+            } else { priceInp.classList.remove('field-error'); }
+            var qty = parseInt(qtyInp.value);
+            if (qtyInp.value === '' || isNaN(qty) || qty < 1 || qty > 100000) {
+                qtyInp.classList.add('field-error'); valid = false; hasTicketError = true;
+            } else { qtyInp.classList.remove('field-error'); }
         });
+        if (hasTicketError && typeof showToast === 'function') {
+            showToast('Kiểm tra loại vé: tên ≥2 ký tự, giá ≥0, số lượng 1–100000', 'error');
+        }
     }
 
     if (!valid && typeof showToast === 'function') showToast('Vui lòng kiểm tra lại thông tin', 'error');
@@ -1023,6 +1060,32 @@ function updateTotal() {
 }
 
 // ========== REVIEW POPULATION ==========
+// ========== DYNAMIC SUBMIT BUTTON ==========
+(function() {
+// ========== SET MIN DATE on startDate input ==========
+(function() {
+    var t = new Date();
+    var todayStr = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+    var si = document.getElementById('startDate');
+    if (si) si.min = todayStr + 'T00:00';
+})();
+
+// ========== DYNAMIC SUBMIT BUTTON ==========
+(function() {
+    var statusSel = document.getElementById('eventStatus');
+    var submitBtn = document.getElementById('submitBtn');
+    if (!statusSel || !submitBtn) return;
+    function syncBtn() {
+        if (statusSel.value === 'pending') {
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Gửi duyệt';
+        } else {
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Lưu bản nháp';
+        }
+    }
+    statusSel.addEventListener('change', syncBtn);
+    syncBtn();
+})();
+
 function populateReview() {
     document.getElementById('reviewTitle').textContent = document.getElementById('eventTitle').value || '\u2014';
     var catSelect = document.getElementById('eventCategory');
@@ -1069,13 +1132,13 @@ document.getElementById('createEventForm').addEventListener('submit', function(e
     var startInput = document.getElementById('startDate');
     if (startInput.value) {
         var startDate = new Date(startInput.value);
-        var now = new Date();
-        if (startDate < now) {
+            var todayCheck = new Date(); todayCheck.setHours(0, 0, 0, 0);
+            if (startDate < todayCheck) {
             e.preventDefault();
             startInput.classList.add('field-error');
             var pastDateErr = document.getElementById('pastDateError');
             if (pastDateErr) pastDateErr.style.display = 'block';
-            if (typeof showToast === 'function') showToast('Ngày bắt đầu không được trong quá khứ! Vui lòng chọn lại.', 'error');
+                if (typeof showToast === 'function') showToast('Ngày bắt đầu phải từ hôm nay trở đi!', 'error');
             goToStep(2);
             return false;
         }

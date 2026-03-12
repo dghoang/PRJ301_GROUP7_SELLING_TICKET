@@ -39,6 +39,11 @@ public class AuthTokenService {
                             HttpServletRequest request, boolean rememberMe) {
 
         boolean secure = request.isSecure();
+        String cookiePath = resolveCookiePath(request);
+
+        // Cleanup legacy root-path cookies to avoid duplicated auth cookies in request header.
+        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, "/");
+        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, "/");
 
         // Access token
         String accessToken = JwtUtil.generateAccessToken(
@@ -46,7 +51,7 @@ public class AuthTokenService {
 
         int accessMaxAge = rememberMe ? (int) JwtUtil.ACCESS_TOKEN_EXPIRY_SEC : -1;
         CookieUtil.addSecureCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE,
-                accessToken, accessMaxAge, secure);
+            accessToken, accessMaxAge, secure, cookiePath);
 
         // Refresh token
         String[] refreshResult = JwtUtil.generateRefreshToken(user.getUserId());
@@ -55,7 +60,7 @@ public class AuthTokenService {
 
         int refreshMaxAge = rememberMe ? (int) JwtUtil.REFRESH_TOKEN_EXPIRY_SEC : -1;
         CookieUtil.addSecureCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE,
-                refreshToken, refreshMaxAge, secure);
+            refreshToken, refreshMaxAge, secure, cookiePath);
 
         // Save refresh token in DB
         long expiresMs = System.currentTimeMillis() + (JwtUtil.REFRESH_TOKEN_EXPIRY_SEC * 1000);
@@ -123,10 +128,14 @@ public class AuthTokenService {
         String newAccessToken = JwtUtil.generateAccessToken(
                 user.getUserId(), user.getEmail(), user.getRole());
 
+        String cookiePath = resolveCookiePath(request);
+        // Cleanup legacy root-path cookie copy first.
+        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, request.isSecure(), "/");
+
         // Use persistent cookie if original refresh cookie exists (user chose remember-me)
         int maxAge = (int) JwtUtil.ACCESS_TOKEN_EXPIRY_SEC;
         CookieUtil.addSecureCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE,
-                newAccessToken, maxAge, request.isSecure());
+            newAccessToken, maxAge, request.isSecure(), cookiePath);
 
         // Update last activity
         refreshTokenDAO.updateLastActivity(jti);
@@ -140,6 +149,7 @@ public class AuthTokenService {
      */
     public void revokeTokens(HttpServletRequest request, HttpServletResponse response) {
         boolean secure = request.isSecure();
+        String cookiePath = resolveCookiePath(request);
 
         // Revoke refresh token in DB
         String refreshToken = CookieUtil.getCookieValue(request, CookieUtil.REFRESH_TOKEN_COOKIE);
@@ -154,8 +164,11 @@ public class AuthTokenService {
         }
 
         // Delete cookies
-        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure);
-        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure);
+        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, cookiePath);
+        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, cookiePath);
+        // Also delete legacy root-path copies.
+        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, "/");
+        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, "/");
     }
 
     /**
@@ -172,5 +185,10 @@ public class AuthTokenService {
             return ip.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private String resolveCookiePath(HttpServletRequest request) {
+        String cp = request.getContextPath();
+        return (cp == null || cp.isEmpty()) ? "/" : cp;
     }
 }

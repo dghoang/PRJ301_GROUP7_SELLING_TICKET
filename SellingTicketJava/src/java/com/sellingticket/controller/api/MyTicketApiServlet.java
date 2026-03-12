@@ -9,6 +9,8 @@ import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "MyTicketApiServlet", urlPatterns = {"/api/my-tickets"})
 public class MyTicketApiServlet extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(MyTicketApiServlet.class.getName());
     private TicketDAO ticketDAO;
 
     @Override
@@ -40,48 +43,53 @@ public class MyTicketApiServlet extends HttpServlet {
             return;
         }
 
-        String keyword = request.getParameter("q");
-        String checkedInStr = request.getParameter("checkedIn");
-        Boolean isCheckedIn = null;
-        if ("true".equals(checkedInStr)) isCheckedIn = true;
-        else if ("false".equals(checkedInStr)) isCheckedIn = false;
+        try {
+            String keyword = request.getParameter("q");
+            String checkedInStr = request.getParameter("checkedIn");
+            Boolean isCheckedIn = null;
+            if ("true".equals(checkedInStr)) isCheckedIn = true;
+            else if ("false".equals(checkedInStr)) isCheckedIn = false;
 
-        int page = parseIntOrDefault(request.getParameter("page"), 1);
-        int size = parseIntOrDefault(request.getParameter("size"), 10);
+            int page = parseIntOrDefault(request.getParameter("page"), 1);
+            int size = parseIntOrDefault(request.getParameter("size"), 10);
 
-        PageResult<Ticket> result = ticketDAO.getTicketsByUserPaged(
-                user.getUserId(), keyword, isCheckedIn, page, size);
+            PageResult<Ticket> result = ticketDAO.getTicketsByUserPaged(
+                    user.getUserId(), keyword, isCheckedIn, page, size);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
 
-        JsonResponse json = JsonResponse.ok()
-                .put("totalItems", result.getTotalItems())
-                .put("totalPages", result.getTotalPages())
-                .put("currentPage", result.getCurrentPage())
-                .put("pageSize", result.getPageSize());
+            JsonResponse json = JsonResponse.ok()
+                    .put("totalItems", result.getTotalItems())
+                    .put("totalPages", result.getTotalPages())
+                    .put("currentPage", result.getCurrentPage())
+                    .put("pageSize", result.getPageSize());
 
-        json.startArray("items");
-        for (Ticket t : result.getItems()) {
-            StringBuilder item = new StringBuilder("{");
-            item.append("\"ticketId\":").append(t.getTicketId()).append(",");
-            item.append("\"ticketCode\":\"").append(esc(t.getTicketCode())).append("\",");
-            item.append("\"eventTitle\":\"").append(esc(t.getEventTitle())).append("\",");
-            item.append("\"eventId\":").append(t.getEventId()).append(",");
-            item.append("\"ticketTypeName\":\"").append(esc(t.getTicketTypeName())).append("\",");
-            item.append("\"orderCode\":\"").append(esc(t.getOrderCode())).append("\",");
-            item.append("\"attendeeName\":\"").append(esc(t.getAttendeeName())).append("\",");
-            item.append("\"attendeeEmail\":\"").append(esc(t.getAttendeeEmail())).append("\",");
-            item.append("\"qrCode\":\"").append(esc(t.getQrCode())).append("\",");
-            item.append("\"isCheckedIn\":").append(t.isCheckedIn()).append(",");
-            item.append("\"orderStatus\":\"").append(esc(t.getOrderStatus() != null ? t.getOrderStatus() : "paid")).append("\",");
-            item.append("\"orderId\":").append(t.getOrderId()).append(",");
-            item.append("\"checkedInAt\":\"").append(t.getCheckedInAt() != null ? sdf.format(t.getCheckedInAt()) : "").append("\",");
-            item.append("\"createdAt\":\"").append(t.getCreatedAt() != null ? sdf.format(t.getCreatedAt()) : "").append("\"");
-            item.append("}");
-            json.arrayElement(item.toString());
+            json.startArray("items");
+            for (Ticket t : result.getItems()) {
+                StringBuilder item = new StringBuilder("{");
+                item.append("\"ticketId\":").append(t.getTicketId()).append(",");
+                item.append("\"ticketCode\":\"").append(esc(t.getTicketCode())).append("\",");
+                item.append("\"eventTitle\":\"").append(esc(t.getEventTitle())).append("\",");
+                item.append("\"eventId\":").append(t.getEventId()).append(",");
+                item.append("\"ticketTypeName\":\"").append(esc(t.getTicketTypeName())).append("\",");
+                item.append("\"orderCode\":\"").append(esc(t.getOrderCode())).append("\",");
+                item.append("\"attendeeName\":\"").append(esc(t.getAttendeeName())).append("\",");
+                item.append("\"attendeeEmail\":\"").append(esc(t.getAttendeeEmail())).append("\",");
+                item.append("\"qrCode\":\"").append(esc(t.getQrCode())).append("\",");
+                item.append("\"isCheckedIn\":").append(t.isCheckedIn()).append(",");
+                item.append("\"orderStatus\":\"").append(esc(t.getOrderStatus() != null ? t.getOrderStatus() : "paid")).append("\",");
+                item.append("\"orderId\":").append(t.getOrderId()).append(",");
+                item.append("\"checkedInAt\":\"").append(t.getCheckedInAt() != null ? sdf.format(t.getCheckedInAt()) : "").append("\",");
+                item.append("\"createdAt\":\"").append(t.getCreatedAt() != null ? sdf.format(t.getCreatedAt()) : "").append("\"");
+                item.append("}");
+                json.arrayElement(item.toString());
+            }
+            json.endArray();
+            json.send(response);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error loading user tickets", e);
+            JsonResponse.serverError().send(response);
         }
-        json.endArray();
-        json.send(response);
     }
 
     private static String esc(String v) {

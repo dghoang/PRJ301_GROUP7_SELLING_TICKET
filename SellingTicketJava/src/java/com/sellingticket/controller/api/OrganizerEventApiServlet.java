@@ -40,7 +40,8 @@ public class OrganizerEventApiServlet extends HttpServlet {
             return;
         }
         String role = user.getRole();
-        if (!"organizer".equals(role) && !"admin".equals(role)) {
+        // Allow admin, organizer, and customer (customer may own draft events)
+        if (!"organizer".equals(role) && !"admin".equals(role) && !"customer".equals(role)) {
             JsonResponse.unauthorized().send(response);
             return;
         }
@@ -55,6 +56,7 @@ public class OrganizerEventApiServlet extends HttpServlet {
             // Admin sees all events across all organizers
             result = eventService.getAllEventsPaged(keyword, statuses, null, page, size);
         } else {
+            // organizer and customer: only see their own events
             result = eventService.getEventsByOrganizerPaged(
                     user.getUserId(), keyword, statuses, page, size);
         }

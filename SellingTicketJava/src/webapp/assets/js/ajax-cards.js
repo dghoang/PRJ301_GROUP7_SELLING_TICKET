@@ -29,6 +29,7 @@ class AjaxCards {
         this.container = document.querySelector(config.container);
         this.paginationContainer = document.querySelector(config.paginationContainer);
         this.searchInput = document.querySelector(config.searchInput);
+        this.filterScope = config.filterScope ? document.querySelector(config.filterScope) : document;
         this.renderCard = config.renderCard;
         this.renderEmpty = config.renderEmpty || this._defaultEmpty;
         this.onDataLoaded = config.onDataLoaded || null;
@@ -45,6 +46,10 @@ class AjaxCards {
     }
 
     init() {
+        if (!this.container) {
+            console.error('AjaxCards: container not found for', this.apiUrl);
+            return;
+        }
         this._loadFromURL();
         this._bindSearch();
         this._bindFilters();
@@ -66,7 +71,17 @@ class AjaxCards {
         const url = this.apiUrl + '?' + params.toString();
 
         fetch(url, { credentials: 'same-origin' })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    if (res.status === 401) throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                    throw new Error('Server error: ' + res.status);
+                }
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Phản hồi không hợp lệ từ server');
+                }
+                return res.json();
+            })
             .then(data => {
                 this.isLoading = false;
                 if (data.success) {
@@ -105,7 +120,10 @@ class AjaxCards {
             }, this.debounceDelay);
         });
 
-        const clearBtn = this.searchInput.parentElement?.querySelector('.search-clear');
+        let clearBtn = null;
+        if (this.searchInput.parentElement) {
+            clearBtn = this.searchInput.parentElement.querySelector('.search-clear');
+        }
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 this.searchInput.value = '';
@@ -120,7 +138,7 @@ class AjaxCards {
     // ========================
 
     _bindPills() {
-        document.querySelectorAll('[data-pill-group]').forEach(group => {
+        this.filterScope.querySelectorAll('[data-pill-group]').forEach(group => {
             const paramName = group.dataset.pillGroup;
             const isMulti = group.dataset.pillMulti === 'true';
 
@@ -132,9 +150,9 @@ class AjaxCards {
                     if (isMulti) {
                         pill.classList.toggle('active');
                     } else {
-                        // Single select: deactivate siblings
+                        // Single select: deactivate siblings, activate clicked pill
                         group.querySelectorAll('[data-pill-value]').forEach(p => p.classList.remove('active'));
-                        if (value) pill.classList.add('active');
+                        pill.classList.add('active');
                     }
 
                     this.currentPage = 1;
@@ -150,7 +168,7 @@ class AjaxCards {
 
     _bindFilters() {
         // Select dropdowns
-        document.querySelectorAll('[data-filter-select]').forEach(select => {
+        this.filterScope.querySelectorAll('[data-filter-select]').forEach(select => {
             select.addEventListener('change', () => {
                 this.currentPage = 1;
                 this.load();
@@ -158,7 +176,7 @@ class AjaxCards {
         });
 
         // Date range
-        document.querySelectorAll('[data-filter-date]').forEach(input => {
+        this.filterScope.querySelectorAll('[data-filter-date]').forEach(input => {
             input.addEventListener('change', () => {
                 this.currentPage = 1;
                 this.load();
@@ -166,7 +184,7 @@ class AjaxCards {
         });
 
         // Number range (price)
-        document.querySelectorAll('[data-filter-number]').forEach(input => {
+        this.filterScope.querySelectorAll('[data-filter-number]').forEach(input => {
             let timer;
             input.addEventListener('input', () => {
                 clearTimeout(timer);
@@ -178,7 +196,7 @@ class AjaxCards {
         });
 
         // Checkbox groups
-        document.querySelectorAll('[data-filter-group]').forEach(group => {
+        this.filterScope.querySelectorAll('[data-filter-group]').forEach(group => {
             group.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.addEventListener('change', () => {
                     this.currentPage = 1;
@@ -192,7 +210,7 @@ class AjaxCards {
         const filters = {};
 
         // Pill groups
-        document.querySelectorAll('[data-pill-group]').forEach(group => {
+        this.filterScope.querySelectorAll('[data-pill-group]').forEach(group => {
             const name = group.dataset.pillGroup;
             const active = [];
             group.querySelectorAll('[data-pill-value].active').forEach(p => {
@@ -203,25 +221,25 @@ class AjaxCards {
         });
 
         // Select dropdowns
-        document.querySelectorAll('[data-filter-select]').forEach(select => {
+        this.filterScope.querySelectorAll('[data-filter-select]').forEach(select => {
             const name = select.dataset.filterSelect;
             if (select.value) filters[name] = select.value;
         });
 
         // Date range
-        document.querySelectorAll('[data-filter-date]').forEach(input => {
+        this.filterScope.querySelectorAll('[data-filter-date]').forEach(input => {
             const name = input.dataset.filterDate;
             if (input.value) filters[name] = input.value;
         });
 
         // Number range
-        document.querySelectorAll('[data-filter-number]').forEach(input => {
+        this.filterScope.querySelectorAll('[data-filter-number]').forEach(input => {
             const name = input.dataset.filterNumber;
             if (input.value) filters[name] = input.value;
         });
 
         // Checkbox groups
-        document.querySelectorAll('[data-filter-group]').forEach(group => {
+        this.filterScope.querySelectorAll('[data-filter-group]').forEach(group => {
             const name = group.dataset.filterGroup;
             const checked = [];
             group.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
@@ -277,7 +295,7 @@ class AjaxCards {
         }
 
         // Restore pill filters
-        document.querySelectorAll('[data-pill-group]').forEach(group => {
+        this.filterScope.querySelectorAll('[data-pill-group]').forEach(group => {
             const name = group.dataset.pillGroup;
             const values = params.getAll(name);
             if (values.length > 0) {
@@ -288,25 +306,25 @@ class AjaxCards {
         });
 
         // Restore select filters
-        document.querySelectorAll('[data-filter-select]').forEach(select => {
+        this.filterScope.querySelectorAll('[data-filter-select]').forEach(select => {
             const name = select.dataset.filterSelect;
             if (params.has(name)) select.value = params.get(name);
         });
 
         // Restore date filters
-        document.querySelectorAll('[data-filter-date]').forEach(input => {
+        this.filterScope.querySelectorAll('[data-filter-date]').forEach(input => {
             const name = input.dataset.filterDate;
             if (params.has(name)) input.value = params.get(name);
         });
 
         // Restore number filters
-        document.querySelectorAll('[data-filter-number]').forEach(input => {
+        this.filterScope.querySelectorAll('[data-filter-number]').forEach(input => {
             const name = input.dataset.filterNumber;
             if (params.has(name)) input.value = params.get(name);
         });
 
         // Restore checkbox filters
-        document.querySelectorAll('[data-filter-group]').forEach(group => {
+        this.filterScope.querySelectorAll('[data-filter-group]').forEach(group => {
             const name = group.dataset.filterGroup;
             const values = params.getAll(name);
             group.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -332,6 +350,12 @@ class AjaxCards {
             return;
         }
         this.container.innerHTML = items.map(item => this.renderCard(item)).join('');
+
+        // Cards may be inserted after animations.js observer is initialized.
+        // Force reveal to prevent hidden cards (opacity:0) from staying invisible.
+        this.container.querySelectorAll('.animate-on-scroll:not(.visible)').forEach(el => {
+            el.classList.add('visible');
+        });
     }
 
     _renderPagination() {

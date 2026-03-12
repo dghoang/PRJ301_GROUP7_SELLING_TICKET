@@ -81,6 +81,12 @@ public class AuthFilter implements Filter {
         String contextPath = httpRequest.getContextPath();
         String path = uri.startsWith(contextPath) ? uri.substring(contextPath.length()) : uri;
 
+        // Welcome file / root path — always allow (index.jsp forwards to /home)
+        if (path.isEmpty() || "/".equals(path)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // Hardening: protected JSPs must never be accessed directly via URL.
         if (isProtectedJsp(path)) {
             LOGGER.log(Level.WARNING, "Blocked direct access to protected JSP: {0}", path);
@@ -172,12 +178,13 @@ public class AuthFilter implements Filter {
                 return;
             }
 
-            // Customer role: allow only create-event and events list (to view approval status)
+            // Customer role: allowed paths in /organizer area
             if ("customer".equals(role)) {
                 String orgPath = uri.substring((contextPath + "/organizer").length());
                 boolean allowedForCustomer =
                         orgPath.equals("/create-event") || orgPath.startsWith("/create-event/") ||
-                        orgPath.equals("/events") || orgPath.startsWith("/events?") ||
+                        orgPath.equals("/events") || orgPath.startsWith("/events/") ||
+                        orgPath.startsWith("/events?") ||
                         orgPath.equals("/settings") || orgPath.startsWith("/settings/");
                 if (!allowedForCustomer) {
                     httpResponse.sendRedirect(contextPath + "/organizer/events?msg=B%E1%BA%A1n+c%E1%BA%A7n+c%C3%B3+s%E1%BB%B1+ki%E1%BB%87n+%C4%91%C6%B0%E1%BB%A3c+duy%E1%BB%87t+%C4%91%E1%BB%83+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=warning");
@@ -200,7 +207,8 @@ public class AuthFilter implements Filter {
             }
         }
         if (uri.startsWith(contextPath + "/api/organizer/")) {
-            if (!"organizer".equals(role) && !"admin".equals(role)) {
+            // customer is also allowed – they may have draft events that need to appear in the list
+            if (!"organizer".equals(role) && !"admin".equals(role) && !"customer".equals(role)) {
                 httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 httpResponse.setContentType("application/json");
                 httpResponse.getWriter().write("{\"error\":\"Unauthorized\"}");

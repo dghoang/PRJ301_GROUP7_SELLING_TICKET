@@ -172,10 +172,22 @@ public class OrganizerEventController extends HttpServlet {
         int checkedIn = orderService.getCheckInCount(event.getEventId());
         int checkInRate = totalOrders > 0 ? Math.round(checkedIn * 100f / totalOrders) : 0;
 
+        // Permission flags for JSP button visibility
+        boolean canEdit    = eventService.hasEditPermission(event.getEventId(), user.getUserId(), user.getRole());
+        boolean canCheckin = eventService.hasCheckInPermission(event.getEventId(), user.getUserId(), user.getRole());
+        boolean canDelete  = eventService.hasDeletePermission(event.getEventId(), user.getUserId(), user.getRole());
+        boolean isApproved = "approved".equals(event.getStatus());
+        boolean isDraft    = "draft".equals(event.getStatus());
+
         request.setAttribute("event", event);
         request.setAttribute("totalOrders", totalOrders);
         request.setAttribute("checkedInCount", checkedIn);
         request.setAttribute("checkInRate", checkInRate);
+        request.setAttribute("canEdit",    canEdit);
+        request.setAttribute("canCheckin", canCheckin);
+        request.setAttribute("canDelete",  canDelete);
+        request.setAttribute("isApproved", isApproved);
+        request.setAttribute("isDraft",    isDraft);
         request.getRequestDispatcher("/organizer/event-detail.jsp").forward(request, response);
     }
 
@@ -267,7 +279,7 @@ public class OrganizerEventController extends HttpServlet {
                 return;
             }
             // Validate: event start date must not be in the past
-            if (event.getStartDate().before(new java.util.Date())) {
+                if (event.getStartDate().before(todayMidnight())) {
                 returnFormWithError(request, response, user, event, tickets, "Ngày bắt đầu sự kiện không được trong quá khứ. Vui lòng chọn ngày từ hôm nay trở đi.");
                 return;
             }
@@ -367,8 +379,8 @@ public class OrganizerEventController extends HttpServlet {
             existing.setPreOrderEnabled("true".equals(request.getParameter("preOrderEnabled")));
 
             // Validate: start date must not be in the past (for new dates only)
-            if (existing.getStartDate() != null && existing.getStartDate().before(new java.util.Date())) {
-                setToast(request, "Ngày bắt đầu sự kiện không được trong quá khứ", "error");
+                if (existing.getStartDate() != null && existing.getStartDate().before(todayMidnight())) {
+                    setToast(request, "Ngày bắt đầu sự kiện không được trước ngày hôm nay", "error");
                 response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
                 return;
             }
@@ -439,7 +451,7 @@ public class OrganizerEventController extends HttpServlet {
         }
 
         // Validate: start date must not be in the past when submitting
-        if (event.getStartDate() != null && event.getStartDate().before(new java.util.Date())) {
+            if (event.getStartDate() != null && event.getStartDate().before(todayMidnight())) {
             setToast(request, "Ngày bắt đầu sự kiện đã qua. Vui lòng chỉnh sửa trước khi gửi duyệt.", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
             return;
@@ -606,4 +618,14 @@ public class OrganizerEventController extends HttpServlet {
 
         return tickets;
     }
-}
+
+        /** Today at 00:00:00.000 — for date-only past-date validation. */
+        private static java.util.Date todayMidnight() {
+            java.util.Calendar c = java.util.Calendar.getInstance();
+            c.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            c.set(java.util.Calendar.MINUTE, 0);
+            c.set(java.util.Calendar.SECOND, 0);
+            c.set(java.util.Calendar.MILLISECOND, 0);
+            return c.getTime();
+        }
+    }

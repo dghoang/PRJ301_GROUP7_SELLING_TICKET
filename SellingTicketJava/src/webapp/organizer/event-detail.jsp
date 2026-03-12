@@ -168,7 +168,16 @@
 
             <!-- Hero Banner -->
             <div class="detail-hero mb-4 animate-on-scroll visible">
-                <img src="${event.bannerImage != null ? event.bannerImage : 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200'}" alt="${event.title}">
+                <c:choose>
+                    <c:when test="${not empty event.bannerImage}">
+                        <img src="${event.bannerImage}" alt="${event.title}" style="width:100%;height:100%;object-fit:cover;">
+                    </c:when>
+                    <c:otherwise>
+                        <div style="width:100%;height:100%;background:linear-gradient(135deg,#9333ea,#db2777);display:flex;align-items:center;justify-content:center;">
+                            <i class="fas fa-calendar-alt fa-3x" style="color:rgba(255,255,255,0.4);"></i>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
                 <div class="hero-overlay">
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <tags:eventStatus status="${event.status}" />
@@ -210,7 +219,7 @@
                         <div class="metric-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
                             <i class="fas fa-coins"></i>
                         </div>
-                        <div class="metric-value">${event.revenue != null ? event.revenue : '0đ'}</div>
+                        <div class="metric-value"><fmt:formatNumber value="${event.revenue}" type="number" maxFractionDigits="0"/>đ</div>
                         <div class="metric-label">Doanh thu</div>
                     </div>
                 </div>
@@ -287,8 +296,9 @@
                                             <span class="small text-muted">${ticket.soldQuantity}/${ticket.quantity} vé</span>
                                         </div>
                                         <div class="avail-bar">
-                                            <div class="fill" style="width: ${ticket.quantity > 0 ? Math.round(ticket.soldQuantity * 100.0 / ticket.quantity) : 0}%;
-                                                background: ${ticket.soldQuantity >= ticket.quantity ? '#ef4444' : ticket.soldQuantity > ticket.quantity * 0.8 ? '#f59e0b' : '#10b981'};"></div>
+                                            <c:set var="soldPct" value="${ticket.quantity > 0 ? ticket.soldQuantity * 100 / ticket.quantity : 0}"/>
+                                            <c:set var="barColor" value="${ticket.soldQuantity >= ticket.quantity ? '#ef4444' : (ticket.soldQuantity * 10 > ticket.quantity * 8 ? '#f59e0b' : '#10b981')}"/>
+                                            <div class="fill" style="width:${soldPct}%;background:${barColor};"></div>
                                         </div>
                                     </div>
                                 </c:forEach>
@@ -302,11 +312,12 @@
 
                 <!-- Right Column -->
                 <div class="col-lg-4">
-                    <!-- Quick Actions -->
+                    <!-- Quick Actions (visibility based on role & event status) -->
                     <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll visible stagger-1">
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-3">Thao tác nhanh</h6>
                             <div class="row g-3">
+                                <c:if test="${canEdit}">
                                 <div class="col-6">
                                     <a href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/edit" class="quick-action">
                                         <div class="action-icon" style="background: rgba(59,130,246,0.1); color: #3b82f6;">
@@ -315,6 +326,8 @@
                                         <small class="fw-medium">Chỉnh sửa</small>
                                     </a>
                                 </div>
+                                </c:if>
+                                <c:if test="${canEdit}">
                                 <div class="col-6">
                                     <a href="${pageContext.request.contextPath}/organizer/events/${event.eventId}/staff" class="quick-action">
                                         <div class="action-icon" style="background: rgba(147,51,234,0.1); color: var(--primary);">
@@ -323,6 +336,8 @@
                                         <small class="fw-medium">Nhân sự</small>
                                     </a>
                                 </div>
+                                </c:if>
+                                <c:if test="${canCheckin && isApproved}">
                                 <div class="col-6">
                                     <a href="${pageContext.request.contextPath}/organizer/check-in?eventId=${event.eventId}" class="quick-action">
                                         <div class="action-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">
@@ -331,6 +346,8 @@
                                         <small class="fw-medium">Check-in</small>
                                     </a>
                                 </div>
+                                </c:if>
+                                <c:if test="${canEdit && isApproved}">
                                 <div class="col-6">
                                     <a href="${pageContext.request.contextPath}/organizer/statistics?eventId=${event.eventId}" class="quick-action">
                                         <div class="action-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
@@ -339,7 +356,33 @@
                                         <small class="fw-medium">Thống kê</small>
                                     </a>
                                 </div>
+                                </c:if>
+                                <c:if test="${isDraft && canEdit}">
+                                <div class="col-12">
+                                    <form method="POST" action="${pageContext.request.contextPath}/organizer/events/submit-draft">
+                                        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+                                        <input type="hidden" name="eventId" value="${event.eventId}"/>
+                                        <button type="submit" class="quick-action w-100" style="border:none;background:rgba(16,185,129,0.08);">
+                                            <div class="action-icon" style="background: rgba(16,185,129,0.12); color: #10b981;">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </div>
+                                            <small class="fw-medium text-success">Gửi duyệt</small>
+                                        </button>
+                                    </form>
+                                </div>
+                                </c:if>
                             </div>
+                            <%-- Info banner for non-approved events --%>
+                            <c:if test="${!isApproved && !isDraft}">
+                                <div class="alert alert-warning border-0 rounded-3 mt-3 py-2 px-3 small">
+                                    <i class="fas fa-clock me-2"></i>Sự kiện đang chờ Admin duyệt. Một số tính năng vận hành sẽ mở sau khi được duyệt.
+                                </div>
+                            </c:if>
+                            <c:if test="${isDraft}">
+                                <div class="alert alert-secondary border-0 rounded-3 mt-3 py-2 px-3 small">
+                                    <i class="fas fa-file-alt me-2"></i>Đây là bản nháp. Chỉnh sửa xong rồi bấm <strong>Gửi duyệt</strong> để gửi lên Admin.
+                                </div>
+                            </c:if>
                         </div>
                     </div>
 

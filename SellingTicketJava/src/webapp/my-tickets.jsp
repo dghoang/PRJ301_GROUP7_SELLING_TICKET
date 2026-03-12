@@ -88,7 +88,12 @@
                 </div>
             </div>
         </div>
-        <div id="myTicketsContainer"></div>
+        <div id="myTicketsContainer">
+            <div class="text-center py-5 text-muted" id="myTicketsLoading">
+                <div class="spinner-border text-primary mb-3" role="status"><span class="visually-hidden">Loading...</span></div>
+                <p>Đang tải vé...</p>
+            </div>
+        </div>
         <div id="myTicketsPagination" class="d-flex justify-content-center mt-4"></div>
     </div>
 
@@ -96,7 +101,7 @@
     <div id="ordersView" style="display:none;">
         <div class="card glass-strong border-0 rounded-4 mb-4 animate-on-scroll">
             <div class="card-body p-3 d-flex flex-wrap gap-3 align-items-center">
-                <div data-pill-group="orderStatus" class="d-flex gap-2">
+                <div data-pill-group="status" class="d-flex gap-2">
                     <a class="nav-link nav-tabs-glass-item active rounded-pill px-3 py-2" href="#" data-pill-value="">
                         <i class="fas fa-list me-1"></i>Tất cả
                     </a>
@@ -116,12 +121,17 @@
                 </div>
             </div>
         </div>
-        <div id="myOrdersContainer"></div>
+        <div id="myOrdersContainer">
+            <div class="text-center py-5 text-muted" id="myOrdersLoading">
+                <div class="spinner-border text-primary mb-3" role="status"><span class="visually-hidden">Loading...</span></div>
+                <p>Đang tải đơn hàng...</p>
+            </div>
+        </div>
         <div id="myOrdersPagination" class="d-flex justify-content-center mt-4"></div>
     </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/assets/js/ajax-cards.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/ajax-cards.js?v=20260313_1"></script>
 <script>
 (function() {
     var ctxPath = '${pageContext.request.contextPath}';
@@ -145,11 +155,14 @@
         return {gradient: '#10b981,#06b6d4', icon: 'fa-check-circle'};
     }
 
-    var myTickets = new AjaxCards({
+    var myTickets;
+    try {
+    myTickets = new AjaxCards({
         apiUrl: ctxPath + '/api/my-tickets',
         container: '#myTicketsContainer',
         paginationContainer: '#myTicketsPagination',
         searchInput: '#myTicketSearch',
+        filterScope: '#ticketsView',
         pageSize: 10,
         skeletonCount: 3,
         skeletonHtml: '<div class="card glass-strong border-0 rounded-4 mb-3 skeleton-card" style="height:120px;"><div class="skeleton-body p-4"><div class="skeleton-line w-50"></div><div class="skeleton-line w-75"></div><div class="skeleton-line w-25"></div></div></div>',
@@ -168,7 +181,7 @@
             var ticketId = 'ticket_' + t.ticketId;
             var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(t.qrCode || '');
 
-            var card = '<div class="card glass-strong border-0 rounded-4 order-card animate-on-scroll" id="' + ticketId + '" style="border:2px solid transparent !important;">';
+            var card = '<div class="card glass-strong border-0 rounded-4 order-card" id="' + ticketId + '" style="border:2px solid transparent !important;">';
 
             // Header row (clickable to expand)
             card += '<div class="card-body p-4" onclick="toggleTicket(\'' + ticketId + '\')" style="cursor:pointer">';
@@ -237,7 +250,12 @@
             return card;
         }
     });
-    myTickets.init();
+        myTickets.init();
+    } catch(e) {
+        console.error('MyTickets init error:', e);
+        document.getElementById('myTicketsContainer').innerHTML =
+            '<div class="alert alert-danger rounded-4 m-3"><i class="fas fa-exclamation-triangle me-2"></i>Lỗi tải dữ liệu vé: ' + e.message + '</div>';
+    }
 
     // Toggle ticket expand/collapse
     window.toggleTicket = function(ticketId) {
@@ -339,11 +357,13 @@
         }
     }
 
+    try {
     window._myOrders = new AjaxCards({
         apiUrl: ctxPath + '/api/my-orders',
         container: '#myOrdersContainer',
         paginationContainer: '#myOrdersPagination',
         searchInput: '#myOrderSearch',
+        filterScope: '#ordersView',
         pageSize: 10,
         skeletonCount: 3,
         skeletonHtml: '<div class="card glass-strong border-0 rounded-4 mb-3 skeleton-card" style="height:120px;"><div class="skeleton-body p-4"><div class="skeleton-line w-50"></div><div class="skeleton-line w-75"></div><div class="skeleton-line w-25"></div></div></div>',
@@ -361,7 +381,7 @@
             var si = orderStatusIcon(o.status);
             var orderId = 'order_' + o.orderId;
 
-            var card = '<div class="card glass-strong border-0 rounded-4 order-card animate-on-scroll mb-3" id="' + orderId + '" style="border:2px solid transparent !important;">';
+            var card = '<div class="card glass-strong border-0 rounded-4 order-card mb-3" id="' + orderId + '" style="border:2px solid transparent !important;">';
 
             // Header row (clickable to expand)
             card += '<div class="card-body p-4" onclick="toggleOrder(\'' + orderId + '\')" style="cursor:pointer">';
@@ -428,6 +448,11 @@
             return card;
         }
     });
+    } catch(e) {
+        console.error('MyOrders constructor error:', e);
+        document.getElementById('myOrdersContainer').innerHTML =
+            '<div class="alert alert-danger rounded-4 m-3"><i class="fas fa-exclamation-triangle me-2"></i>Lỗi khởi tạo đơn hàng: ' + e.message + '</div>';
+    }
     // Don't init yet - will init when switching to orders view
 })();
 
@@ -448,7 +473,13 @@ window.switchView = function(view, tabEl) {
         document.getElementById('ordersView').style.display = '';
         // Lazy-init orders AjaxCards on first switch
         if (!ordersInitialized && window._myOrders) {
-            window._myOrders.init();
+            try {
+                window._myOrders.init();
+            } catch(e) {
+                console.error('MyOrders init error:', e);
+                document.getElementById('myOrdersContainer').innerHTML =
+                    '<div class="alert alert-danger rounded-4 m-3"><i class="fas fa-exclamation-triangle me-2"></i>Lỗi tải đơn hàng: ' + e.message + '</div>';
+            }
             ordersInitialized = true;
         }
     }

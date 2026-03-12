@@ -24,6 +24,8 @@ import java.util.Date;
  */
 public final class ServletUtil {
 
+    private static final int MAX_RETURN_URL_LENGTH = 1000;
+
     /** Thread-safe date formatter (yyyy-MM-dd). */
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -131,16 +133,52 @@ public final class ServletUtil {
 
         String queryString = request.getQueryString();
         if (queryString != null && !queryString.isEmpty()) {
-            path += "?" + queryString;
+            String sanitizedQuery = removeNestedReturnUrl(queryString);
+            if (!sanitizedQuery.isEmpty()) {
+                path += "?" + sanitizedQuery;
+            }
+        }
+
+        if (path.length() > MAX_RETURN_URL_LENGTH) {
+            path = path.substring(0, MAX_RETURN_URL_LENGTH);
         }
         return path;
     }
 
     /** Redirect unauthenticated users to login while preserving the current path. */
     public static void redirectToLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String currentUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        String loginPath = contextPath + "/login";
+
+        // Guard against redirect loops and runaway returnUrl growth.
+        if (currentUri != null && currentUri.equals(loginPath)) {
+            response.sendRedirect(loginPath);
+            return;
+        }
+
         String returnUrl = getRequestPathWithQuery(request);
         String encoded = URLEncoder.encode(returnUrl, StandardCharsets.UTF_8);
-        response.sendRedirect(request.getContextPath() + "/login?returnUrl=" + encoded);
+        response.sendRedirect(loginPath + "?returnUrl=" + encoded);
+    }
+
+    private static String removeNestedReturnUrl(String queryString) {
+        String[] parts = queryString.split("&");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (p == null || p.isEmpty()) {
+                continue;
+            }
+            String lower = p.toLowerCase();
+            if (lower.startsWith("returnurl=")) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append("&");
+            }
+            sb.append(p);
+        }
+        return sb.toString();
     }
 
     // ========================

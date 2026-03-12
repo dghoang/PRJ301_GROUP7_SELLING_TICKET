@@ -75,11 +75,16 @@ public class OrganizerAccessFilter implements Filter {
             return;
         }
 
-        // 3. Event-Based Permission: If URL targets a specific event, verify ownership
+        // 3. Event-Based Permission: If URL targets a specific event, verify ownership or staff role.
+        //    Use hasEditPermission so that editor/manager/owner/admin all pass.
+        //    check-in specific paths still require hasCheckInPermission.
         if (!"admin".equals(user.getRole())) {
             int eventId = extractEventId(pathInfo, httpRequest);
             if (eventId > 0) {
-                boolean hasAccess = eventService.hasCheckInPermission(eventId, user.getUserId(), user.getRole());
+                boolean isCheckInPath = pathInfo.startsWith("/organizer/check-in");
+                boolean hasAccess = isCheckInPath
+                        ? eventService.hasCheckInPermission(eventId, user.getUserId(), user.getRole())
+                        : eventService.hasEditPermission(eventId, user.getUserId(), user.getRole());
                 if (!hasAccess) {
                     httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events?error=no_permission");
                     return;

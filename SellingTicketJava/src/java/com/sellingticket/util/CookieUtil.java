@@ -41,9 +41,18 @@ public final class CookieUtil {
      */
     public static void addSecureCookie(HttpServletResponse response, String name, String value,
                                        int maxAge, boolean isSecure) {
+        addSecureCookie(response, name, value, maxAge, isSecure, "/");
+    }
+
+    /**
+     * Add cookie with SameSite and custom Path attribute.
+     */
+    public static void addSecureCookie(HttpServletResponse response, String name, String value,
+                                       int maxAge, boolean isSecure, String cookiePath) {
+        String path = normalizePath(cookiePath);
         StringBuilder sb = new StringBuilder();
         sb.append(name).append("=").append(value);
-        sb.append("; Path=/");
+        sb.append("; Path=").append(path);
         sb.append("; HttpOnly");
         if (maxAge >= 0) {
             sb.append("; Max-Age=").append(maxAge);
@@ -57,7 +66,12 @@ public final class CookieUtil {
 
     /** Delete a cookie by setting Max-Age=0. */
     public static void deleteCookie(HttpServletResponse response, String name, boolean isSecure) {
-        addSecureCookie(response, name, "", 0, isSecure);
+        addSecureCookie(response, name, "", 0, isSecure, "/");
+    }
+
+    /** Delete a cookie by setting Max-Age=0 with custom Path. */
+    public static void deleteCookie(HttpServletResponse response, String name, boolean isSecure, String cookiePath) {
+        addSecureCookie(response, name, "", 0, isSecure, cookiePath);
     }
 
     /** Read a cookie value by name from the request. Returns null if not found. */
@@ -70,5 +84,12 @@ public final class CookieUtil {
             }
         }
         return null;
+    }
+
+    private static String normalizePath(String cookiePath) {
+        if (cookiePath == null || cookiePath.isEmpty()) {
+            return "/";
+        }
+        return cookiePath.startsWith("/") ? cookiePath : "/" + cookiePath;
     }
 }

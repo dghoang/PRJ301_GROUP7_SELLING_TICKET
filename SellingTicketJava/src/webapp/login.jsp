@@ -151,6 +151,12 @@
                     </div>
 
                     <!-- Error Message -->
+                    <c:if test="${param.error == 'csrf'}">
+                        <div class="alert alert-warning d-flex align-items-center rounded-3" role="alert">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            <span>Phiên đăng nhập đã hết hạn. Vui lòng thử lại.</span>
+                        </div>
+                    </c:if>
                     <c:if test="${not empty error}">
                         <div class="alert alert-danger d-flex align-items-center rounded-3 animate-shake" role="alert">
                             <i class="fas fa-exclamation-circle me-2"></i>

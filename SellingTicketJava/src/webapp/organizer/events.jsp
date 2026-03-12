@@ -370,8 +370,10 @@
                 '</div></div>';
         },
         renderCard: function(e) {
-            var img = esc(e.bannerImage || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400');
-            var st = statusLabel(e.status);
+                var imgContent = e.bannerImage
+                    ? '<img src="' + esc(e.bannerImage) + '" alt="' + esc(e.title) + '" style="width:100%;height:100%;object-fit:cover;">'
+                    : '<div style="width:100%;height:100%;background:linear-gradient(135deg,#9333ea,#db2777);display:flex;align-items:center;justify-content:center;"><i class=\'fas fa-calendar-alt fa-2x\' style=\'color:rgba(255,255,255,0.4);\'></i></div>';
+                var st = statusLabel(e.status);
             var soldPct = e.totalTickets > 0 ? Math.round(e.soldTickets * 100 / e.totalTickets) : 0;
 
             // Dropdown menu
@@ -387,7 +389,7 @@
             return '<div class="col-md-6 col-lg-4 event-item animate-on-scroll visible">' +
                 '<div class="event-manage-card" onclick="window.location=\'' + ctxPath + '/organizer/events/' + e.eventId + '\'">' +
                 '<div class="card-img-wrapper">' +
-                    '<img src="' + img + '" alt="' + esc(e.title) + '">' +
+                    imgContent +
                     '<span class="status-badge ' + st.cls + '">' + st.text + '</span>' +
                     (e.categoryName ? '<span class="category-badge"><i class="fas fa-tag me-1"></i>' + esc(e.categoryName) + '</span>' : '') +
                 '</div>' +
