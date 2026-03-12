@@ -245,6 +245,20 @@
         </div>
 
         <div class="col-lg-10">
+            <%-- ========== SERVER ERROR ALERT ========== --%>
+            <c:if test="${not empty error}">
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-4 animate-fadeInDown d-flex align-items-start gap-3" role="alert" id="serverErrorAlert">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background: rgba(239, 68, 68, 0.15);">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                    </div>
+                    <div>
+                        <strong>Lỗi tạo sự kiện</strong>
+                        <p class="mb-0 mt-1">${error}</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
+
             <div class="mb-4 animate-fadeInDown">
                 <h2 class="fw-bold mb-1">Tạo sự kiện mới</h2>
                 <p class="text-muted mb-0">Hoàn thành các bước bên dưới để tạo sự kiện của bạn</p>
@@ -301,7 +315,8 @@
                                     <div class="mb-3">
                                         <label class="form-label fw-medium">Tên sự kiện <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control form-control-lg" name="title" id="eventTitle"
-                                               placeholder="VD: Đêm nhạc Acoustic tháng 3" required maxlength="200">
+                                               placeholder="VD: Đêm nhạc Acoustic tháng 3" required maxlength="200"
+                                               value="<c:out value='${formEvent.title}'/>">
                                         <div class="d-flex justify-content-between mt-1">
                                             <span class="field-error-msg">Vui lòng nhập tên sự kiện</span>
                                             <small class="text-muted"><span id="titleCount">0</span>/200</small>
@@ -312,7 +327,7 @@
                                         <select class="form-select" name="category" id="eventCategory" required>
                                             <option value="">Chọn danh mục</option>
                                             <c:forEach var="c" items="${categories}">
-                                                <option value="${c.categoryId}">${c.name}</option>
+                                                <option value="${c.categoryId}" ${formEvent.categoryId == c.categoryId ? 'selected' : ''}>${c.name}</option>
                                             </c:forEach>
                                         </select>
                                         <span class="field-error-msg">Vui lòng chọn danh mục</span>
@@ -320,7 +335,7 @@
                                     <div class="mb-3">
                                         <label class="form-label fw-medium">Mô tả ngắn <span class="text-danger">*</span></label>
                                         <textarea class="form-control" name="shortDescription" id="shortDescription"
-                                                  placeholder="Tóm tắt sự kiện trong 1-2 câu (hiển thị trên thẻ sự kiện)" maxlength="500" rows="2" required></textarea>
+                                                  placeholder="Tóm tắt sự kiện trong 1-2 câu (hiển thị trên thẻ sự kiện)" maxlength="500" rows="2" required><c:out value='${formEvent.shortDescription}'/></textarea>
                                         <div class="d-flex justify-content-between mt-1">
                                             <span class="field-error-msg">Vui lòng nhập mô tả ngắn</span>
                                             <small class="text-muted"><span id="shortDescCount">0</span>/500</small>
@@ -453,7 +468,8 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-medium">Ngày bắt đầu <span class="text-danger">*</span></label>
                                     <input type="datetime-local" class="form-control form-control-lg" name="startDate" id="startDate" required>
-                                    <span class="field-error-msg">Vui lòng chọn ngày bắt đầu</span>
+                                    <span class="field-error-msg" id="startDateError">Vui lòng chọn ngày bắt đầu</span>
+                                    <span class="field-error-msg" id="pastDateError" style="display:none;color:#ef4444;">Ngày bắt đầu không được trong quá khứ</span>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-medium">Ngày kết thúc</label>
@@ -463,13 +479,15 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-medium">Địa điểm <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control form-control-lg" name="location" id="eventLocation"
-                                           placeholder="VD: Nhà hát Thành phố" required>
+                                           placeholder="VD: Nhà hát Thành phố" required
+                                           value="<c:out value='${formEvent.location}'/>">
                                     <span class="field-error-msg">Vui lòng nhập địa điểm</span>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-medium">Địa chỉ chi tiết</label>
                                     <input type="text" class="form-control form-control-lg" name="address" id="eventAddress"
-                                           placeholder="Số nhà, đường, quận...">
+                                           placeholder="Số nhà, đường, quận..."
+                                           value="<c:out value='${formEvent.address}'/>">
                                 </div>
                             </div>
                         </div>
@@ -645,10 +663,16 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label small fw-medium">Trạng thái</label>
-                                        <select class="form-select" name="status">
-                                            <option value="draft">Bản nháp — Lưu lại để chỉnh sửa</option>
-                                            <option value="pending">Gửi duyệt — Chờ Admin phê duyệt</option>
+                                        <select class="form-select" name="status" id="eventStatus">
+                                            <option value="draft">Bản nháp — Lưu lại để chỉnh sửa sau</option>
+                                            <option value="pending" ${canSubmitForApproval == false ? 'disabled' : ''}>
+                                                Gửi duyệt — Chờ Admin phê duyệt
+                                                ${canSubmitForApproval == false ? '(đã đạt giới hạn 3 pending)' : ''}
+                                            </option>
                                         </select>
+                                        <small class="text-muted mt-1 d-block">
+                                            <i class="fas fa-info-circle me-1"></i>Bản nháp sẽ được lưu lại, bạn có thể chỉnh sửa và gửi duyệt sau.
+                                        </small>
                                     </div>
                                     <div class="col-md-6 d-flex align-items-end">
                                         <div class="form-check form-switch">
@@ -711,6 +735,11 @@ function validateCurrentStep() {
     var panel = document.querySelector('[data-panel="' + currentStep + '"]');
 
     panel.querySelectorAll('.field-error').forEach(function(el) { el.classList.remove('field-error'); });
+    // Hide dynamic error messages
+    var pastDateErr = document.getElementById('pastDateError');
+    var endDateErr = document.getElementById('endDateError');
+    if (pastDateErr) pastDateErr.style.display = 'none';
+    if (endDateErr) endDateErr.style.display = 'none';
 
     if (currentStep === 1) {
         var title = document.getElementById('eventTitle');
@@ -728,9 +757,22 @@ function validateCurrentStep() {
         var loc = document.getElementById('eventLocation');
         if (!start.value) { start.classList.add('field-error'); valid = false; }
         if (!loc.value.trim()) { loc.classList.add('field-error'); valid = false; }
+
+        // Client-side past date validation
+        if (start.value) {
+            var startDateTime = new Date(start.value);
+            var now = new Date();
+            if (startDateTime < now) {
+                start.classList.add('field-error');
+                if (pastDateErr) pastDateErr.style.display = 'block';
+                valid = false;
+                if (typeof showToast === 'function') showToast('Ngày bắt đầu không được trong quá khứ!', 'error');
+            }
+        }
+
         if (end.value && start.value && new Date(end.value) <= new Date(start.value)) {
             end.classList.add('field-error');
-            document.getElementById('endDateError').style.display = 'block';
+            if (endDateErr) endDateErr.style.display = 'block';
             valid = false;
         }
     }
@@ -1022,9 +1064,30 @@ function populateReview() {
 document.getElementById('createEventForm').addEventListener('submit', function(e) {
     // Sync custom rich editor content to hidden textarea
     document.getElementById('descHidden').value = document.getElementById('descEditor').innerHTML;
+
+    // Final validation: check past date again before submit
+    var startInput = document.getElementById('startDate');
+    if (startInput.value) {
+        var startDate = new Date(startInput.value);
+        var now = new Date();
+        if (startDate < now) {
+            e.preventDefault();
+            startInput.classList.add('field-error');
+            var pastDateErr = document.getElementById('pastDateError');
+            if (pastDateErr) pastDateErr.style.display = 'block';
+            if (typeof showToast === 'function') showToast('Ngày bắt đầu không được trong quá khứ! Vui lòng chọn lại.', 'error');
+            goToStep(2);
+            return false;
+        }
+    }
+
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tạo...';
+    var statusSelect = document.getElementById('eventStatus');
+    var isDraft = statusSelect && statusSelect.value === 'draft';
+    btn.innerHTML = isDraft
+        ? '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu nháp...'
+        : '<i class="fas fa-spinner fa-spin me-2"></i>Đang tạo...';
 });
 
 // ========== CHARACTER COUNTERS ==========
@@ -1037,6 +1100,58 @@ if (shortDescEl) {
         document.getElementById('shortDescCount').textContent = this.value.length;
     });
 }
+
+// ========== SET MIN DATE FOR START DATE (prevent past dates in date picker) ==========
+(function() {
+    var now = new Date();
+    var y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'),
+        d = String(now.getDate()).padStart(2, '0'),
+        h = String(now.getHours()).padStart(2, '0'),
+        mi = String(now.getMinutes()).padStart(2, '0');
+    var minDate = y + '-' + m + '-' + d + 'T' + h + ':' + mi;
+    document.getElementById('startDate').setAttribute('min', minDate);
+
+    // Real-time validation when user changes start date
+    document.getElementById('startDate').addEventListener('change', function() {
+        var pastDateErr = document.getElementById('pastDateError');
+        if (this.value) {
+            var chosen = new Date(this.value);
+            if (chosen < new Date()) {
+                this.classList.add('field-error');
+                if (pastDateErr) pastDateErr.style.display = 'block';
+                if (typeof showToast === 'function') showToast('Ngày bắt đầu không được trong quá khứ!', 'error');
+            } else {
+                this.classList.remove('field-error');
+                if (pastDateErr) pastDateErr.style.display = 'none';
+            }
+        }
+        // Also update endDate min
+        if (this.value) document.getElementById('endDate').setAttribute('min', this.value);
+    });
+})();
+
+// ========== RESTORE FORM STATE FROM SERVER ON ERRORS ==========
+<c:if test="${not empty formEvent}">
+(function() {
+    // Restore description editor content
+    <c:if test="${not empty formEvent.description}">
+    document.getElementById('descEditor').innerHTML = '<c:out value="${formEvent.description}" escapeXml="false"/>';
+    document.getElementById('descHidden').value = document.getElementById('descEditor').innerHTML;
+    </c:if>
+
+    // Update character counters
+    var titleEl = document.getElementById('eventTitle');
+    if (titleEl.value) document.getElementById('titleCount').textContent = titleEl.value.length;
+    var sdEl = document.getElementById('shortDescription');
+    if (sdEl.value) document.getElementById('shortDescCount').textContent = sdEl.value.length;
+
+    // Scroll to error alert
+    var alert = document.getElementById('serverErrorAlert');
+    if (alert) {
+        alert.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+})();
+</c:if>
 </script>
 
 

@@ -118,6 +118,13 @@ public class EventService {
         return eventDAO.updateEventStatus(eventId, "approved");
     }
 
+    /**
+     * Submit a draft event for admin approval (draft → pending).
+     */
+    public boolean submitDraftForApproval(int eventId) {
+        return eventDAO.updateEventStatus(eventId, "pending");
+    }
+
     public boolean rejectEvent(int eventId) {
         return eventDAO.updateEventStatus(eventId, "rejected");
     }
@@ -242,6 +249,10 @@ public class EventService {
     }
 
     public boolean hasVoucherPermission(int eventId, int userId, String userRole) {
+        // Global/system vouchers (eventId <= 0) are reserved for system admins only.
+        if (eventId <= 0) {
+            return "admin".equals(userRole);
+        }
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);

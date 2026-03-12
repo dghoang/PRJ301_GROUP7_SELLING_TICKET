@@ -307,6 +307,31 @@
     </div>
 </div>
 
+<!-- Submit Draft for Approval Modal -->
+<div class="modal fade" id="submitDraftModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-strong border-0 rounded-4 shadow-lg">
+            <div class="modal-body text-center p-5">
+                <div class="mb-3">
+                    <div style="width:64px;height:64px;border-radius:50%;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto;">
+                        <i class="fas fa-paper-plane fa-2x text-success"></i>
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-2">Gửi duyệt sự kiện?</h5>
+                <p class="text-muted mb-4">Gửi <strong id="submitDraftEventName"></strong> lên Admin để phê duyệt? Sau khi gửi, sự kiện sẽ chuyển sang trạng thái "Chờ duyệt".</p>
+                <div class="d-flex gap-3 justify-content-center">
+                    <button class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <form id="submitDraftForm" method="POST">
+                        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+                        <input type="hidden" name="eventId" id="submitDraftEventId"/>
+                        <button type="submit" class="btn rounded-pill px-4" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;border:none;"><i class="fas fa-paper-plane me-2"></i>Gửi duyệt</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="${pageContext.request.contextPath}/assets/js/ajax-cards.js"></script>
 <script>
 (function() {
@@ -352,6 +377,9 @@
             // Dropdown menu
             var menu = '<li><a class="dropdown-item" href="' + ctxPath + '/organizer/events/' + e.eventId + '"><i class="fas fa-eye me-2 text-info"></i>Xem chi tiết</a></li>';
             menu += '<li><a class="dropdown-item" href="' + ctxPath + '/organizer/events/' + e.eventId + '/edit"><i class="fas fa-edit me-2 text-primary"></i>Chỉnh sửa</a></li>';
+            if (e.status === 'draft') {
+                menu += '<li><a class="dropdown-item text-success" href="#" data-event-id="' + e.eventId + '" data-event-title="' + esc(e.title).replace(/"/g,'&quot;') + '" onclick="confirmSubmitDraft(this)"><i class="fas fa-paper-plane me-2"></i>Gửi duyệt</a></li>';
+            }
             menu += '<li><a class="dropdown-item" href="' + ctxPath + '/organizer/events/' + e.eventId + '/staff"><i class="fas fa-users me-2" style="color:#9333ea;"></i>Nhân sự</a></li>';
             menu += '<li><hr class="dropdown-divider my-1"></li>';
             menu += '<li><a class="dropdown-item text-danger" href="#" data-event-id="' + e.eventId + '" data-event-title="' + esc(e.title).replace(/"/g,'&quot;') + '" onclick="confirmDelete(this)"><i class="fas fa-trash me-2"></i>Xóa</a></li>';
@@ -398,6 +426,17 @@
         document.getElementById('deleteEventName').textContent = eventName;
         document.getElementById('deleteForm').action = ctxPath + '/organizer/events/' + eventId + '/delete';
         new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    };
+
+    // ========== SUBMIT DRAFT MODAL ==========
+    window.confirmSubmitDraft = function(el) {
+        if (window.event) window.event.preventDefault();
+        var eventId = el.getAttribute('data-event-id');
+        var eventName = el.getAttribute('data-event-title');
+        document.getElementById('submitDraftEventName').textContent = eventName;
+        document.getElementById('submitDraftEventId').value = eventId;
+        document.getElementById('submitDraftForm').action = ctxPath + '/organizer/events/submit-draft';
+        new bootstrap.Modal(document.getElementById('submitDraftModal')).show();
     };
 })();
 </script>

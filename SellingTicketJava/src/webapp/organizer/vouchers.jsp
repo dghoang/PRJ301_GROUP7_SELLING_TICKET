@@ -18,10 +18,19 @@
             <div class="d-flex justify-content-between align-items-center mb-4 animate-fadeInDown">
                 <div>
                     <h2 class="fw-bold mb-1">Quản lý Vouchers</h2>
-                    <p class="text-muted mb-0">Tạo mã giảm giá để tăng doanh thu bán vé</p>
+                    <p class="text-muted mb-0">
+                        <c:choose>
+                            <c:when test="${isSystemAdmin}">Quản lý mã giảm giá sự kiện và mã toàn hệ thống</c:when>
+                            <c:otherwise>Tạo mã giảm giá theo từng sự kiện bạn phụ trách</c:otherwise>
+                        </c:choose>
+                    </p>
                 </div>
                 <a href="${pageContext.request.contextPath}/organizer/vouchers/create" class="btn btn-gradient rounded-pill px-4 hover-glow">
-                    <i class="fas fa-plus me-2"></i>Tạo Voucher
+                    <i class="fas fa-plus me-2"></i>
+                    <c:choose>
+                        <c:when test="${isSystemAdmin}">Tạo mã mới</c:when>
+                        <c:otherwise>Tạo Voucher</c:otherwise>
+                    </c:choose>
                 </a>
             </div>
 
@@ -67,7 +76,17 @@
                                         <c:if test="${v.discountType != 'percentage'}">
                                             <fmt:formatNumber value="${v.discountValue}" type="number" groupingUsed="true"/>đ
                                         </c:if>
-                                        <c:if test="${not empty v.eventName}"> • ${v.eventName}</c:if>
+                                        <c:choose>
+                                            <c:when test="${v.eventId <= 0}">
+                                                • <span class="badge rounded-pill px-2 py-1" style="background:linear-gradient(135deg,#9333ea,#6366f1);color:white;font-size:10px;">TOÀN HỆ THỐNG</span>
+                                            </c:when>
+                                            <c:when test="${not empty v.eventName}">
+                                                • <span class="text-primary">${v.eventName}</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                • <span class="text-muted">Sự kiện không xác định</span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </p>
 
                                     <%-- Usage progress --%>
@@ -114,70 +133,6 @@
                     </div>
                 </c:otherwise>
             </c:choose>
-        </div>
-    </div>
-</div>
-
-<%-- Create Voucher Modal --%>
-<div class="modal fade modal-glass" id="createVoucherModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-strong border-0 rounded-4">
-            <form method="POST" action="${pageContext.request.contextPath}/organizer/vouchers">
-                <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
-                <input type="hidden" name="action" value="create"/>
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold"><i class="fas fa-tags text-primary me-2"></i>Tạo Voucher mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Mã voucher <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control glass-input rounded-3" name="code" placeholder="VD: GIAMGIA20" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Sự kiện áp dụng</label>
-                        <select class="form-select glass-input rounded-3" name="eventId" required>
-                            <option value="">-- Chọn sự kiện --</option>
-                            <c:forEach var="e" items="${events}">
-                                <option value="${e.eventId}">${e.title}</option>
-                            </c:forEach>
-                        </select>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label fw-medium">Loại giảm giá</label>
-                            <select class="form-select glass-input rounded-3" name="discountType">
-                                <option value="percentage">Phần trăm (%)</option>
-                                <option value="fixed">Số tiền (VNĐ)</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-medium">Giá trị <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control glass-input rounded-3" name="discountValue" placeholder="20" required>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-6">
-                            <label class="form-label fw-medium">Ngày bắt đầu <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control glass-input rounded-3" name="startDate" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-medium">Ngày kết thúc <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control glass-input rounded-3" name="endDate" required>
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-medium">Số lượng <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control glass-input rounded-3" name="usageLimit" placeholder="100" required>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-gradient rounded-pill px-4 hover-glow">
-                        <i class="fas fa-plus me-2"></i>Tạo voucher
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>

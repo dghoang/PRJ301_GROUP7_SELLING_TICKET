@@ -37,7 +37,7 @@ public class VoucherDAO extends DBContext {
 
     public List<Voucher> getVouchersByOrganizer(int organizerId) {
         List<Voucher> vouchers = new ArrayList<>();
-        String sql = "SELECT v.*, e.event_name FROM Vouchers v " +
+        String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
                      "LEFT JOIN Events e ON v.event_id = e.event_id " +
                      "WHERE v.organizer_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
         try (Connection conn = getConnection();
@@ -51,8 +51,26 @@ public class VoucherDAO extends DBContext {
         return vouchers;
     }
 
+    /**
+     * Admin: get all vouchers in the system (including event-bound and global vouchers).
+     */
+    public List<Voucher> getAllVouchers() {
+        List<Voucher> vouchers = new ArrayList<>();
+        String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
+                     "LEFT JOIN Events e ON v.event_id = e.event_id " +
+                     "WHERE (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) vouchers.add(mapResultSetToVoucher(rs));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error getting all vouchers", e);
+        }
+        return vouchers;
+    }
+
     public Voucher getVoucherById(int voucherId) {
-        String sql = "SELECT v.*, e.event_name FROM Vouchers v " +
+        String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
                      "LEFT JOIN Events e ON v.event_id = e.event_id " +
                      "WHERE v.voucher_id = ?";
         try (Connection conn = getConnection();
@@ -67,7 +85,7 @@ public class VoucherDAO extends DBContext {
     }
 
     public Voucher getVoucherByCode(String code) {
-        String sql = "SELECT v.*, e.event_name FROM Vouchers v " +
+        String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
                      "LEFT JOIN Events e ON v.event_id = e.event_id " +
                      "WHERE v.code = ?";
         try (Connection conn = getConnection();
@@ -87,7 +105,11 @@ public class VoucherDAO extends DBContext {
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, v.getEventId());
+            if (v.getEventId() > 0) {
+                ps.setInt(1, v.getEventId());
+            } else {
+                ps.setNull(1, Types.INTEGER);
+            }
             ps.setInt(2, v.getOrganizerId());
             ps.setString(3, v.getCode().toUpperCase().trim());
             ps.setString(4, v.getDiscountType());

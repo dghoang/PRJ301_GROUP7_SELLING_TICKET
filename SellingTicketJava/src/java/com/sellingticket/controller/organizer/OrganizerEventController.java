@@ -102,6 +102,8 @@ public class OrganizerEventController extends HttpServlet {
             updateEvent(request, response, user);
         } else if ("/delete".equals(pathInfo)) {
             deleteEvent(request, response, user);
+        } else if ("/submit-draft".equals(pathInfo)) {
+            submitDraft(request, response, user);
         } else if ("/staff/add".equals(pathInfo)) {
             addStaff(request, response, user);
         } else if ("/staff/remove".equals(pathInfo)) {
@@ -180,11 +182,10 @@ public class OrganizerEventController extends HttpServlet {
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         if (!eventService.canUserCreateEvent(user.getUserId())) {
-            setToast(request, "Bạn đã đạt giới hạn sự kiện đang chờ duyệt", "error");
-            response.sendRedirect(request.getContextPath() + "/organizer/events");
-            return;
+            setToast(request, "Bạn đã đạt giới hạn sự kiện đang chờ duyệt (tối đa 3). Bạn vẫn có thể lưu bản nháp.", "warning");
         }
         request.setAttribute("categories", categoryService.getAllCategories());
+        request.setAttribute("canSubmitForApproval", eventService.canUserCreateEvent(user.getUserId()));
         request.getRequestDispatcher("/organizer/create-event.jsp").forward(request, response);
     }
 
@@ -211,8 +212,14 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
 
         User user = getSessionUser(request);
-        if (!eventService.canUserCreateEvent(user.getUserId())) {
-            setToast(request, "Bạn đã đạt giới hạn sự kiện đang chờ duyệt", "error");
+
+        // Determine intended status from form (draft or pending)
+        String requestedStatus = request.getParameter("status");
+        boolean isDraft = "draft".equals(requestedStatus);
+
+        // Only check pending limit when submitting for approval (not drafts)
+        if (!isDraft && !eventService.canUserCreateEvent(user.getUserId())) {
+            setToast(request, "Bạn đã đạt giới hạn sự kiện đang chờ duyệt (tối đa 3)", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/events");
             return;
         }
@@ -224,70 +231,87 @@ public class OrganizerEventController extends HttpServlet {
             String description = request.getParameter("description");
             int categoryId = parseIntOrDefault(request.getParameter("category"), -1);
 
+            // Build event early so we can preserve form state on errors
+            Event event = buildEventFromRequest(request, user, categoryId);
+            List<TicketType> tickets = null;
+            try {
+                tickets = parseTicketTypes(request);
+            } catch (IllegalArgumentException ignored) {
+                // Will be caught in validation below
+            }
+
             if (!InputValidator.isValidEventTitle(title)) {
-                request.setAttribute("error", "Tên sự kiện phải từ 3-200 ký tự");
-                showCreateForm(request, response, user);
+                returnFormWithError(request, response, user, event, tickets, "Tên sự kiện phải từ 3-200 ký tự");
                 return;
             }
             if (!InputValidator.isValidText(shortDescription, 10, 500)) {
-                request.setAttribute("error", "Mô tả ngắn phải từ 10-500 ký tự");
-                showCreateForm(request, response, user);
+                returnFormWithError(request, response, user, event, tickets, "Mô tả ngắn phải từ 10-500 ký tự");
                 return;
             }
             if (!InputValidator.isValidDescription(description)) {
-                request.setAttribute("error", "Mô tả phải từ 10-500,000 ký tự");
-                showCreateForm(request, response, user);
+                returnFormWithError(request, response, user, event, tickets, "Mô tả phải từ 10-500,000 ký tự");
                 return;
             }
             if (categoryId <= 0 || categoryService.getCategoryById(categoryId) == null) {
-                request.setAttribute("error", "Danh mục không hợp lệ");
-                showCreateForm(request, response, user);
+                returnFormWithError(request, response, user, event, tickets, "Danh mục không hợp lệ");
                 return;
             }
-
-            Event event = buildEventFromRequest(request, user, categoryId);
             if (!InputValidator.isNotBlank(event.getLocation())) {
-                request.setAttribute("error", "Vui lòng nhập địa điểm sự kiện");
-                showCreateForm(request, response, user);
+                returnFormWithError(request, response, user, event, tickets, "Vui lòng nhập địa điểm sự kiện");
                 return;
             }
 
+            // Validate: start date is required
+            if (event.getStartDate() == null) {
+                returnFormWithError(request, response, user, event, tickets, "Vui lòng chọn ngày bắt đầu sự kiện");
+                return;
+            }
             // Validate: event start date must not be in the past
-            if (event.getStartDate() != null && event.getStartDate().before(new java.util.Date())) {
-                request.setAttribute("error", "Ngày bắt đầu sự kiện không được trong quá khứ");
-                showCreateForm(request, response, user);
+            if (event.getStartDate().before(new java.util.Date())) {
+                returnFormWithError(request, response, user, event, tickets, "Ngày bắt đầu sự kiện không được trong quá khứ. Vui lòng chọn ngày từ hôm nay trở đi.");
                 return;
             }
             // Validate: end date must be after start date
-            if (event.getEndDate() != null && event.getStartDate() != null
-                    && event.getEndDate().before(event.getStartDate())) {
-                request.setAttribute("error", "Ngày kết thúc phải sau ngày bắt đầu");
-                showCreateForm(request, response, user);
+            if (event.getEndDate() != null && event.getEndDate().before(event.getStartDate())) {
+                returnFormWithError(request, response, user, event, tickets, "Ngày kết thúc phải sau ngày bắt đầu");
                 return;
             }
 
             uploadBanner(request, event, user);
-            event.setStatus("pending");
+
+            // Set status based on user choice: draft saves without approval, pending submits for review
+            event.setStatus(isDraft ? "draft" : "pending");
             event.setFeatured(false);
 
-            List<TicketType> tickets = parseTicketTypes(request);
-            if (tickets.isEmpty()) {
-                request.setAttribute("error", "Phải có ít nhất 1 loại vé hợp lệ");
-                showCreateForm(request, response, user);
+            if (tickets == null || tickets.isEmpty()) {
+                returnFormWithError(request, response, user, event, tickets, "Phải có ít nhất 1 loại vé hợp lệ");
                 return;
             }
 
             if (eventService.createEventWithTickets(event, tickets)) {
-                setToast(request, "Tạo sự kiện thành công! Đang chờ duyệt.", "success");
+                if (isDraft) {
+                    setToast(request, "Đã lưu bản nháp sự kiện thành công!", "success");
+                } else {
+                    setToast(request, "Tạo sự kiện thành công! Đang chờ Admin duyệt.", "success");
+                }
                 response.sendRedirect(request.getContextPath() + "/organizer/events");
             } else {
-                request.setAttribute("error", "Failed to create event");
-                showCreateForm(request, response, user);
+                returnFormWithError(request, response, user, event, tickets, "Không thể tạo sự kiện. Vui lòng thử lại.");
             }
         } catch (IllegalArgumentException e) {
-            request.setAttribute("error", "Dữ liệu nhập không hợp lệ");
-            showCreateForm(request, response, user);
+            returnFormWithError(request, response, user, null, null, "Dữ liệu nhập không hợp lệ: " + e.getMessage());
         }
+    }
+
+    /** Return to create form with error message and preserved form data. */
+    private void returnFormWithError(HttpServletRequest request, HttpServletResponse response,
+            User user, Event event, List<TicketType> tickets, String errorMessage)
+            throws ServletException, IOException {
+        request.setAttribute("error", errorMessage);
+        request.setAttribute("formEvent", event);
+        request.setAttribute("formTickets", tickets);
+        request.setAttribute("categories", categoryService.getAllCategories());
+        request.getRequestDispatcher("/organizer/create-event.jsp").forward(request, response);
     }
 
     private void updateEvent(HttpServletRequest request, HttpServletResponse response, User user)
@@ -357,6 +381,52 @@ public class OrganizerEventController extends HttpServlet {
             setToast(request, "Đã xóa sự kiện", "success");
         } else {
             setToast(request, "Xóa thất bại hoặc không có quyền", "error");
+        }
+
+        response.sendRedirect(request.getContextPath() + "/organizer/events");
+    }
+
+    /** Submit a draft event for admin approval (draft → pending). */
+    private void submitDraft(HttpServletRequest request, HttpServletResponse response, User user)
+            throws IOException {
+
+        int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        if (eventId <= 0) {
+            setToast(request, "Sự kiện không hợp lệ", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/events");
+            return;
+        }
+
+        Event event = eventService.getEventDetails(eventId);
+        if (event == null || !"draft".equals(event.getStatus())) {
+            setToast(request, "Chỉ có thể gửi duyệt sự kiện ở trạng thái bản nháp", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/events");
+            return;
+        }
+
+        if (!eventService.hasEditPermission(eventId, user.getUserId(), user.getRole())) {
+            setToast(request, "Bạn không có quyền thao tác sự kiện này", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/events");
+            return;
+        }
+
+        if (!eventService.canUserCreateEvent(user.getUserId())) {
+            setToast(request, "Bạn đã đạt giới hạn 3 sự kiện chờ duyệt. Vui lòng chờ Admin xử lý.", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/events");
+            return;
+        }
+
+        // Validate: start date must not be in the past when submitting
+        if (event.getStartDate() != null && event.getStartDate().before(new java.util.Date())) {
+            setToast(request, "Ngày bắt đầu sự kiện đã qua. Vui lòng chỉnh sửa trước khi gửi duyệt.", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/events/" + eventId + "/edit");
+            return;
+        }
+
+        if (eventService.submitDraftForApproval(eventId)) {
+            setToast(request, "Đã gửi sự kiện lên Admin duyệt thành công!", "success");
+        } else {
+            setToast(request, "Gửi duyệt thất bại. Vui lòng thử lại.", "error");
         }
 
         response.sendRedirect(request.getContextPath() + "/organizer/events");

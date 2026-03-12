@@ -386,7 +386,7 @@ public class EventDAO extends BaseDAO {
     public boolean updateEventStatus(int eventId, String status) {
         String sql = "UPDATE Events " +
                      "SET status = ?, rejection_reason = NULL, rejected_at = NULL, updated_at = GETDATE() " +
-                     "WHERE event_id = ? AND status = 'pending' AND (is_deleted = 0 OR is_deleted IS NULL)";
+                     "WHERE event_id = ? AND status IN ('pending', 'draft') AND (is_deleted = 0 OR is_deleted IS NULL)";
         return executeUpdate(sql, ps -> {
             ps.setString(1, status);
             ps.setInt(2, eventId);
@@ -396,7 +396,7 @@ public class EventDAO extends BaseDAO {
     public boolean updateEventStatusWithReason(int eventId, String status, String reason) {
         String sql = "UPDATE Events " +
                      "SET status = ?, rejection_reason = ?, rejected_at = GETDATE(), updated_at = GETDATE() " +
-                     "WHERE event_id = ? AND status = 'pending' AND (is_deleted = 0 OR is_deleted IS NULL)";
+                     "WHERE event_id = ? AND status IN ('pending', 'draft') AND (is_deleted = 0 OR is_deleted IS NULL)";
         return executeUpdate(sql, ps -> {
             ps.setString(1, status);
             ps.setString(2, reason);

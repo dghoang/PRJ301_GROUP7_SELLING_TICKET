@@ -19,6 +19,10 @@ public class VoucherService {
         return voucherDAO.getVouchersByOrganizer(organizerId);
     }
 
+    public List<Voucher> getAllVouchers() {
+        return voucherDAO.getAllVouchers();
+    }
+
     public Voucher getVoucherById(int voucherId) {
         return voucherDAO.getVoucherById(voucherId);
     }

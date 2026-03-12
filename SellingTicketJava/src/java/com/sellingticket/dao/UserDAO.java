@@ -193,13 +193,19 @@ public class UserDAO extends DBContext {
     }
 
     public boolean updateUser(User user) {
-        String sql = "UPDATE Users SET full_name = ?, phone = ?, avatar = ?, updated_at = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE Users SET full_name = ?, phone = ?, gender = ?, date_of_birth = ?, avatar = ?, updated_at = GETDATE() WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, user.getFullName());
             ps.setString(2, user.getPhone());
-            ps.setString(3, user.getAvatar());
-            ps.setInt(4, user.getUserId());
+            ps.setString(3, user.getGender());
+            if (user.getDateOfBirth() != null) {
+                ps.setDate(4, new java.sql.Date(user.getDateOfBirth().getTime()));
+            } else {
+                ps.setNull(4, Types.DATE);
+            }
+            ps.setString(5, user.getAvatar());
+            ps.setInt(6, user.getUserId());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to update user: " + user.getUserId(), e);

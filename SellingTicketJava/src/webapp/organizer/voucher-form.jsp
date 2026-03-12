@@ -26,7 +26,12 @@
                             <c:otherwise>Tạo Voucher mới</c:otherwise>
                         </c:choose>
                     </h2>
-                    <p class="text-muted mb-0">Thiết lập mã giảm giá cho sự kiện của bạn</p>
+                    <p class="text-muted mb-0">
+                        <c:choose>
+                            <c:when test="${isSystemAdmin}">Thiết lập mã giảm giá cho sự kiện hoặc toàn hệ thống</c:when>
+                            <c:otherwise>Thiết lập mã giảm giá cho sự kiện bạn có quyền quản lý</c:otherwise>
+                        </c:choose>
+                    </p>
                 </div>
                 <a href="${pageContext.request.contextPath}/organizer/vouchers" class="btn glass rounded-pill px-4">
                     <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách
@@ -48,24 +53,40 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-medium">Sự kiện áp dụng</label>
+                            <label class="form-label fw-medium">Phạm vi áp dụng</label>
                             <c:choose>
                                 <c:when test="${isEdit}">
                                     <input type="hidden" name="eventId" value="${voucher.eventId}"/>
                                     <select class="form-select rounded-3" disabled>
-                                        <c:forEach var="e" items="${events}">
-                                            <option value="${e.eventId}" ${e.eventId == voucher.eventId ? 'selected' : ''}>${e.title}</option>
-                                        </c:forEach>
+                                        <c:choose>
+                                            <c:when test="${voucher.eventId <= 0}">
+                                                <option selected>Toàn hệ thống</option>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <c:forEach var="e" items="${events}">
+                                                    <option value="${e.eventId}" ${e.eventId == voucher.eventId ? 'selected' : ''}>Sự kiện: ${e.title}</option>
+                                                </c:forEach>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </select>
-                                    <small class="text-muted">Sự kiện gốc được giữ cố định khi cập nhật.</small>
+                                    <small class="text-muted">Phạm vi áp dụng được giữ cố định khi cập nhật mã.</small>
                                 </c:when>
                                 <c:otherwise>
                                     <select class="form-select rounded-3" name="eventId" required>
+                                        <c:if test="${isSystemAdmin}">
+                                            <option value="0">Toàn hệ thống (Admin)</option>
+                                        </c:if>
                                         <option value="">-- Chọn sự kiện --</option>
                                         <c:forEach var="e" items="${events}">
-                                            <option value="${e.eventId}">${e.title}</option>
+                                            <option value="${e.eventId}">Sự kiện: ${e.title}</option>
                                         </c:forEach>
                                     </select>
+                                    <small class="text-muted">
+                                        <c:choose>
+                                            <c:when test="${isSystemAdmin}">Admin có thể chọn voucher toàn hệ thống hoặc gắn theo sự kiện cụ thể.</c:when>
+                                            <c:otherwise>Bạn chỉ có thể chọn sự kiện mà bạn là owner/manager.</c:otherwise>
+                                        </c:choose>
+                                    </small>
                                 </c:otherwise>
                             </c:choose>
                         </div>

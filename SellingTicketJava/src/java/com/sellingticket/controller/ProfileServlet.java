@@ -5,6 +5,9 @@ import com.sellingticket.service.UserService;
 import static com.sellingticket.util.ServletUtil.getSessionUser;
 import static com.sellingticket.util.ServletUtil.redirectToLogin;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -52,6 +55,8 @@ public class ProfileServlet extends HttpServlet {
 
         String fullName = sanitize(request.getParameter("fullName"));
         String phone = sanitize(request.getParameter("phone"));
+        String gender = sanitize(request.getParameter("gender"));
+        String birthDateStr = sanitize(request.getParameter("birthDate"));
 
         // Validate fullName
         if (fullName == null || fullName.isEmpty()) {
@@ -72,16 +77,46 @@ public class ProfileServlet extends HttpServlet {
             return;
         }
 
+        // Validate gender
+        if (gender != null && !gender.isEmpty()
+                && !("male".equals(gender) || "female".equals(gender) || "other".equals(gender))) {
+            request.getSession().setAttribute("error", "Giới tính không hợp lệ!");
+            response.sendRedirect(request.getContextPath() + "/profile");
+            return;
+        }
+
+        // Validate date of birth
+        Date dob = null;
+        if (birthDateStr != null && !birthDateStr.isEmpty()) {
+            try {
+                dob = new SimpleDateFormat("yyyy-MM-dd").parse(birthDateStr);
+                if (dob.after(new Date())) {
+                    request.getSession().setAttribute("error", "Ngày sinh không được trong tương lai!");
+                    response.sendRedirect(request.getContextPath() + "/profile");
+                    return;
+                }
+            } catch (ParseException e) {
+                request.getSession().setAttribute("error", "Ngày sinh không hợp lệ!");
+                response.sendRedirect(request.getContextPath() + "/profile");
+                return;
+            }
+        }
+
         // Update user object
         user.setFullName(fullName);
         user.setPhone(phone);
+        user.setGender(gender);
+        user.setDateOfBirth(dob);
 
         boolean success = userService.updateProfile(user);
 
         if (success) {
-            // Refresh session user
-            request.getSession().setAttribute("user", user);
-            request.getSession().setAttribute("account", user);
+            // Refresh session user with DB source of truth
+            User fresh = userService.getUserById(user.getUserId());
+            if (fresh != null) {
+                request.getSession().setAttribute("user", fresh);
+                request.getSession().setAttribute("account", fresh);
+            }
             request.getSession().setAttribute("success", "Cập nhật thông tin thành công!");
             LOGGER.log(Level.INFO, "Profile updated for user: {0}", user.getEmail());
         } else {

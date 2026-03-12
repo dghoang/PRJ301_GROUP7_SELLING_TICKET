@@ -36,7 +36,7 @@ import jakarta.servlet.http.HttpSession;
     "/checkout", "/tickets", "/my-tickets",
     "/order-confirmation", "/profile", "/change-password",
     "/resume-payment", "/support/*",
-    "/api/admin/*", "/api/organizer/*", "/api/my-tickets",
+    "/api/admin/*", "/api/organizer/*", "/api/my-tickets", "/api/my-orders",
     "/api/chat/*", "/api/payment/*", "/api/upload",
     "/media/upload", "*.jsp"
 })

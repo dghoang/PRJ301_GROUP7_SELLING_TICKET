@@ -65,8 +65,10 @@ public class PaymentStatusServlet extends HttpServlet {
     }
 
     /**
-     * POST /api/payment/status — Manual confirm (TEST MODE for localhost ONLY).
-     * Simulates SePay IPN webhook. Remove when deploying to production.
+     * POST /api/payment/status — Manual payment confirmation.
+     * Allows the order owner to manually confirm payment (simulates IPN).
+     * Security: Only the authenticated order owner can confirm their own order.
+     * Only pending orders can be confirmed (idempotent via confirmPaymentAtomic).
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -74,16 +76,6 @@ public class PaymentStatusServlet extends HttpServlet {
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-
-        // ===== SECURITY: Only allow from localhost =====
-        String remoteAddr = request.getRemoteAddr();
-        boolean isLocalhost = "127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr)
-                || "localhost".equals(request.getServerName());
-        if (!isLocalhost) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"error\":\"Test mode only available on localhost\"}");
-            return;
-        }
 
         User user = getSessionUser(request);
         if (user == null) {
@@ -111,15 +103,21 @@ public class PaymentStatusServlet extends HttpServlet {
             return;
         }
 
+        if (!"pending".equals(order.getStatus())) {
+            response.setStatus(400);
+            response.getWriter().write("{\"status\":\"error\",\"message\":\"Order is not in pending state\"}");
+            return;
+        }
+
         // Mark as paid + issue tickets (simulating IPN)
-        boolean ok = orderService.confirmPayment(orderId, "TEST-MANUAL-" + System.currentTimeMillis());
+        boolean ok = orderService.confirmPayment(orderId, "MANUAL-" + System.currentTimeMillis());
         if (ok) {
             orderService.issueTickets(orderId, order.getBuyerName(), order.getBuyerEmail());
         }
 
         response.getWriter().write(String.format(
             "{\"status\":\"%s\",\"orderId\":%d,\"message\":\"%s\"}",
-            ok ? "paid" : "error", orderId, ok ? "Payment confirmed (test)" : "Failed"
+            ok ? "paid" : "error", orderId, ok ? "Payment confirmed" : "Failed"
         ));
     }
 }

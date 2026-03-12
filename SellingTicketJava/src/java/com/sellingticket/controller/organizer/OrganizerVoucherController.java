@@ -9,6 +9,8 @@ import com.sellingticket.util.InputValidator;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,8 +49,13 @@ public class OrganizerVoucherController extends HttpServlet {
             } else if (pathInfo.startsWith("/edit/")) {
                 int id = parseIntOrDefault(pathInfo.substring(6), 0);
                 Voucher voucher = voucherService.getVoucherById(id);
-                if (voucher == null || voucher.getOrganizerId() != user.getUserId()) {
+                if (voucher == null) {
                     response.sendError(404);
+                    return;
+                }
+                if (!canManageVoucher(voucher, user)) {
+                    setToast(request, "Bạn không có quyền sửa mã giảm giá này", "error");
+                    response.sendRedirect(request.getContextPath() + "/organizer/vouchers");
                     return;
                 }
                 showForm(request, response, user, voucher);
@@ -90,15 +97,20 @@ public class OrganizerVoucherController extends HttpServlet {
 
     private void listVouchers(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        request.setAttribute("vouchers", voucherService.getVouchersByOrganizer(user.getUserId()));
-        request.setAttribute("events", eventService.getAccessibleEvents(user.getUserId(), user.getRole()));
+        boolean isAdmin = isSystemAdmin(user);
+        request.setAttribute("vouchers", isAdmin
+                ? voucherService.getAllVouchers()
+                : voucherService.getVouchersByOrganizer(user.getUserId()));
+        request.setAttribute("events", getVoucherManageableEvents(user));
+        request.setAttribute("isSystemAdmin", isAdmin);
         request.getRequestDispatcher("/organizer/vouchers.jsp").forward(request, response);
     }
 
     private void showForm(HttpServletRequest request, HttpServletResponse response, User user, Voucher voucher)
             throws ServletException, IOException {
         if (voucher != null) request.setAttribute("voucher", voucher);
-        request.setAttribute("events", eventService.getAccessibleEvents(user.getUserId(), user.getRole()));
+        request.setAttribute("events", getVoucherManageableEvents(user));
+        request.setAttribute("isSystemAdmin", isSystemAdmin(user));
         request.getRequestDispatcher("/organizer/voucher-form.jsp").forward(request, response);
     }
 
@@ -118,9 +130,24 @@ public class OrganizerVoucherController extends HttpServlet {
         if (!InputValidator.isPositive(v.getDiscountValue())) {
             setToast(request, "Giá trị giảm giá phải > 0", "error"); return;
         }
+        if (v.getStartDate() == null || v.getEndDate() == null) {
+            setToast(request, "Vui lòng nhập ngày bắt đầu và ngày kết thúc", "error"); return;
+        }
+        if (v.getEndDate().before(v.getStartDate())) {
+            setToast(request, "Ngày kết thúc phải sau ngày bắt đầu", "error"); return;
+        }
+        if (v.getEndDate().before(new Date())) {
+            setToast(request, "Ngày kết thúc không được trong quá khứ", "error"); return;
+        }
 
-        if (!eventService.hasVoucherPermission(v.getEventId(), user.getUserId(), user.getRole())) {
-            setToast(request, "Bạn không có quyền thêm mã giảm giá cho sự kiện này", "error");
+        // Only admin can create system/global vouchers.
+        if (v.getEventId() <= 0 && !isSystemAdmin(user)) {
+            setToast(request, "Chỉ Admin hệ thống mới được tạo mã giảm giá toàn hệ thống", "error");
+            return;
+        }
+
+        if (v.getEventId() > 0 && !eventService.hasVoucherPermission(v.getEventId(), user.getUserId(), user.getRole())) {
+            setToast(request, "Bạn chỉ có thể tạo mã cho sự kiện mà bạn là owner/manager", "error");
             return;
         }
         v.setOrganizerId(user.getUserId());
@@ -150,6 +177,10 @@ public class OrganizerVoucherController extends HttpServlet {
         v.setVoucherId(voucherId);
         // Keep the original organizer ID intact (don't overwrite with current user's ID)
         v.setOrganizerId(existing.getOrganizerId()); 
+        if (v.getStartDate() == null || v.getEndDate() == null || v.getEndDate().before(v.getStartDate())) {
+            setToast(request, "Khoảng thời gian mã giảm giá không hợp lệ", "error");
+            return;
+        }
         
         v.setActive("on".equals(request.getParameter("isActive")));
         boolean ok = voucherService.updateVoucher(v);
@@ -184,5 +215,29 @@ public class OrganizerVoucherController extends HttpServlet {
         v.setStartDate(parseDateOrNull(request.getParameter("startDate")));
         v.setEndDate(parseDateOrNull(request.getParameter("endDate")));
         return v;
+    }
+
+    private boolean isSystemAdmin(User user) {
+        return user != null && "admin".equals(user.getRole());
+    }
+
+    private boolean canManageVoucher(Voucher voucher, User user) {
+        if (voucher == null || user == null) return false;
+        return eventService.hasVoucherPermission(voucher.getEventId(), user.getUserId(), user.getRole());
+    }
+
+    /**
+     * Return only events where current user can manage vouchers.
+     * Prevents selecting unrelated events in UI.
+     */
+    private List<Event> getVoucherManageableEvents(User user) {
+        List<Event> candidates = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
+        List<Event> allowed = new ArrayList<>();
+        for (Event e : candidates) {
+            if (eventService.hasVoucherPermission(e.getEventId(), user.getUserId(), user.getRole())) {
+                allowed.add(e);
+            }
+        }
+        return allowed;
     }
 }

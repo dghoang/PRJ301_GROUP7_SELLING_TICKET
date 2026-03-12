@@ -93,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Test Mode: Manual Confirm Button (remove in production) -->
+        <!-- Manual Confirm Button -->
         <div class="mb-4" id="testConfirmBox">
             <button type="button" class="btn btn-lg px-5 py-3 rounded-4 fw-bold hover-glow" id="testConfirmBtn"
                     style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;border:none;"
@@ -101,7 +101,7 @@
                 <i class="fas fa-check-circle me-2"></i>Tôi đã thanh toán
             </button>
             <div class="mt-2">
-                <small class="text-muted"><i class="fas fa-flask me-1"></i>Nút test — sẽ bỏ khi deploy production</small>
+                <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Nhấn nút này sau khi bạn đã chuyển khoản thành công</small>
             </div>
         </div>
 

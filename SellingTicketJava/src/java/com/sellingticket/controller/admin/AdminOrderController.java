@@ -1,5 +1,6 @@
 package com.sellingticket.controller.admin;
 
+import com.sellingticket.dao.TicketDAO;
 import com.sellingticket.model.Order;
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.OrderService;
@@ -25,6 +26,7 @@ public class AdminOrderController extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(AdminOrderController.class.getName());
     private final OrderService orderService = new OrderService();
     private final DashboardService dashboardService = new DashboardService();
+    private final TicketDAO ticketDAO = new TicketDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -97,8 +99,39 @@ public class AdminOrderController extends HttpServlet {
                 successMsg = "cancelled";
                 break;
             case "mark-paid":
-                ok = orderService.markAsPaid(orderId);
-                successMsg = "marked_paid";
+                Order targetOrder = orderService.getOrderById(orderId);
+                if (targetOrder == null) {
+                    ok = false;
+                    successMsg = "not_found";
+                    break;
+                }
+
+                // Step 1: Ensure order is paid (atomic if currently pending)
+                if ("pending".equals(targetOrder.getStatus())) {
+                    ok = orderService.confirmPayment(orderId, "ADMIN-MANUAL-" + System.currentTimeMillis());
+                    if (!ok) {
+                        // Could be a race where another process already confirmed it.
+                        Order refreshed = orderService.getOrderById(orderId);
+                        ok = refreshed != null && "paid".equals(refreshed.getStatus());
+                    }
+                } else {
+                    ok = "paid".equals(targetOrder.getStatus()) || "checked_in".equals(targetOrder.getStatus());
+                }
+
+                if (!ok) {
+                    successMsg = "mark_paid_failed";
+                    break;
+                }
+
+                // Step 2: Ensure tickets are issued exactly once
+                int existingTickets = ticketDAO.getTicketsByOrder(orderId).size();
+                if (existingTickets == 0) {
+                    int issued = orderService.issueTickets(orderId, targetOrder.getBuyerName(), targetOrder.getBuyerEmail());
+                    ok = issued > 0;
+                    successMsg = ok ? "marked_paid_issued" : "ticket_issue_failed";
+                } else {
+                    successMsg = "marked_paid_already_issued";
+                }
                 break;
             case "approve-refund":
                 ok = orderService.approveRefund(orderId);
@@ -110,9 +143,27 @@ public class AdminOrderController extends HttpServlet {
         }
 
         if (ok) {
-            FlashUtil.success(request, successMsg.equals("cancelled") ? "Đơn hàng đã được hủy!" : successMsg.equals("marked_paid") ? "Đơn hàng đã được thanh toán!" : "Hoàn tiền đã được phê duyệt!");
+            String msg;
+            if ("cancelled".equals(successMsg)) {
+                msg = "Đơn hàng đã được hủy!";
+            } else if ("marked_paid_issued".equals(successMsg)) {
+                msg = "Đã xác nhận thanh toán và phát hành vé thành công!";
+            } else if ("marked_paid_already_issued".equals(successMsg)) {
+                msg = "Đơn hàng đã thanh toán và vé đã được phát trước đó.";
+            } else {
+                msg = "Hoàn tiền đã được phê duyệt!";
+            }
+            FlashUtil.success(request, msg);
         } else {
-            FlashUtil.error(request, "Thao tác thất bại!");
+            String err;
+            if ("not_found".equals(successMsg)) {
+                err = "Không tìm thấy đơn hàng.";
+            } else if ("ticket_issue_failed".equals(successMsg)) {
+                err = "Đã xác nhận thanh toán nhưng phát hành vé thất bại. Vui lòng thử lại.";
+            } else {
+                err = "Thao tác thất bại!";
+            }
+            FlashUtil.error(request, err);
         }
         response.sendRedirect(request.getContextPath() + "/admin/orders");
     }
