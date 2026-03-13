@@ -47,7 +47,7 @@
             </c:forEach>
             <input type="hidden" name="items" value="${itemsStr}">
         </c:if>
-        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
+        <input type="hidden" name="csrf_token" value="${not empty requestScope.csrf_token ? requestScope.csrf_token : sessionScope.csrf_token}"/>
 
         <%-- Show error if event ended --%>
         <c:if test="${not empty error}">
