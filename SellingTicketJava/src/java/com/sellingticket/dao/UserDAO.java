@@ -24,6 +24,11 @@ public class UserDAO extends DBContext {
         user.setAvatar(rs.getString("avatar"));
         user.setActive(rs.getBoolean("is_active"));
         user.setCreatedAt(rs.getTimestamp("created_at"));
+        try { user.setDeleted(rs.getBoolean("is_deleted")); } catch (SQLException ignored) {}
+        if (user.isDeleted()) {
+            // Deleted accounts must never be treated as active in business/UI logic.
+            user.setActive(false);
+        }
         try {
             String hash = rs.getString("password_hash");
             user.setOauthUser("OAUTH_NO_PASSWORD".equals(hash));
@@ -40,7 +45,7 @@ public class UserDAO extends DBContext {
     }
 
     public User getUserByEmail(String email) {
-        String sql = "SELECT * FROM Users WHERE email = ? AND is_active = 1";
+        String sql = "SELECT * FROM Users WHERE email = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email.toLowerCase().trim());
@@ -53,7 +58,7 @@ public class UserDAO extends DBContext {
     }
 
     public User login(String email, String password) {
-        String sql = "SELECT * FROM Users WHERE email = ? AND is_active = 1";
+        String sql = "SELECT * FROM Users WHERE email = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
@@ -252,7 +257,7 @@ public class UserDAO extends DBContext {
     }
 
     private String getUserPasswordHash(int userId) {
-        String sql = "SELECT password_hash FROM Users WHERE user_id = ? AND is_active = 1";
+        String sql = "SELECT password_hash FROM Users WHERE user_id = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -303,7 +308,7 @@ public class UserDAO extends DBContext {
     }
 
     public boolean activateUser(int userId) {
-        String sql = "UPDATE Users SET is_active = 1, updated_at = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE Users SET is_active = 1, updated_at = GETDATE() WHERE user_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);

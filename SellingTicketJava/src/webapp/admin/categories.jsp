@@ -124,6 +124,7 @@
                                     </div>
                                     <h6 class="fw-bold mb-1">${cat.name}</h6>
                                     <p class="text-muted small mb-1">${cat.eventCount} sự kiện</p>
+                                    <p class="text-muted small mb-1">Thứ tự: ${cat.displayOrder}</p>
                                     <c:if test="${not empty cat.description}">
                                         <p class="text-muted small mb-3" style="font-size: 0.75rem;">${cat.description}</p>
                                     </c:if>
@@ -132,7 +133,7 @@
                                     </c:if>
                                     <div class="d-flex gap-2 justify-content-center">
                                         <button class="btn btn-sm btn-light rounded-circle" title="Chỉnh sửa"
-                                                onclick="openEditModal(${cat.categoryId}, '${cat.name}', '${cat.icon}', '${cat.description}')">
+                                                onclick="openEditModal(${cat.categoryId}, '${cat.name}', '${cat.icon}', '${cat.description}', ${cat.displayOrder})">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-sm btn-light rounded-circle text-danger" title="Xóa"
@@ -175,6 +176,11 @@
                     <div class="mb-3">
                         <label class="form-label fw-medium">Mô tả</label>
                         <textarea class="form-control glass-input rounded-3" name="description" id="catDesc" rows="2" placeholder="Mô tả ngắn về danh mục..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Thứ tự</label>
+                        <input type="number" class="form-control glass-input rounded-3" name="displayOrder" id="catOrder" min="0" step="1" value="0">
+                        <small class="text-muted">Số nhỏ hơn sẽ hiển thị trước.</small>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -227,8 +233,9 @@ function openAddModal() {
     document.getElementById('catName').value = '';
     document.getElementById('catIcon').value = '';
     document.getElementById('catDesc').value = '';
+    document.getElementById('catOrder').value = '0';
 }
-function openEditModal(id, name, icon, desc) {
+function openEditModal(id, name, icon, desc, order) {
     document.getElementById('categoryForm').action = basePath + '/admin/categories/update';
     document.getElementById('categoryModalTitle').textContent = 'Chỉnh sửa danh mục';
     document.getElementById('categorySubmitText').textContent = 'Cập nhật';
@@ -236,6 +243,7 @@ function openEditModal(id, name, icon, desc) {
     document.getElementById('catName').value = name;
     document.getElementById('catIcon').value = icon || '';
     document.getElementById('catDesc').value = desc || '';
+    document.getElementById('catOrder').value = (typeof order === 'number' && order >= 0) ? order : 0;
     new bootstrap.Modal(document.getElementById('categoryModal')).show();
 }
 function confirmDelete(id, name, eventCount) {

@@ -79,6 +79,7 @@ BEGIN
         slug NVARCHAR(100) NOT NULL UNIQUE,
         icon NVARCHAR(50),
         description NVARCHAR(500),
+        display_order INT DEFAULT 0,
         created_at DATETIME DEFAULT GETDATE()
     );
     PRINT 'Table Categories created.';
@@ -530,13 +531,13 @@ GO
 -- Categories
 IF NOT EXISTS (SELECT 1 FROM Categories WHERE slug = 'music')
 BEGIN
-    INSERT INTO Categories (name, slug, icon, description) VALUES
-    (N'Âm nhạc', 'music', 'fa-music', N'Concerts, liveshow, EDM festivals'),
-    (N'Thể thao', 'sports', 'fa-futbol', N'Bóng đá, marathon, tennis'),
-    (N'Workshop', 'workshop', 'fa-laptop', N'Hội thảo, khóa học, training'),
-    (N'Ẩm thực', 'food', 'fa-utensils', N'Lễ hội ẩm thực, food tour'),
-    (N'Nghệ thuật', 'art', 'fa-palette', N'Triển lãm, kịch, múa ballet'),
-    (N'Kinh doanh', 'business', 'fa-briefcase', N'Networking, startup pitch');
+    INSERT INTO Categories (name, slug, icon, description, display_order) VALUES
+    (N'Âm nhạc', 'music', 'fa-music', N'Concerts, liveshow, EDM festivals', 1),
+    (N'Thể thao', 'sports', 'fa-futbol', N'Bóng đá, marathon, tennis', 2),
+    (N'Workshop', 'workshop', 'fa-laptop', N'Hội thảo, khóa học, training', 3),
+    (N'Ẩm thực', 'food', 'fa-utensils', N'Lễ hội ẩm thực, food tour', 4),
+    (N'Nghệ thuật', 'art', 'fa-palette', N'Triển lãm, kịch, múa ballet', 5),
+    (N'Kinh doanh', 'business', 'fa-briefcase', N'Networking, startup pitch', 6);
     PRINT 'Categories seeded.';
 END
 GO

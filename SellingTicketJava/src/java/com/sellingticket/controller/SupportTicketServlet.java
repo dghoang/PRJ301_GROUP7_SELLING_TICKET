@@ -27,7 +27,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * - GET /support/ticket/{id}        → ticket detail + messages
  * - POST /support/reply             → add reply
  */
-@WebServlet(name = "SupportTicketServlet", urlPatterns = {"/support/*"})
+@WebServlet(name = "SupportTicketServlet", urlPatterns = {"/support/*", "/my-support-tickets"})
 public class SupportTicketServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(SupportTicketServlet.class.getName());
@@ -50,6 +50,12 @@ public class SupportTicketServlet extends HttpServlet {
 
         String path = request.getPathInfo();
         if (path == null) path = "/";
+
+        // Backward compatibility for legacy route /my-support-tickets.
+        if ("/my-support-tickets".equals(request.getServletPath())) {
+            response.sendRedirect(request.getContextPath() + "/support/my-tickets");
+            return;
+        }
 
         if (path.equals("/new")) {
             // Show form

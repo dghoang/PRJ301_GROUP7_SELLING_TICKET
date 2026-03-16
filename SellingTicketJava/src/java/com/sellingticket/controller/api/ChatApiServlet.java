@@ -5,11 +5,15 @@ import com.sellingticket.model.ChatSession;
 import com.sellingticket.model.User;
 import com.sellingticket.service.ChatService;
 import com.sellingticket.service.ChatService.ChatSessionResult;
+import static com.sellingticket.util.ServletUtil.getSessionUser;
 import static com.sellingticket.util.ServletUtil.sendJson;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,12 +34,19 @@ import jakarta.servlet.http.HttpServletResponse;
 public class ChatApiServlet extends HttpServlet {
 
     private final ChatService chatService = new ChatService();
-    private final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM HH:mm");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM HH:mm");
+    private static final ZoneId APP_ZONE = ZoneId.systemDefault();
+    private static final long ONLINE_WINDOW_MS = 70_000L;
+    private static final long TYPING_WINDOW_MS = 4_000L;
+    private static final Map<Integer, Long> USER_LAST_ACTIVE = new ConcurrentHashMap<>();
+    private static final Map<Integer, Map<Integer, Long>> SESSION_TYPING = new ConcurrentHashMap<>();
+    private static final Map<Integer, Map<Integer, Integer>> SESSION_LAST_SEEN_MESSAGE = new ConcurrentHashMap<>();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        User user = (User) request.getSession().getAttribute("user");
+        User user = getSessionUser(request);
         if (user == null) { sendJson(response, 401, "{\"error\":\"Unauthorized\"}"); return; }
+        markUserActive(user.getUserId());
 
         boolean isAgent = "admin".equals(user.getRole()) || "support_agent".equals(user.getRole());
         String path = request.getPathInfo();
@@ -47,10 +58,26 @@ public class ChatApiServlet extends HttpServlet {
                 if (!canAccessSession(sessionId, user, isAgent)) {
                     sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
                 }
+                ChatSession session = chatService.getSession(sessionId);
                 int after = parseInt(request.getParameter("after"), 0);
                 List<ChatMessage> msgs = after > 0
                     ? chatService.getMessages(sessionId, after)
                     : chatService.getRecentMessages(sessionId, 30);
+
+                int maxSeen = after;
+                for (ChatMessage m : msgs) {
+                    if (m.getMessageId() > maxSeen) {
+                        maxSeen = m.getMessageId();
+                    }
+                }
+                if (maxSeen > 0) {
+                    markSeen(sessionId, user.getUserId(), maxSeen);
+                }
+
+                int otherUserId = resolveOtherUserId(session, user, isAgent);
+                response.setHeader("X-Chat-Other-Online", isUserOnline(otherUserId) ? "1" : "0");
+                response.setHeader("X-Chat-Other-Typing", isTyping(sessionId, otherUserId) ? "1" : "0");
+                response.setHeader("X-Chat-Seen-Up-To", String.valueOf(getSeenUpTo(sessionId, otherUserId)));
                 sendJson(response, buildMessagesJson(msgs));
                 break;
             }
@@ -86,8 +113,9 @@ public class ChatApiServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         request.setCharacterEncoding("UTF-8");
-        User user = (User) request.getSession().getAttribute("user");
+        User user = getSessionUser(request);
         if (user == null) { sendJson(response, 401, "{\"error\":\"Unauthorized\"}"); return; }
+        markUserActive(user.getUserId());
 
         boolean isAgent = "admin".equals(user.getRole()) || "support_agent".equals(user.getRole());
         String path = request.getPathInfo();
@@ -124,11 +152,23 @@ public class ChatApiServlet extends HttpServlet {
                 String trimmed = content.trim();
                 if (trimmed.length() > 500) trimmed = trimmed.substring(0, 500);
                 boolean ok = chatService.sendMessage(sessionId, user.getUserId(), trimmed);
+                setTyping(sessionId, user.getUserId(), false);
                 if (ok) {
                     sendJson(response, "{\"ok\":true}");
                 } else {
                     sendJson(response, 403, "{\"error\":\"Phiên chat đã đóng hoặc không tồn tại.\"}");
                 }
+                break;
+            }
+            case "/typing": {
+                int sessionId = parseInt(request.getParameter("sessionId"), 0);
+                if (!canAccessSession(sessionId, user, isAgent)) {
+                    sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
+                }
+                String typingRaw = request.getParameter("typing");
+                boolean typing = "1".equals(typingRaw) || "true".equalsIgnoreCase(typingRaw);
+                setTyping(sessionId, user.getUserId(), typing);
+                sendJson(response, "{\"ok\":true}");
                 break;
             }
             case "/accept": {
@@ -175,7 +215,7 @@ public class ChatApiServlet extends HttpServlet {
               .append(",\"senderName\":\"").append(esc(m.getSenderName())).append("\"")
               .append(",\"senderRole\":\"").append(esc(m.getSenderRole())).append("\"")
               .append(",\"content\":\"").append(esc(m.getContent())).append("\"")
-              .append(",\"time\":\"").append(sdf.format(m.getCreatedAt())).append("\"}");
+              .append(",\"time\":\"").append(formatTime(m.getCreatedAt())).append("\"}");
         }
         return sb.append("]").toString();
     }
@@ -185,15 +225,104 @@ public class ChatApiServlet extends HttpServlet {
         for (int i = 0; i < sessions.size(); i++) {
             if (i > 0) sb.append(",");
             ChatSession s = sessions.get(i);
+            boolean customerOnline = isUserOnline(s.getCustomerId());
             sb.append("{\"id\":").append(s.getSessionId())
               .append(",\"customerName\":\"").append(esc(s.getCustomerName())).append("\"")
               .append(",\"status\":\"").append(s.getStatus()).append("\"")
               .append(",\"eventTitle\":\"").append(s.getEventTitle() != null ? esc(s.getEventTitle()) : "").append("\"")
               .append(",\"tier\":\"").append(s.getCustomerTier() != null ? s.getCustomerTier() : "registered").append("\"")
               .append(",\"priorityScore\":").append(s.getPriorityScore())
-              .append(",\"time\":\"").append(sdf.format(s.getCreatedAt())).append("\"}");
+              .append(",\"unreadCount\":").append(s.getUnreadCount())
+              .append(",\"customerOnline\":").append(customerOnline)
+              .append(",\"time\":\"").append(formatTime(s.getCreatedAt())).append("\"}");
         }
         return sb.append("]").toString();
+    }
+
+    private void markUserActive(int userId) {
+        if (userId > 0) {
+            USER_LAST_ACTIVE.put(userId, System.currentTimeMillis());
+        }
+    }
+
+    private boolean isUserOnline(int userId) {
+        if (userId <= 0) {
+            return false;
+        }
+        Long ts = USER_LAST_ACTIVE.get(userId);
+        return ts != null && (System.currentTimeMillis() - ts) <= ONLINE_WINDOW_MS;
+    }
+
+    private void setTyping(int sessionId, int userId, boolean typing) {
+        if (sessionId <= 0 || userId <= 0) {
+            return;
+        }
+        Map<Integer, Long> sessionTyping = SESSION_TYPING.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
+        if (typing) {
+            sessionTyping.put(userId, System.currentTimeMillis() + TYPING_WINDOW_MS);
+        } else {
+            sessionTyping.remove(userId);
+        }
+    }
+
+    private boolean isTyping(int sessionId, int userId) {
+        if (sessionId <= 0 || userId <= 0) {
+            return false;
+        }
+        Map<Integer, Long> sessionTyping = SESSION_TYPING.get(sessionId);
+        if (sessionTyping == null) {
+            return false;
+        }
+        Long until = sessionTyping.get(userId);
+        if (until == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() > until) {
+            sessionTyping.remove(userId);
+            return false;
+        }
+        return true;
+    }
+
+    private void markSeen(int sessionId, int userId, int messageId) {
+        if (sessionId <= 0 || userId <= 0 || messageId <= 0) {
+            return;
+        }
+        Map<Integer, Integer> seen = SESSION_LAST_SEEN_MESSAGE.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
+        Integer current = seen.get(userId);
+        if (current == null || messageId > current) {
+            seen.put(userId, messageId);
+        }
+    }
+
+    private int getSeenUpTo(int sessionId, int userId) {
+        if (sessionId <= 0 || userId <= 0) {
+            return 0;
+        }
+        Map<Integer, Integer> seen = SESSION_LAST_SEEN_MESSAGE.get(sessionId);
+        if (seen == null) {
+            return 0;
+        }
+        Integer value = seen.get(userId);
+        return value != null ? value : 0;
+    }
+
+    private int resolveOtherUserId(ChatSession session, User user, boolean isAgent) {
+        if (session == null || user == null) {
+            return 0;
+        }
+        if (isAgent) {
+            return session.getCustomerId();
+        }
+        Integer agentId = session.getAgentId();
+        return agentId != null ? agentId : 0;
+    }
+
+    private String formatTime(java.util.Date date) {
+        if (date == null) {
+            return "";
+        }
+        return TIME_FORMAT.format(date.toInstant().atZone(APP_ZONE));
     }
 
     private String esc(String s) {

@@ -108,6 +108,20 @@
             background: var(--primary);
             transform: scale(1.2);
         }
+
+        .field-inline-error {
+            display: block;
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+
+        .field-inline-ok {
+            display: block;
+            color: #059669;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body class="auth-page d-flex align-items-center justify-content-center py-4">
@@ -190,30 +204,33 @@
                         </div>
                     </c:if>
 
-                    <form action="${pageContext.request.contextPath}/register" method="POST">
+                    <form id="registerForm" action="${pageContext.request.contextPath}/register" method="POST">
                         <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                         <div class="mb-3 animate-fadeInUp stagger-1">
                             <label for="fullName" class="form-label fw-medium">Họ và tên</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-user text-muted"></i></span>
-                                <input type="text" id="fullName" name="fullName" required placeholder="Nguyễn Văn A" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                <input type="text" id="fullName" name="fullName" required placeholder="Nguyễn Văn A" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.fullName ? 'is-invalid' : ''}" value="<c:out value='${not empty formFullName ? formFullName : param.fullName}'/>">
                             </div>
+                            <c:if test="${not empty fieldErrors.fullName}"><small class="field-inline-error"><c:out value='${fieldErrors.fullName}'/></small></c:if>
                         </div>
 
                         <div class="mb-3 animate-fadeInUp stagger-2">
                             <label for="email" class="form-label fw-medium">Email</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-envelope text-muted"></i></span>
-                                <input type="email" id="email" name="email" required placeholder="email@example.com" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                <input type="email" id="email" name="email" required placeholder="email@example.com" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.email ? 'is-invalid' : ''}" value="<c:out value='${not empty formEmail ? formEmail : param.email}'/>">
                             </div>
+                            <small id="emailFeedback" class="${not empty fieldErrors.email ? 'field-inline-error' : ''}"><c:out value='${fieldErrors.email}'/></small>
                         </div>
 
                         <div class="mb-3 animate-fadeInUp stagger-3">
                             <label for="phone" class="form-label fw-medium">Số điện thoại</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-phone text-muted"></i></span>
-                                <input type="tel" id="phone" name="phone" placeholder="0901234567" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                <input type="tel" id="phone" name="phone" placeholder="0901234567" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.phone ? 'is-invalid' : ''}" value="<c:out value='${not empty formPhone ? formPhone : param.phone}'/>">
                             </div>
+                            <c:if test="${not empty fieldErrors.phone}"><small class="field-inline-error"><c:out value='${fieldErrors.phone}'/></small></c:if>
                         </div>
 
                         <div class="row mb-3 animate-fadeInUp stagger-4">
@@ -221,17 +238,19 @@
                                 <label for="birthDate" class="form-label fw-medium">Ngày sinh</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-calendar text-muted"></i></span>
-                                    <input type="date" id="birthDate" name="birthDate" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                    <input type="date" id="birthDate" name="birthDate" required class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.birthDate ? 'is-invalid' : ''}" value="<c:out value='${not empty formBirthDate ? formBirthDate : param.birthDate}'/>">
                                 </div>
+                                <small id="birthDateFeedback" class="${not empty fieldErrors.birthDate ? 'field-inline-error' : ''}"><c:out value='${fieldErrors.birthDate}'/></small>
                             </div>
                             <div class="col-6">
                                 <label for="gender" class="form-label fw-medium">Giới tính</label>
-                                <select id="gender" name="gender" class="form-select bg-light rounded-3">
-                                    <option value="">Chọn</option>
-                                    <option value="male">Nam</option>
-                                    <option value="female">Nữ</option>
-                                    <option value="other">Khác</option>
+                                <select id="gender" name="gender" class="form-select bg-light rounded-3 ${not empty fieldErrors.gender ? 'is-invalid' : ''}">
+                                    <option value="" ${empty formGender && empty param.gender ? 'selected' : ''}>Chọn</option>
+                                    <option value="male" ${(formGender == 'male' || param.gender == 'male') ? 'selected' : ''}>Nam</option>
+                                    <option value="female" ${(formGender == 'female' || param.gender == 'female') ? 'selected' : ''}>Nữ</option>
+                                    <option value="other" ${(formGender == 'other' || param.gender == 'other') ? 'selected' : ''}>Khác</option>
                                 </select>
+                                <c:if test="${not empty fieldErrors.gender}"><small class="field-inline-error"><c:out value='${fieldErrors.gender}'/></small></c:if>
                             </div>
                         </div>
 
@@ -240,11 +259,12 @@
                             <label for="password" class="form-label fw-medium">Mật khẩu</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
-                                <input type="password" id="password" name="password" required placeholder="Tối thiểu 8 ký tự" class="form-control bg-light border-start-0 border-end-0 ps-0" onkeyup="checkStrength(this.value)">
+                                <input type="password" id="password" name="password" required placeholder="Tối thiểu 8 ký tự" class="form-control bg-light border-start-0 border-end-0 ps-0 ${not empty fieldErrors.password ? 'is-invalid' : ''}" onkeyup="checkStrength(this.value)">
                                 <button class="btn btn-light border border-start-0 rounded-end-3" type="button" onclick="togglePassword('password', 'eyeIcon1')">
                                     <i class="fas fa-eye text-muted" id="eyeIcon1"></i>
                                 </button>
                             </div>
+                            <c:if test="${not empty fieldErrors.password}"><small class="field-inline-error"><c:out value='${fieldErrors.password}'/></small></c:if>
                             <!-- Strength meter -->
                             <div class="strength-meter">
                                 <div class="strength-bar" id="bar1"></div>
@@ -259,12 +279,13 @@
                             <label for="confirmPassword" class="form-label fw-medium">Xác nhận mật khẩu</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
-                                <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Nhập lại mật khẩu" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
+                                <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Nhập lại mật khẩu" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.confirmPassword ? 'is-invalid' : ''}">
                             </div>
+                            <c:if test="${not empty fieldErrors.confirmPassword}"><small class="field-inline-error"><c:out value='${fieldErrors.confirmPassword}'/></small></c:if>
                         </div>
 
                         <div class="mb-4 form-check animate-fadeInUp stagger-7">
-                            <input type="checkbox" id="agreeTerms" name="agreeTerms" class="form-check-input" required>
+                            <input type="checkbox" id="agreeTerms" name="agreeTerms" class="form-check-input" required ${param.agreeTerms == 'on' ? 'checked' : ''}>
                              <label for="agreeTerms" class="form-check-label small">
                                 Tôi đồng ý với <a href="#" class="text-primary text-decoration-none">Điều khoản sử dụng</a> và <a href="#" class="text-primary text-decoration-none">Chính sách bảo mật</a>
                             </label>
@@ -291,6 +312,12 @@
     <script src="${pageContext.request.contextPath}/assets/js/animations.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/toast.js"></script>
     <script>
+        const REGISTER_CONTEXT_PATH = '${pageContext.request.contextPath}';
+        const EMAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+        const emailAvailabilityCache = new Map();
+        let emailCheckController = null;
+        let emailExists = false;
+
         function togglePassword(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
@@ -336,6 +363,255 @@
             else text.textContent = 'Rất mạnh';
             
             text.className = 'small ' + (strength <= 1 ? 'text-danger' : strength <= 2 ? 'text-warning' : 'text-success');
+        }
+
+        function getAge(dateString) {
+            const dob = new Date(dateString);
+            const now = new Date();
+            let age = now.getFullYear() - dob.getFullYear();
+            const monthDiff = now.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        function validateBirthDateInline() {
+            const birthDateInput = document.getElementById('birthDate');
+            const feedback = document.getElementById('birthDateFeedback');
+            if (!birthDateInput || !feedback) return true;
+            if (!birthDateInput.value) {
+                feedback.textContent = '';
+                feedback.className = '';
+                birthDateInput.classList.remove('is-invalid');
+                return true;
+            }
+
+            const selected = new Date(birthDateInput.value + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selected > today) {
+                birthDateInput.classList.add('is-invalid');
+                feedback.textContent = 'Ngày sinh không thể ở tương lai';
+                feedback.className = 'field-inline-error';
+                return false;
+            }
+
+            const age = getAge(birthDateInput.value);
+            if (age < 16) {
+                birthDateInput.classList.add('is-invalid');
+                feedback.textContent = 'Bạn phải đủ 16 tuổi để tạo tài khoản';
+                feedback.className = 'field-inline-error';
+                return false;
+            }
+
+            birthDateInput.classList.remove('is-invalid');
+            feedback.textContent = '';
+            feedback.className = '';
+            return true;
+        }
+
+        function isValidEmailFormat(email) {
+            return /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email || '');
+        }
+
+        function getEmailTypoSuggestion(email) {
+            if (!email || email.indexOf('@') < 1) return null;
+            const at = email.lastIndexOf('@');
+            const localPart = email.substring(0, at);
+            const domain = email.substring(at + 1);
+            const typoMap = {
+                'mgail.com': 'gmail.com',
+                'gamil.com': 'gmail.com',
+                'gnail.com': 'gmail.com',
+                'hotnail.com': 'hotmail.com',
+                'yaho.com': 'yahoo.com',
+                'outllok.com': 'outlook.com'
+            };
+            if (!typoMap[domain]) return null;
+            return localPart + '@' + typoMap[domain];
+        }
+
+        function getCachedEmailResult(email) {
+            const cached = emailAvailabilityCache.get(email);
+            if (!cached) return null;
+            if (Date.now() > cached.expiresAt) {
+                emailAvailabilityCache.delete(email);
+                return null;
+            }
+            return cached;
+        }
+
+        function setCachedEmailResult(email, exists, message) {
+            emailAvailabilityCache.set(email, {
+                exists: !!exists,
+                message: message || (exists ? 'Email đã tồn tại' : 'Email có thể sử dụng'),
+                expiresAt: Date.now() + EMAIL_CACHE_TTL_MS
+            });
+            // Keep memory bounded for long-running tabs.
+            if (emailAvailabilityCache.size > 200) {
+                const firstKey = emailAvailabilityCache.keys().next().value;
+                if (firstKey) emailAvailabilityCache.delete(firstKey);
+            }
+        }
+
+        function showEmailFeedback(emailInput, feedback, message, kind) {
+            emailInput.classList.remove('is-valid', 'is-invalid');
+            feedback.textContent = message || '';
+            if (kind === 'error') {
+                emailInput.classList.add('is-invalid');
+                feedback.className = 'field-inline-error';
+            } else if (kind === 'ok') {
+                emailInput.classList.add('is-valid');
+                feedback.className = 'field-inline-ok';
+            } else {
+                feedback.className = 'text-muted small';
+            }
+        }
+
+        async function checkEmailAvailability(forceServer) {
+            const emailInput = document.getElementById('email');
+            const feedback = document.getElementById('emailFeedback');
+            if (!emailInput || !feedback) return true;
+
+            const email = (emailInput.value || '').trim().toLowerCase();
+            emailExists = false;
+
+            if (!email) {
+                feedback.textContent = '';
+                feedback.className = '';
+                emailInput.classList.remove('is-invalid', 'is-valid');
+                return true;
+            }
+
+            const typoSuggestion = getEmailTypoSuggestion(email);
+            if (typoSuggestion) {
+                showEmailFeedback(emailInput, feedback, 'Bạn có muốn dùng: ' + typoSuggestion + ' ?', 'error');
+                return false;
+            }
+
+            if (!isValidEmailFormat(email)) {
+                showEmailFeedback(emailInput, feedback, 'Email không hợp lệ', 'error');
+                return false;
+            }
+
+            if (!forceServer) {
+                const cached = getCachedEmailResult(email);
+                if (cached) {
+                    emailExists = cached.exists;
+                    showEmailFeedback(emailInput, feedback, cached.message, cached.exists ? 'error' : 'ok');
+                    return !cached.exists;
+                }
+            }
+
+            feedback.textContent = 'Đang kiểm tra email...';
+            feedback.className = 'text-muted small';
+
+            try {
+                if (emailCheckController) {
+                    emailCheckController.abort();
+                }
+                emailCheckController = new AbortController();
+
+                const resp = await fetch(REGISTER_CONTEXT_PATH + '/api/auth/check-email?email=' + encodeURIComponent(email), {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    signal: emailCheckController.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await resp.json();
+                emailExists = !!data.exists;
+                setCachedEmailResult(email, emailExists, data.message);
+
+                if (emailExists) {
+                    showEmailFeedback(emailInput, feedback, data.message || 'Email đã tồn tại', 'error');
+                    return false;
+                }
+
+                showEmailFeedback(emailInput, feedback, data.message || 'Email có thể sử dụng', 'ok');
+                return true;
+            } catch (e) {
+                if (e && e.name === 'AbortError') {
+                    return false;
+                }
+                emailInput.classList.remove('is-valid');
+                feedback.textContent = '';
+                feedback.className = '';
+                return true;
+            }
+        }
+
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+            emailInput.addEventListener('input', function() {
+                const feedback = document.getElementById('emailFeedback');
+                const normalized = (emailInput.value || '').trim().toLowerCase();
+                emailExists = false;
+
+                if (!normalized) {
+                    emailInput.classList.remove('is-valid', 'is-invalid');
+                    if (feedback) {
+                        feedback.textContent = '';
+                        feedback.className = '';
+                    }
+                    return;
+                }
+
+                const suggestion = getEmailTypoSuggestion(normalized);
+                if (suggestion) {
+                    showEmailFeedback(emailInput, feedback, 'Bạn có muốn dùng: ' + suggestion + ' ?', 'error');
+                    return;
+                }
+
+                if (!isValidEmailFormat(normalized)) {
+                    showEmailFeedback(emailInput, feedback, 'Email không hợp lệ', 'error');
+                    return;
+                }
+
+                const cached = getCachedEmailResult(normalized);
+                if (cached) {
+                    emailExists = cached.exists;
+                    showEmailFeedback(emailInput, feedback, cached.message, cached.exists ? 'error' : 'ok');
+                    return;
+                }
+
+                emailInput.classList.remove('is-valid', 'is-invalid');
+                if (feedback) {
+                    feedback.textContent = 'Định dạng hợp lệ. Rời ô để kiểm tra tồn tại.';
+                    feedback.className = 'text-muted small';
+                }
+            });
+
+            emailInput.addEventListener('blur', function() {
+                emailInput.value = (emailInput.value || '').trim().toLowerCase();
+                checkEmailAvailability(false);
+            });
+        }
+
+        const birthDateInput = document.getElementById('birthDate');
+        if (birthDateInput) {
+            const today = new Date();
+            const maxDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+            const maxDateStr = maxDate.getFullYear()
+                + '-' + String(maxDate.getMonth() + 1).padStart(2, '0')
+                + '-' + String(maxDate.getDate()).padStart(2, '0');
+            birthDateInput.max = maxDateStr;
+            birthDateInput.addEventListener('change', validateBirthDateInline);
+            if (birthDateInput.value) validateBirthDateInline();
+        }
+
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function(e) {
+                const emailOk = await checkEmailAvailability(true);
+                const ageOk = validateBirthDateInline();
+                if (!emailOk || !ageOk || emailExists) {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('Vui lòng kiểm tra lại thông tin đăng ký', 'error');
+                    }
+                }
+            });
         }
     </script>
 </body>

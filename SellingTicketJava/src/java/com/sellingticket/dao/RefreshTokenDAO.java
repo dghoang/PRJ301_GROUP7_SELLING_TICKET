@@ -52,6 +52,23 @@ public class RefreshTokenDAO extends DBContext {
         return false;
     }
 
+    /** Resolve the owning user for an active refresh token. */
+    public Integer getUserIdByActiveToken(String tokenId) {
+        String sql = "SELECT user_id FROM UserSessions WHERE session_token = ? AND is_active = 1 AND expires_at > GETDATE()";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, tokenId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to resolve user from refresh token", e);
+        }
+        return null;
+    }
+
     /** Revoke a single refresh token. */
     public boolean revokeToken(String tokenId) {
         String sql = "UPDATE UserSessions SET is_active = 0 WHERE session_token = ?";

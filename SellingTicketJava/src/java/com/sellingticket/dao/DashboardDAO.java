@@ -266,7 +266,7 @@ public class DashboardDAO extends DBContext {
      */
     public List<Map<String, Object>> getOrganizerTicketDistribution(int organizerId) {
         List<Map<String, Object>> result = new ArrayList<>();
-        String sql = "SELECT tt.name, COUNT(oi.item_id) as sold_count " +
+        String sql = "SELECT tt.name, COUNT(oi.order_item_id) as sold_count " +
                 "FROM TicketTypes tt " +
                 "JOIN OrderItems oi ON tt.ticket_type_id = oi.ticket_type_id " +
                 "JOIN Events e ON tt.event_id = e.event_id " +
@@ -327,8 +327,16 @@ public class DashboardDAO extends DBContext {
                 "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE event_id = ? AND status = 'paid') as revenue, " +
                 "(SELECT COUNT(*) FROM Orders WHERE event_id = ?) as total_orders, " +
                 "(SELECT COUNT(*) FROM Orders WHERE event_id = ? AND status = 'paid') as paid_orders, " +
-                "(SELECT COUNT(*) FROM Tickets WHERE order_id IN (SELECT order_id FROM Orders WHERE event_id = ?)) as total_tickets, " +
-                "(SELECT COUNT(*) FROM Tickets WHERE order_id IN (SELECT order_id FROM Orders WHERE event_id = ?) AND status = 'used') as checked_in";
+                "(SELECT COUNT(*) " +
+                "   FROM Tickets t " +
+                "   JOIN OrderItems oi ON t.order_item_id = oi.order_item_id " +
+                "   JOIN Orders o ON oi.order_id = o.order_id " +
+                "  WHERE o.event_id = ?) as total_tickets, " +
+                "(SELECT COUNT(*) " +
+                "   FROM Tickets t " +
+                "   JOIN OrderItems oi ON t.order_item_id = oi.order_item_id " +
+                "   JOIN Orders o ON oi.order_id = o.order_id " +
+                "  WHERE o.event_id = ? AND t.is_checked_in = 1) as checked_in";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

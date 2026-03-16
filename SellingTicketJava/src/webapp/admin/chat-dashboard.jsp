@@ -102,8 +102,14 @@
 <script>
 const CTX = '${pageContext.request.contextPath}';
 const AGENT_ID = ${sessionScope.user != null ? sessionScope.user.userId : 0};
+const CSRF_TOKEN = '${sessionScope.csrf_token}';
 let activeSessionId = 0, agentLastMsgId = 0, agentPollTimer = null;
 const chatType = new URLSearchParams(window.location.search).get('type') || 'system';
+
+function withCsrf(body) {
+    const base = body ? body + '&' : '';
+    return base + 'csrf_token=' + encodeURIComponent(CSRF_TOKEN || '');
+}
 
 function escHtml(text) {
     const d = document.createElement('div');
@@ -111,9 +117,25 @@ function escHtml(text) {
     return d.innerHTML;
 }
 
+async function fetchJsonSafe(url, options) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    if (!text) return [];
+    try { return JSON.parse(text); } catch (e) { throw new Error('INVALID_JSON'); }
+}
+
+async function postFormSafe(url, body) {
+    return fetchJsonSafe(url, {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        credentials:'same-origin',
+        body
+    });
+}
+
 function loadSessions() {
-    fetch(CTX + '/api/chat/sessions?type=' + chatType)
-    .then(r => r.json()).then(sessions => {
+    fetchJsonSafe(CTX + '/api/chat/sessions?type=' + chatType)
+    .then(sessions => {
         const box = document.getElementById('sessionsList');
         if (!sessions || sessions.length === 0) {
             box.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2 opacity-25 d-block"></i><p class="mb-0 small">Không có phiên chat nào</p></div>';
@@ -123,10 +145,17 @@ function loadSessions() {
             const isActive = s.id === activeSessionId;
             const statusColor = s.status === 'waiting' ? 'linear-gradient(135deg,#f59e0b,#f97316)' : 'linear-gradient(135deg,#10b981,#06b6d4)';
             const statusLabel = s.status === 'waiting' ? 'Chờ' : 'Active';
+            const unread = Number(s.unreadCount || 0);
+            const unreadBadge = unread > 0
+                ? '<span class="badge bg-danger rounded-pill ms-2" style="font-size:0.62rem;">' + unread + '</span>'
+                : '';
+            const onlineDot = s.customerOnline
+                ? '<span class="d-inline-block rounded-circle ms-1" style="width:8px;height:8px;background:#10b981;" title="Online"></span>'
+                : '<span class="d-inline-block rounded-circle ms-1" style="width:8px;height:8px;background:#9ca3af;" title="Offline"></span>';
             return '<div class="chat-session-item d-flex align-items-center gap-3 p-3 mb-2 ' + (isActive ? 'active-session' : '') + '" onclick="selectSession(' + s.id + ')">'
             + '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;background:' + statusColor + ';"><i class="fas fa-user text-white" style="font-size:0.8rem;"></i></div>'
             + '<div class="flex-grow-1" style="min-width:0;">'
-            + '<div class="fw-medium small text-truncate">' + escHtml(s.customerName || 'Khách') + '</div>'
+            + '<div class="fw-medium small text-truncate">' + escHtml(s.customerName || 'Khách') + onlineDot + unreadBadge + '</div>'
             + '<small class="text-muted">' + escHtml(s.eventTitle || 'Hệ thống') + ' · ' + escHtml(s.time || '') + '</small></div>'
             + '<span class="badge rounded-pill px-2" style="background:' + statusColor + ';color:white;font-size:0.6rem;">' + statusLabel + '</span>'
             + '</div>';
@@ -140,7 +169,7 @@ function selectSession(id) {
     activeSessionId = id;
     agentLastMsgId = 0;
     document.getElementById('adminChatInput').style.display = 'block';
-    fetch(CTX + '/api/chat/accept', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + id}).catch(() => {});
+    fetch(CTX + '/api/chat/accept', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:withCsrf('sessionId=' + id)}).catch(() => {});
     loadMessages();
     if (agentPollTimer) clearInterval(agentPollTimer);
     agentPollTimer = setInterval(loadMessages, 5000);
@@ -149,8 +178,8 @@ function selectSession(id) {
 
 function loadMessages() {
     if (!activeSessionId) return;
-    fetch(CTX + '/api/chat/messages?sessionId=' + activeSessionId + '&after=' + agentLastMsgId)
-    .then(r => r.json()).then(msgs => {
+    fetchJsonSafe(CTX + '/api/chat/messages?sessionId=' + activeSessionId + '&after=' + agentLastMsgId)
+    .then(msgs => {
         const box = document.getElementById('adminChatMessages');
         if (agentLastMsgId === 0) box.innerHTML = '';
         if (!msgs || msgs.length === 0) {
@@ -178,8 +207,14 @@ function agentSend() {
     const msg = inp.value.trim();
     if (!msg || !activeSessionId) return;
     inp.value = '';
-    fetch(CTX + '/api/chat/send', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, credentials:'same-origin', body:'sessionId=' + activeSessionId + '&content=' + encodeURIComponent(msg)})
-    .then(() => loadMessages()).catch(() => {});
+    postFormSafe(CTX + '/api/chat/send', withCsrf('sessionId=' + activeSessionId + '&content=' + encodeURIComponent(msg)))
+    .then((res) => {
+        if (res && res.error) {
+            alert(res.error);
+            return;
+        }
+        loadMessages();
+    }).catch(() => {});
 }
 
 // Init

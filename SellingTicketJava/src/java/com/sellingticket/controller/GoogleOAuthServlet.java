@@ -190,6 +190,10 @@ public class GoogleOAuthServlet extends HttpServlet {
         HttpSession session = request.getSession(true);
         session.setAttribute("user", user);
         session.setAttribute("account", user);
+        if (session.getAttribute("csrf_token") == null) {
+            session.setAttribute("csrf_token", UUID.randomUUID().toString());
+            session.removeAttribute("csrf_token_prev");
+        }
         session.setMaxInactiveInterval(3600);
 
         // Issue JWT tokens (OAuth users always get persistent remember-me)

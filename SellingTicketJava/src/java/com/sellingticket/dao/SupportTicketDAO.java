@@ -34,9 +34,14 @@ public class SupportTicketDAO extends DBContext {
             ps.setString(7, ticket.getDescription());
             ps.setString(8, ticket.getPriority() != null ? ticket.getPriority() : "normal");
             ps.setString(9, ticket.getRoutedTo() != null ? ticket.getRoutedTo() : "admin");
-            if (ps.execute()) {
+            // ps.execute() returns false for INSERT (update count), then true for SELECT SCOPE_IDENTITY().
+            boolean hasResultSet = ps.execute();
+            if (!hasResultSet) {
+                hasResultSet = ps.getMoreResults();
+            }
+            if (hasResultSet) {
                 ResultSet rs = ps.getResultSet();
-                if (rs.next()) return rs.getInt(1);
+                if (rs != null && rs.next()) return rs.getInt(1);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to create support ticket", e);

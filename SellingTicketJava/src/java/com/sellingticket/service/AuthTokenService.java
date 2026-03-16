@@ -41,26 +41,14 @@ public class AuthTokenService {
         boolean secure = request.isSecure();
         String cookiePath = resolveCookiePath(request);
 
-        // Cleanup legacy root-path cookies to avoid duplicated auth cookies in request header.
-        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, "/");
-        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, "/");
+        clearAuthCookies(response, secure, cookiePath);
 
-        // Access token
-        String accessToken = JwtUtil.generateAccessToken(
-                user.getUserId(), user.getEmail(), user.getRole());
-
-        int accessMaxAge = rememberMe ? (int) JwtUtil.ACCESS_TOKEN_EXPIRY_SEC : -1;
-        CookieUtil.addSecureCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE,
-            accessToken, accessMaxAge, secure, cookiePath);
-
-        // Refresh token
-        String[] refreshResult = JwtUtil.generateRefreshToken(user.getUserId());
-        String refreshToken = refreshResult[0];
-        String jti = refreshResult[1];
+        // Keep only one compact refresh cookie for web flows.
+        String jti = JwtUtil.generateRefreshTokenId();
 
         int refreshMaxAge = rememberMe ? (int) JwtUtil.REFRESH_TOKEN_EXPIRY_SEC : -1;
         CookieUtil.addSecureCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE,
-            refreshToken, refreshMaxAge, secure, cookiePath);
+            jti, refreshMaxAge, secure, cookiePath);
 
         // Save refresh token in DB
         long expiresMs = System.currentTimeMillis() + (JwtUtil.REFRESH_TOKEN_EXPIRY_SEC * 1000);
@@ -81,7 +69,14 @@ public class AuthTokenService {
      */
     public User validateAccessToken(HttpServletRequest request) {
         String token = CookieUtil.getCookieValue(request, CookieUtil.ACCESS_TOKEN_COOKIE);
-        if (token == null) return null;
+        return validateAccessToken(token);
+    }
+
+    /**
+     * Validate a raw access token value and return the current user.
+     */
+    public User validateAccessToken(String token) {
+        if (token == null || token.trim().isEmpty()) return null;
 
         Map<String, Object> claims = JwtUtil.verifyAuthToken(token);
         if (claims == null) return null;
@@ -89,6 +84,10 @@ public class AuthTokenService {
         // Verify token type
         if (!"access".equals(claims.get("type"))) return null;
 
+        return buildUserFromClaims(claims);
+    }
+
+    private User buildUserFromClaims(Map<String, Object> claims) {
         int userId = ((Number) claims.get("sub")).intValue();
 
         // Load full user from DB (ensures latest role/active status)
@@ -102,45 +101,30 @@ public class AuthTokenService {
      * @return User object or null if refresh fails
      */
     public User refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = CookieUtil.getCookieValue(request, CookieUtil.REFRESH_TOKEN_COOKIE);
-        if (refreshToken == null) return null;
+        RefreshCookieData refreshCookie = parseRefreshCookie(request);
+        if (refreshCookie == null) return null;
 
-        Map<String, Object> claims = JwtUtil.verifyAuthToken(refreshToken);
-        if (claims == null) return null;
-
-        // Verify token type
-        if (!"refresh".equals(claims.get("type"))) return null;
-
-        String jti = (String) claims.get("jti");
-        if (jti == null) return null;
-
-        // Verify refresh token is still valid in DB (not revoked)
-        if (!refreshTokenDAO.isTokenValid(jti)) {
-            LOGGER.log(Level.WARNING, "Refresh token revoked or expired in DB: {0}", jti);
+        Integer tokenUserId = refreshTokenDAO.getUserIdByActiveToken(refreshCookie.tokenId);
+        if (tokenUserId == null) {
+            LOGGER.log(Level.WARNING, "Refresh token revoked or expired in DB: {0}", refreshCookie.tokenId);
             return null;
         }
 
-        int userId = ((Number) claims.get("sub")).intValue();
-        User user = userDAO.getUserById(userId);
+        if (refreshCookie.userId != null && refreshCookie.userId.intValue() != tokenUserId.intValue()) {
+            LOGGER.log(Level.WARNING, "Refresh token user mismatch for token {0}", refreshCookie.tokenId);
+            return null;
+        }
+
+        User user = userDAO.getUserById(tokenUserId);
         if (user == null || !user.isActive()) return null;
 
-        // Issue new access token only (refresh token stays valid)
-        String newAccessToken = JwtUtil.generateAccessToken(
-                user.getUserId(), user.getEmail(), user.getRole());
-
-        String cookiePath = resolveCookiePath(request);
-        // Cleanup legacy root-path cookie copy first.
-        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, request.isSecure(), "/");
-
-        // Use persistent cookie if original refresh cookie exists (user chose remember-me)
-        int maxAge = (int) JwtUtil.ACCESS_TOKEN_EXPIRY_SEC;
-        CookieUtil.addSecureCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE,
-            newAccessToken, maxAge, request.isSecure(), cookiePath);
+        // Cleanup legacy access-cookie copies so future requests stay below Tomcat's header limit.
+        clearAccessCookies(response, request.isSecure(), resolveCookiePath(request));
 
         // Update last activity
-        refreshTokenDAO.updateLastActivity(jti);
+        refreshTokenDAO.updateLastActivity(refreshCookie.tokenId);
 
-        LOGGER.log(Level.INFO, "Access token refreshed for user {0}", user.getEmail());
+        LOGGER.log(Level.INFO, "Session restored from refresh token for user {0}", user.getEmail());
         return user;
     }
 
@@ -152,23 +136,12 @@ public class AuthTokenService {
         String cookiePath = resolveCookiePath(request);
 
         // Revoke refresh token in DB
-        String refreshToken = CookieUtil.getCookieValue(request, CookieUtil.REFRESH_TOKEN_COOKIE);
-        if (refreshToken != null) {
-            Map<String, Object> claims = JwtUtil.verifyAuthToken(refreshToken);
-            if (claims != null) {
-                String jti = (String) claims.get("jti");
-                if (jti != null) {
-                    refreshTokenDAO.revokeToken(jti);
-                }
-            }
+        RefreshCookieData refreshCookie = parseRefreshCookie(request);
+        if (refreshCookie != null) {
+            refreshTokenDAO.revokeToken(refreshCookie.tokenId);
         }
 
-        // Delete cookies
-        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, cookiePath);
-        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, cookiePath);
-        // Also delete legacy root-path copies.
-        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, "/");
-        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, "/");
+        clearAuthCookies(response, secure, cookiePath);
     }
 
     /**
@@ -179,6 +152,14 @@ public class AuthTokenService {
         revokeTokens(request, response);
     }
 
+    /** Remove legacy access-cookie copies when the browser still sends them. */
+    public void cleanupLegacyAccessCookie(HttpServletRequest request, HttpServletResponse response) {
+        if (CookieUtil.getCookieValue(request, CookieUtil.ACCESS_TOKEN_COOKIE) == null) {
+            return;
+        }
+        clearAccessCookies(response, request.isSecure(), resolveCookiePath(request));
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip != null && !ip.isEmpty()) {
@@ -187,8 +168,59 @@ public class AuthTokenService {
         return request.getRemoteAddr();
     }
 
+    private RefreshCookieData parseRefreshCookie(HttpServletRequest request) {
+        String rawRefreshCookie = CookieUtil.getCookieValue(request, CookieUtil.REFRESH_TOKEN_COOKIE);
+        if (rawRefreshCookie == null || rawRefreshCookie.trim().isEmpty()) {
+            return null;
+        }
+
+        String value = rawRefreshCookie.trim();
+        if (!value.contains(".")) {
+            return new RefreshCookieData(value, null);
+        }
+
+        Map<String, Object> claims = JwtUtil.verifyAuthToken(value);
+        if (claims == null || !"refresh".equals(claims.get("type"))) {
+            return null;
+        }
+
+        String jti = (String) claims.get("jti");
+        if (jti == null || jti.trim().isEmpty()) {
+            return null;
+        }
+
+        Number sub = (Number) claims.get("sub");
+        Integer userId = sub == null ? null : sub.intValue();
+        return new RefreshCookieData(jti, userId);
+    }
+
+    private void clearAuthCookies(HttpServletResponse response, boolean secure, String cookiePath) {
+        clearAccessCookies(response, secure, cookiePath);
+        clearRefreshCookies(response, secure, cookiePath);
+    }
+
+    private void clearAccessCookies(HttpServletResponse response, boolean secure, String cookiePath) {
+        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, cookiePath);
+        CookieUtil.deleteCookie(response, CookieUtil.ACCESS_TOKEN_COOKIE, secure, "/");
+    }
+
+    private void clearRefreshCookies(HttpServletResponse response, boolean secure, String cookiePath) {
+        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, cookiePath);
+        CookieUtil.deleteCookie(response, CookieUtil.REFRESH_TOKEN_COOKIE, secure, "/");
+    }
+
     private String resolveCookiePath(HttpServletRequest request) {
         String cp = request.getContextPath();
         return (cp == null || cp.isEmpty()) ? "/" : cp;
+    }
+
+    private static final class RefreshCookieData {
+        private final String tokenId;
+        private final Integer userId;
+
+        private RefreshCookieData(String tokenId, Integer userId) {
+            this.tokenId = tokenId;
+            this.userId = userId;
+        }
     }
 }

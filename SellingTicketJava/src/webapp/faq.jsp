@@ -192,9 +192,37 @@
             <a href="mailto:support@ticketbox.vn" class="btn glass rounded-pill px-4 py-2 hover-lift">
                 <i class="fas fa-envelope me-2"></i>Email hỗ trợ
             </a>
-            <a href="#" class="btn glass rounded-pill px-4 py-2 hover-lift">
+            <button type="button" class="btn glass rounded-pill px-4 py-2 hover-lift" onclick="openFaqChat(event)">
                 <i class="fab fa-facebook-messenger me-2"></i>Chat trực tuyến
-            </a>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Fallback Modal (for users without floating live-chat widget) -->
+<div class="modal fade" id="faqSupportModal" tabindex="-1" aria-labelledby="faqSupportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-strong border-0 rounded-4 overflow-hidden">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="faqSupportModalLabel">
+                    <i class="fas fa-headset text-primary me-2"></i>Liên hệ hỗ trợ
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted mb-3">Bạn có thể trò chuyện trực tiếp sau khi đăng nhập, hoặc gửi yêu cầu hỗ trợ ngay bây giờ.</p>
+                <div class="d-grid gap-2">
+                    <a href="${pageContext.request.contextPath}/login?returnUrl=%2Ffaq" class="btn btn-gradient rounded-pill">
+                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập để chat trực tuyến
+                    </a>
+                    <a href="${pageContext.request.contextPath}/support/new" class="btn glass rounded-pill">
+                        <i class="fas fa-paper-plane me-2"></i>Tạo yêu cầu hỗ trợ
+                    </a>
+                    <a href="mailto:support@ticketbox.vn" class="btn btn-light rounded-pill">
+                        <i class="fas fa-envelope me-2"></i>Gửi email support@ticketbox.vn
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -216,6 +244,22 @@ function filterCategory(cat) {
             item.style.display = 'none';
         }
     });
+}
+
+function openFaqChat(event) {
+    if (event) event.preventDefault();
+
+    // Primary path: use the existing floating live-chat widget.
+    if (typeof openSupportLiveChat === 'function') {
+        openSupportLiveChat();
+        return;
+    }
+
+    // Fallback path: show support modal for guests / unavailable widget.
+    const modalEl = document.getElementById('faqSupportModal');
+    if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
 }
 </script>
 

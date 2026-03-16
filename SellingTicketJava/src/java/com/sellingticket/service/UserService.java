@@ -5,12 +5,17 @@ import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import java.util.List;
 import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 /**
  * UserService - Business logic layer for User operations
  * Handles authentication, registration, profile management
  */
 public class UserService {
+
+    private static final int MIN_REGISTER_AGE = 16;
+    private static final ZoneId ZONE_VN = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final UserDAO userDAO;
 
@@ -53,6 +58,9 @@ public class UserService {
 
     public boolean registerFull(String email, String password, String fullName, String phone, String gender, Date dob) {
         if (!isValidEmail(email) || !isValidPassword(password)) {
+            return false;
+        }
+        if (!isValidDateOfBirth(dob)) {
             return false;
         }
         if (userDAO.isEmailExists(email.trim().toLowerCase())) {
@@ -176,5 +184,17 @@ public class UserService {
         return password.matches(".*[A-Z].*")
                 && password.matches(".*[0-9].*")
                 && password.matches(".*[^a-zA-Z0-9\\s].*");
+    }
+
+    private boolean isValidDateOfBirth(Date dob) {
+        if (dob == null) {
+            return false;
+        }
+        LocalDate birthDate = dob.toInstant().atZone(ZONE_VN).toLocalDate();
+        LocalDate today = LocalDate.now(ZONE_VN);
+        if (birthDate.isAfter(today) || birthDate.isBefore(LocalDate.of(1900, 1, 1))) {
+            return false;
+        }
+        return !birthDate.isAfter(today.minusYears(MIN_REGISTER_AGE));
     }
 }

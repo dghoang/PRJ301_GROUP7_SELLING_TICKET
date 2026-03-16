@@ -7,6 +7,7 @@ import com.sellingticket.service.CategoryService;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
 import com.sellingticket.service.TicketService;
+import com.sellingticket.util.AppConstants;
 import com.sellingticket.util.CloudinaryUtil;
 import static com.sellingticket.util.ServletUtil.*;
 import com.sellingticket.util.InputValidator;
@@ -143,7 +144,8 @@ public class OrganizerEventController extends HttpServlet {
                 case "approved": countApproved++; break;
                 case "pending":  countPending++;  break;
                 case "draft":    countDraft++;     break;
-                default:         countEnded++;     break;
+                case "ended":    countEnded++;     break;
+                default:                               break;
             }
         }
         request.setAttribute("totalSold", totalSold);
@@ -289,11 +291,17 @@ public class OrganizerEventController extends HttpServlet {
                 return;
             }
 
+            // Business rule: private and featured are mutually exclusive.
+            if (event.isPrivate() && event.isFeatured()) {
+                returnFormWithError(request, response, user, event, tickets,
+                        "Sự kiện riêng tư không thể đồng thời ở trạng thái nổi bật.");
+                return;
+            }
+
             uploadBanner(request, event, user);
 
             // Set status based on user choice: draft saves without approval, pending submits for review
             event.setStatus(isDraft ? "draft" : "pending");
-            event.setFeatured(false);
 
             if (tickets == null || tickets.isEmpty()) {
                 returnFormWithError(request, response, user, event, tickets, "Phải có ít nhất 1 loại vé hợp lệ");
@@ -306,12 +314,16 @@ public class OrganizerEventController extends HttpServlet {
                 } else {
                     setToast(request, "Tạo sự kiện thành công! Đang chờ Admin duyệt.", "success");
                 }
-                response.sendRedirect(request.getContextPath() + "/organizer/events");
+                response.sendRedirect(request.getContextPath() + "/organizer/events?createStatus=success");
             } else {
                 returnFormWithError(request, response, user, event, tickets, "Không thể tạo sự kiện. Vui lòng thử lại.");
             }
         } catch (IllegalArgumentException e) {
             returnFormWithError(request, response, user, null, null, "Dữ liệu nhập không hợp lệ: " + e.getMessage());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Create event failed", e);
+            returnFormWithError(request, response, user, null, null,
+                    "Không thể tạo sự kiện do lỗi hệ thống. Vui lòng thử lại sau.");
         }
     }
 
@@ -319,6 +331,7 @@ public class OrganizerEventController extends HttpServlet {
     private void returnFormWithError(HttpServletRequest request, HttpServletResponse response,
             User user, Event event, List<TicketType> tickets, String errorMessage)
             throws ServletException, IOException {
+        setToast(request, errorMessage, "error");
         request.setAttribute("error", errorMessage);
         request.setAttribute("formEvent", event);
         request.setAttribute("formTickets", tickets);
@@ -490,9 +503,10 @@ public class OrganizerEventController extends HttpServlet {
 
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         String email = request.getParameter("email");
-        String role = request.getParameter("role");
+        String role = AppConstants.normalizeEventStaffRole(request.getParameter("role"));
 
-        if (eventService.hasVoucherPermission(eventId, user.getUserId(), user.getRole())
+        if (role != null
+                && eventService.hasVoucherPermission(eventId, user.getUserId(), user.getRole())
                 && eventService.addEventStaff(eventId, email, role, user.getUserId())) {
             setToast(request, "Đã thêm cộng tác viên!", "success");
         } else {
@@ -544,6 +558,7 @@ public class OrganizerEventController extends HttpServlet {
         event.setAddress(request.getParameter("address"));
         event.setStartDate(parseDateOrNull(request.getParameter("startDate")));
         event.setPrivate("on".equals(request.getParameter("isPrivate")));
+        event.setFeatured("on".equals(request.getParameter("isFeatured")));
 
         String endDateStr = request.getParameter("endDate");
         if (endDateStr != null && !endDateStr.isEmpty()) {
@@ -619,13 +634,10 @@ public class OrganizerEventController extends HttpServlet {
         return tickets;
     }
 
-        /** Today at 00:00:00.000 — for date-only past-date validation. */
-        private static java.util.Date todayMidnight() {
-            java.util.Calendar c = java.util.Calendar.getInstance();
-            c.set(java.util.Calendar.HOUR_OF_DAY, 0);
-            c.set(java.util.Calendar.MINUTE, 0);
-            c.set(java.util.Calendar.SECOND, 0);
-            c.set(java.util.Calendar.MILLISECOND, 0);
-            return c.getTime();
-        }
+    /** Today at 00:00:00.000 in Asia/Ho_Chi_Minh timezone. */
+    private static java.util.Date todayMidnight() {
+        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        java.time.LocalDate today = java.time.LocalDate.now(zone);
+        return java.util.Date.from(today.atStartOfDay(zone).toInstant());
     }
+}

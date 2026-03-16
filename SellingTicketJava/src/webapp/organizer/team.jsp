@@ -72,13 +72,13 @@
                             <div class="col-md-3">
                                 <div class="d-flex align-items-start gap-3 p-3 rounded-3" style="background: rgba(59, 130, 246, 0.1);">
                                     <div class="rounded-3 p-2 badge-checkin"><i class="fas fa-qrcode"></i></div>
-                                    <div><p class="fw-medium small mb-1">Check-in</p><p class="text-muted small mb-0">Chỉ soát vé tại sự kiện</p></div>
+                                    <div><p class="fw-medium small mb-1">Scanner</p><p class="text-muted small mb-0">Chỉ soát vé tại sự kiện</p></div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="d-flex align-items-start gap-3 p-3 rounded-3" style="background: rgba(34, 197, 94, 0.1);">
                                     <div class="rounded-3 p-2 badge-viewer"><i class="fas fa-eye"></i></div>
-                                    <div><p class="fw-medium small mb-1">Xem báo cáo</p><p class="text-muted small mb-0">Chỉ xem thống kê</p></div>
+                                    <div><p class="fw-medium small mb-1">Staff</p><p class="text-muted small mb-0">Hỗ trợ vận hành và chỉnh sửa nội dung</p></div>
                                 </div>
                             </div>
                         </div>
@@ -129,11 +129,11 @@
                                             <c:when test="${staff.role == 'manager'}">
                                                 <span class="badge rounded-pill badge-manager px-3 py-2"><i class="fas fa-edit me-1"></i>Quản lý</span>
                                             </c:when>
-                                            <c:when test="${staff.role == 'checkin'}">
+                                            <c:when test="${staff.role == 'scanner'}">
                                                 <span class="badge rounded-pill badge-checkin px-3 py-2"><i class="fas fa-qrcode me-1"></i>Check-in</span>
                                             </c:when>
                                             <c:otherwise>
-                                                <span class="badge rounded-pill badge-viewer px-3 py-2"><i class="fas fa-eye me-1"></i>Xem báo cáo</span>
+                                                <span class="badge rounded-pill badge-viewer px-3 py-2"><i class="fas fa-eye me-1"></i>Staff</span>
                                             </c:otherwise>
                                         </c:choose>
                                         <small class="text-muted">
@@ -187,10 +187,9 @@
                         <label class="form-label fw-medium">Vai trò <span class="text-danger">*</span></label>
                         <select name="role" class="form-select glass-input rounded-3" required>
                             <option value="" selected disabled>Chọn vai trò</option>
-                            <option value="admin">Quản trị viên - Toàn quyền quản lý</option>
-                            <option value="manager">Quản lý - Chỉnh sửa sự kiện, vé, voucher</option>
-                            <option value="checkin">Check-in - Chỉ soát vé tại sự kiện</option>
-                            <option value="viewer">Xem báo cáo - Chỉ xem thống kê, báo cáo</option>
+                            <option value="manager">Quản lý - Toàn quyền trên sự kiện</option>
+                            <option value="staff">Staff - Chỉnh sửa nội dung, hỗ trợ vận hành</option>
+                            <option value="scanner">Scanner - Chỉ soát vé tại sự kiện</option>
                         </select>
                     </div>
                 </div>

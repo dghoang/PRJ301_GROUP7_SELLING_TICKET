@@ -8,6 +8,7 @@ public class Category {
     private String slug;
     private String icon;
     private String description;
+    private int displayOrder;
     private Date createdAt;
     
     // Computed field
@@ -31,6 +32,9 @@ public class Category {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
+    public int getDisplayOrder() { return displayOrder; }
+    public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
+
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
 
@@ -39,6 +43,6 @@ public class Category {
 
     @Override
     public String toString() {
-        return "Category{id=" + categoryId + ", name='" + name + "', slug='" + slug + "', eventCount=" + eventCount + "}";
+        return "Category{id=" + categoryId + ", name='" + name + "', slug='" + slug + "', displayOrder=" + displayOrder + ", eventCount=" + eventCount + "}";
     }
 }

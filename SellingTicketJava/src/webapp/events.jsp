@@ -485,17 +485,16 @@
                 </label>
                 <input type="date" class="search-input" data-filter-date="dateTo">
             </div>
-            <div class="col-lg-1 col-md-2">
+            <div class="col-lg-2 col-md-4">
                 <label class="search-label">
-                    <i class="fas fa-tag"></i>Giá từ
+                    <i class="fas fa-tags"></i>Mức giá
                 </label>
-                <input type="number" class="search-input" placeholder="0" min="0" data-filter-number="priceMin">
-            </div>
-            <div class="col-lg-1 col-md-2">
-                <label class="search-label">
-                    <i class="fas fa-tag"></i>Giá đến
-                </label>
-                <input type="number" class="search-input" placeholder="∞" min="0" data-filter-number="priceMax">
+                <select class="search-select" data-filter-select="priceRange">
+                    <option value="">Tất cả mức giá</option>
+                    <option value="lt500">Dưới 500.000đ</option>
+                    <option value="500to1000">Từ 500.000đ - 1.000.000đ</option>
+                    <option value="gt1000">Trên 1.000.000đ</option>
+                </select>
             </div>
             <div class="col-lg-1 col-md-2">
                 <button type="button" class="search-btn" onclick="window.ajaxCards && ajaxCards.load()">

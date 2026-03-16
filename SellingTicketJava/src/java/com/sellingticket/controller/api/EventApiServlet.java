@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * No authentication required (shows only approved events).
  *
  * GET /api/events?q=keyword&category=slug&dateFrom=2024-01-01&dateTo=2024-12-31
- *     &priceMin=0&priceMax=1000000&sort=date_asc&page=1&size=12
+ *     &priceRange=lt500|500to1000|gt1000&sort=date_asc&page=1&size=12
  */
 @WebServlet(name = "EventApiServlet", urlPatterns = {"/api/events"})
 public class EventApiServlet extends HttpServlet {
@@ -43,13 +43,32 @@ public class EventApiServlet extends HttpServlet {
         int size = parseIntOrDefault(request.getParameter("size"), 12);
 
         Double priceMin = null, priceMax = null;
-        String priceMinStr = request.getParameter("priceMin");
-        String priceMaxStr = request.getParameter("priceMax");
-        if (priceMinStr != null && !priceMinStr.isEmpty()) {
-            priceMin = parseDoubleOrDefault(priceMinStr, 0);
-        }
-        if (priceMaxStr != null && !priceMaxStr.isEmpty()) {
-            priceMax = parseDoubleOrDefault(priceMaxStr, 0);
+        String priceRange = request.getParameter("priceRange");
+        if (priceRange != null && !priceRange.isEmpty()) {
+            switch (priceRange) {
+                case "lt500":
+                    priceMax = 499999.99;
+                    break;
+                case "500to1000":
+                    priceMin = 500000.0;
+                    priceMax = 1000000.0;
+                    break;
+                case "gt1000":
+                    priceMin = 1000000.01;
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            // Backward compatibility: support legacy priceMin/priceMax params if provided.
+            String priceMinStr = request.getParameter("priceMin");
+            String priceMaxStr = request.getParameter("priceMax");
+            if (priceMinStr != null && !priceMinStr.isEmpty()) {
+                priceMin = parseDoubleOrDefault(priceMinStr, 0);
+            }
+            if (priceMaxStr != null && !priceMaxStr.isEmpty()) {
+                priceMax = parseDoubleOrDefault(priceMaxStr, 0);
+            }
         }
 
         PageResult<Event> result = eventService.searchEventsPaged(

@@ -50,8 +50,8 @@
                                     <div>
                                         <h4 class="fw-bold mb-1">${user.fullName}</h4>
                                         <div class="text-muted">${user.email}</div>
-                                        <span class="badge ${user.active ? 'bg-success' : 'bg-danger'} rounded-pill mt-2">
-                                            ${user.active ? 'Đang hoạt động' : 'Đã khóa'}
+                                        <span class="badge ${user.deleted ? 'bg-secondary' : (user.active ? 'bg-success' : 'bg-danger')} rounded-pill mt-2">
+                                            ${user.deleted ? 'Đã xóa' : (user.active ? 'Đang hoạt động' : 'Đã khóa')}
                                         </span>
                                     </div>
                                 </div>
@@ -97,40 +97,47 @@
                         <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                             <div class="card-body p-4">
                                 <h5 class="fw-bold mb-3"><i class="fas fa-shield-alt text-primary me-2"></i>Quản trị tài khoản</h5>
-
-                                <form action="${pageContext.request.contextPath}/admin/users/update-role" method="POST" class="mb-3">
-                                    <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
-                                    <input type="hidden" name="userId" value="${user.userId}">
-
-                                    <label class="form-label fw-medium">Đổi vai trò</label>
-                                    <select name="role" id="detailRoleSelect" class="form-select rounded-3 mb-2">
-                                        <option value="customer" ${roleNormalized == 'customer' ? 'selected' : ''}>Khách hàng</option>
-                                        <option value="support_agent" ${roleNormalized == 'support_agent' ? 'selected' : ''}>Hỗ trợ viên</option>
-                                        <option value="admin" ${roleNormalized == 'admin' ? 'selected' : ''}>Admin</option>
-                                    </select>
-                                    <input type="password" id="detailAdminKey" name="adminKey" class="form-control rounded-3 mb-2 d-none" placeholder="Nhập mật khẩu admin">
-                                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Lưu vai trò</button>
-                                </form>
-
-                                <c:if test="${user.active}">
-                                    <form action="${pageContext.request.contextPath}/admin/users/deactivate" method="POST">
-                                        <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
-                                        <input type="hidden" name="userId" value="${user.userId}">
-                                        <button type="submit" class="btn btn-outline-warning w-100 rounded-pill"
-                                                onclick="return confirm('Khóa tài khoản này?');">
-                                            <i class="fas fa-ban me-2"></i>Khóa tài khoản
-                                        </button>
-                                    </form>
+                                <c:if test="${user.deleted}">
+                                    <div class="alert alert-secondary rounded-3 mb-0">
+                                        <i class="fas fa-trash me-2"></i>Tài khoản này đã được đánh dấu xóa mềm.
+                                    </div>
                                 </c:if>
-                                <c:if test="${not user.active}">
-                                    <form action="${pageContext.request.contextPath}/admin/users/activate" method="POST">
+
+                                <c:if test="${not user.deleted}">
+                                    <form action="${pageContext.request.contextPath}/admin/users/update-role" method="POST" class="mb-3">
                                         <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
                                         <input type="hidden" name="userId" value="${user.userId}">
-                                        <button type="submit" class="btn btn-outline-success w-100 rounded-pill"
-                                                onclick="return confirm('Mở khóa tài khoản này?');">
-                                            <i class="fas fa-unlock me-2"></i>Mở khóa tài khoản
-                                        </button>
+
+                                        <label class="form-label fw-medium">Đổi vai trò</label>
+                                        <select name="role" id="detailRoleSelect" class="form-select rounded-3 mb-2">
+                                            <option value="customer" ${roleNormalized == 'customer' ? 'selected' : ''}>Khách hàng</option>
+                                            <option value="support_agent" ${roleNormalized == 'support_agent' ? 'selected' : ''}>Hỗ trợ viên</option>
+                                            <option value="admin" ${roleNormalized == 'admin' ? 'selected' : ''}>Admin</option>
+                                        </select>
+                                        <input type="password" id="detailAdminKey" name="adminKey" class="form-control rounded-3 mb-2 d-none" placeholder="Nhập mật khẩu admin">
+                                        <button type="submit" class="btn btn-primary w-100 rounded-pill">Lưu vai trò</button>
                                     </form>
+
+                                    <c:if test="${user.active}">
+                                        <form action="${pageContext.request.contextPath}/admin/users/deactivate" method="POST">
+                                            <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
+                                            <input type="hidden" name="userId" value="${user.userId}">
+                                            <button type="submit" class="btn btn-outline-warning w-100 rounded-pill"
+                                                    onclick="return confirm('Khóa tài khoản này?');">
+                                                <i class="fas fa-ban me-2"></i>Khóa tài khoản
+                                            </button>
+                                        </form>
+                                    </c:if>
+                                    <c:if test="${not user.active}">
+                                        <form action="${pageContext.request.contextPath}/admin/users/activate" method="POST">
+                                            <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
+                                            <input type="hidden" name="userId" value="${user.userId}">
+                                            <button type="submit" class="btn btn-outline-success w-100 rounded-pill"
+                                                    onclick="return confirm('Mở khóa tài khoản này?');">
+                                                <i class="fas fa-unlock me-2"></i>Mở khóa tài khoản
+                                            </button>
+                                        </form>
+                                    </c:if>
                                 </c:if>
                             </div>
                         </div>

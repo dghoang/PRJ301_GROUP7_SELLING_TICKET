@@ -80,7 +80,7 @@
                         <li class="mb-2"><a href="${pageContext.request.contextPath}/terms#privacy" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-shield me-1" style="font-size:0.7rem;"></i>Chính sách bảo mật</a></li>
                         <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-building me-1" style="font-size:0.7rem;"></i>Về chúng tôi</a></li>
                         <c:if test="${not empty sessionScope.account}">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/my-support-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-headset me-1" style="font-size:0.7rem;"></i>Yêu cầu hỗ trợ</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/support/my-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-headset me-1" style="font-size:0.7rem;"></i>Yêu cầu hỗ trợ</a></li>
                         </c:if>
                     </ul>
                 </div>
@@ -177,8 +177,9 @@
     <c:if test="${not empty sessionScope.user && sessionScope.user.role != 'admin'}">
     <div id="chatWidget" style="position:fixed;bottom:24px;right:24px;z-index:9999;">
         <button id="chatBubble" onclick="toggleChat()" class="btn rounded-circle shadow-lg" 
-            style="width:56px;height:56px;background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;">
+            style="width:56px;height:56px;background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;position:relative;">
             <i class="fas fa-comments text-white fa-lg"></i>
+            <span id="chatUnreadBadge" class="badge bg-danger rounded-pill" style="display:none;position:absolute;top:-4px;right:-6px;font-size:0.65rem;">0</span>
         </button>
         <div id="chatWindow" class="shadow-lg rounded-4 overflow-hidden" 
             style="display:none;position:absolute;bottom:70px;right:0;width:370px;background:var(--bg-primary,#fff);border:1px solid rgba(0,0,0,0.1);">
@@ -204,7 +205,7 @@
                 <div class="input-group">
                     <input type="text" id="chatInput" class="form-control form-control-sm rounded-start-pill" 
                         placeholder="Chờ tư vấn viên..." disabled maxlength="500"
-                        onkeydown="if(event.key==='Enter')sendChatMsg()" oninput="updateCharCount()">
+                        onkeydown="if(event.key==='Enter')sendChatMsg()" oninput="updateCharCount();notifyTypingInput()">
                     <button id="chatSendBtn" class="btn btn-sm rounded-end-pill px-3" disabled
                         style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;" onclick="sendChatMsg()">
                         <i class="fas fa-paper-plane"></i>
@@ -226,11 +227,36 @@
     <script>
     let chatSessionId=0, chatLastMsgId=0, chatFirstMsgId=0, chatPollTimer=null, chatSessionStatus='', lastSendTime=0;
     let chatEventId=null;
+    let chatUnreadCount=0, chatOtherOnline=false, chatOtherTyping=false, lastTypingPing=0;
+    let lastOwnStatusEl=null;
     const CTX='${pageContext.request.contextPath}', MY_ID=${sessionScope.user.userId};
+    const CHAT_CSRF='${sessionScope.csrf_token}';
+
+    function withChatCsrf(body){
+        const base = body ? body + '&' : '';
+        return base + 'csrf_token=' + encodeURIComponent(CHAT_CSRF || '');
+    }
 
     function toggleChat(){
         const w=document.getElementById('chatWindow');
-        w.style.display=w.style.display==='none'?'block':'none';
+        const opening = w.style.display==='none';
+        w.style.display = opening ? 'block' : 'none';
+        if(opening){
+            clearUnreadBadge();
+        }
+    }
+    function openSupportLiveChat(){
+        const w=document.getElementById('chatWindow');
+        if(!w) return;
+        w.style.display='block';
+        clearUnreadBadge();
+        if(!chatSessionId){
+            startChat();
+            return;
+        }
+        updateChatUI();
+        const input=document.getElementById('chatInput');
+        if(input&&!input.disabled) input.focus();
     }
     function openEventChat(eventId, eventTitle){
         chatEventId=eventId;
@@ -238,16 +264,36 @@
         if(lbl) lbl.textContent=eventTitle?'Chat · '+eventTitle:'Chat sự kiện';
         const w=document.getElementById('chatWindow');
         if(w.style.display==='none') w.style.display='block';
-        // Auto-start if not already in a session
+        clearUnreadBadge();
         if(!chatSessionId) startChat();
     }
+
+    async function fetchJsonWithMeta(url){
+        const response = await fetch(url, {credentials:'same-origin'});
+        const text = await response.text();
+        let data = [];
+        try { data = text ? JSON.parse(text) : []; } catch (e) { throw new Error('INVALID_JSON'); }
+        return { data, headers: response.headers, status: response.status };
+    }
+
+    async function postFormJson(url, body){
+        const response = await fetch(url, {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            credentials:'same-origin',
+            body
+        });
+        const text = await response.text();
+        if(!text) return {};
+        try { return JSON.parse(text); } catch (e) { throw new Error('INVALID_JSON'); }
+    }
+
     function startChat(){
         const btn=document.querySelector('#chatStartArea button');
         btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Đang kết nối...';
         let body='';
         if(chatEventId) body='eventId='+chatEventId;
-        fetch(CTX+'/api/chat/start',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},credentials:'same-origin',body:body})
-        .then(r=>r.json()).then(d=>{
+        postFormJson(CTX+'/api/chat/start', withChatCsrf(body)).then(d=>{
             if(d.blocked){
                 document.getElementById('chatStartArea').style.display='none';
                 document.getElementById('chatBlockedArea').style.display='block';
@@ -268,14 +314,27 @@
                 loadInitialMessages();
                 chatPollTimer=setInterval(pollMessages,5000);
             }
-        }).catch(()=>{btn.disabled=false;btn.innerHTML='<i class="fas fa-play me-1"></i>Bắt đầu chat';});
+        }).catch(()=>{
+            btn.disabled=false;
+            btn.innerHTML='<i class="fas fa-play me-1"></i>Bắt đầu chat';
+            appendMsg('⚠ Không thể kết nối chat','system');
+        });
     }
+
     function updateChatUI(){
-        const inp=document.getElementById('chatInput'), btn=document.getElementById('chatSendBtn'),
-              st=document.getElementById('chatStatus');
+        const inp=document.getElementById('chatInput'), btn=document.getElementById('chatSendBtn'), st=document.getElementById('chatStatus');
         if(chatSessionStatus==='active'){
             inp.disabled=false; btn.disabled=false; inp.placeholder='Nhập tin nhắn...';
-            st.textContent='Đang kết nối'; st.style.background='rgba(16,185,129,0.7)';
+            if(chatOtherTyping){
+                st.textContent='Đang nhập...';
+                st.style.background='rgba(245,158,11,0.75)';
+            } else if(chatOtherOnline){
+                st.textContent='Tư vấn viên online';
+                st.style.background='rgba(16,185,129,0.75)';
+            } else {
+                st.textContent='Tư vấn viên tạm offline';
+                st.style.background='rgba(107,114,128,0.75)';
+            }
         } else if(chatSessionStatus==='waiting'){
             inp.disabled=false; btn.disabled=false; inp.placeholder='Nhập tin nhắn... (chờ tư vấn viên)';
             st.textContent='Đang chờ'; st.style.background='rgba(245,158,11,0.7)';
@@ -284,12 +343,39 @@
             st.textContent='Đã đóng'; st.style.background='rgba(107,114,128,0.7)';
         }
     }
+
+    function syncPresenceFromHeaders(headers){
+        if(!headers) return;
+        chatOtherOnline = headers.get('X-Chat-Other-Online') === '1';
+        chatOtherTyping = headers.get('X-Chat-Other-Typing') === '1';
+        updateChatUI();
+    }
+
     function updateCharCount(){
         const len=document.getElementById('chatInput').value.length;
         const el=document.getElementById('chatCharCount');
         el.textContent=len+'/500';
         el.style.color=len>450?'#ef4444':'';
     }
+
+    function notifyTypingInput(){
+        if(!chatSessionId || (chatSessionStatus!=='active' && chatSessionStatus!=='waiting')) return;
+        const now = Date.now();
+        if(now - lastTypingPing < 1200) return;
+        lastTypingPing = now;
+        sendTypingState(true);
+    }
+
+    function sendTypingState(isTyping){
+        if(!chatSessionId) return;
+        fetch(CTX+'/api/chat/typing',{
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            credentials:'same-origin',
+            body:withChatCsrf('sessionId='+chatSessionId+'&typing='+(isTyping?'1':'0'))
+        }).catch(()=>{});
+    }
+
     function sendChatMsg(){
         const now=Date.now();
         if(now-lastSendTime<3000){
@@ -299,19 +385,34 @@
         }
         const inp=document.getElementById('chatInput');
         const msg=inp.value.trim();
-        if(!msg||!chatSessionId||chatSessionStatus!=='active')return;
-        lastSendTime=now; inp.value=''; updateCharCount();
-        appendMsg(msg,'me');
-        fetch(CTX+'/api/chat/send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},credentials:'same-origin',
-            body:'sessionId='+chatSessionId+'&content='+encodeURIComponent(msg)})
-        .then(r=>r.json()).then(d=>{
-            if(d.error) appendMsg('⚠ '+d.error,'system');
+        if(!msg||!chatSessionId||(chatSessionStatus!=='active'&&chatSessionStatus!=='waiting'))return;
+
+        lastSendTime=now;
+        inp.value='';
+        updateCharCount();
+        lastOwnStatusEl = appendMsg(msg,'me',null,null,'Đang gửi...');
+
+        postFormJson(CTX+'/api/chat/send', withChatCsrf('sessionId='+chatSessionId+'&content='+encodeURIComponent(msg)))
+        .then(d=>{
+            if(d && d.error){
+                if(lastOwnStatusEl) lastOwnStatusEl.textContent='Lỗi gửi';
+                appendMsg('⚠ '+d.error,'system');
+                return;
+            }
+            if(lastOwnStatusEl) lastOwnStatusEl.textContent='Đã gửi';
+            sendTypingState(false);
+        }).catch(()=>{
+            if(lastOwnStatusEl) lastOwnStatusEl.textContent='Lỗi gửi';
+            appendMsg('⚠ Gửi tin nhắn thất bại','system');
         });
     }
+
     function loadInitialMessages(){
         document.getElementById('chatMessages').innerHTML='';
-        fetch(CTX+'/api/chat/messages?sessionId='+chatSessionId+'&after=0')
-        .then(r=>r.json()).then(msgs=>{
+        fetchJsonWithMeta(CTX+'/api/chat/messages?sessionId='+chatSessionId+'&after=0')
+        .then(res=>{
+            const msgs = Array.isArray(res.data) ? res.data : [];
+            syncPresenceFromHeaders(res.headers);
             if(msgs.length>0){
                 chatFirstMsgId=msgs[0].id;
                 msgs.forEach(m=>{
@@ -322,26 +423,34 @@
                 document.getElementById('chatMessages').innerHTML=
                     '<div class="text-center text-muted py-2 small"><i class="fas fa-clock me-1"></i>Đang chờ tư vấn viên...</div>';
             }
-        });
+        }).catch(()=>appendMsg('⚠ Không tải được tin nhắn','system'));
     }
+
     function pollMessages(){
         if(!chatSessionId)return;
-        fetch(CTX+'/api/chat/messages?sessionId='+chatSessionId+'&after='+chatLastMsgId)
-        .then(r=>r.json()).then(msgs=>{
+        fetchJsonWithMeta(CTX+'/api/chat/messages?sessionId='+chatSessionId+'&after='+chatLastMsgId)
+        .then(res=>{
+            const msgs = Array.isArray(res.data) ? res.data : [];
+            syncPresenceFromHeaders(res.headers);
             msgs.forEach(m=>{
-                if(m.senderId!==MY_ID) appendMsg(m.content,'agent',m.senderName,m.time);
+                if(m.senderId!==MY_ID){
+                    appendMsg(m.content,'agent',m.senderName,m.time);
+                    if(isChatWindowHidden()) incrementUnreadBadge();
+                    if(lastOwnStatusEl) lastOwnStatusEl.textContent='Đã xem';
+                }
                 chatLastMsgId=Math.max(chatLastMsgId,m.id);
-                // If agent replied, session is now active
                 if(chatSessionStatus!=='active'&&m.senderRole!=='customer'){
                     chatSessionStatus='active'; updateChatUI();
                 }
             });
-        });
+        }).catch(()=>{});
     }
+
     function loadMore(){
         if(!chatSessionId||!chatFirstMsgId)return;
-        fetch(CTX+'/api/chat/history?sessionId='+chatSessionId+'&before='+chatFirstMsgId+'&limit=30')
-        .then(r=>r.json()).then(msgs=>{
+        fetchJsonWithMeta(CTX+'/api/chat/history?sessionId='+chatSessionId+'&before='+chatFirstMsgId+'&limit=30')
+        .then(res=>{
+            const msgs = Array.isArray(res.data) ? res.data : [];
             if(msgs.length===0){document.getElementById('chatLoadMore')?.remove();return;}
             const box=document.getElementById('chatMessages');
             const oldH=box.scrollHeight;
@@ -361,23 +470,56 @@
             else box.insertBefore(frag,box.firstChild);
             box.scrollTop=box.scrollHeight-oldH;
             if(msgs.length<30)document.getElementById('chatLoadMore')?.remove();
-        });
+        }).catch(()=>{});
     }
+
     function escChat(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
-    function appendMsg(text,type,name,time){
+
+    function appendMsg(text,type,name,time,status){
         const box=document.getElementById('chatMessages');
-        // Remove placeholder
         const ph=box.querySelector('.text-center.text-muted');
         if(ph&&!document.getElementById('chatLoadMore'))ph.remove();
+
         const d=document.createElement('div');
         d.className='mb-2 d-flex '+(type==='me'?'justify-content-end':'');
-        if(type==='system'){d.className='mb-2 text-center';d.innerHTML='<small class="text-muted">'+escChat(text)+'</small>';box.appendChild(d);return;}
+        if(type==='system'){
+            d.className='mb-2 text-center';
+            d.innerHTML='<small class="text-muted">'+escChat(text)+'</small>';
+            box.appendChild(d);
+            return null;
+        }
+
         const bg=type==='me'?'background:rgba(59,130,246,0.1);':'background:rgba(0,0,0,0.03);';
         d.innerHTML='<div class="rounded-3 px-3 py-2 small" style="max-width:80%;'+bg+'">'
             +(name&&type!=='me'?'<small class="fw-bold d-block text-primary">'+escChat(name)+'</small>':'')
-            +escChat(text)+'</div>';
+            +escChat(text)
+            +(type==='me'&&status?'<small data-chat-msg-status class="d-block text-muted mt-1" style="font-size:0.68rem;">'+escChat(status)+'</small>':'')
+            +'</div>';
+
         box.appendChild(d);
         box.scrollTop=box.scrollHeight;
+        return d.querySelector('[data-chat-msg-status]');
+    }
+
+    function isChatWindowHidden(){
+        const w=document.getElementById('chatWindow');
+        return !w || w.style.display==='none';
+    }
+
+    function incrementUnreadBadge(){
+        chatUnreadCount += 1;
+        const badge=document.getElementById('chatUnreadBadge');
+        if(!badge) return;
+        badge.textContent = chatUnreadCount > 99 ? '99+' : String(chatUnreadCount);
+        badge.style.display='inline-block';
+    }
+
+    function clearUnreadBadge(){
+        chatUnreadCount = 0;
+        const badge=document.getElementById('chatUnreadBadge');
+        if(!badge) return;
+        badge.textContent='0';
+        badge.style.display='none';
     }
     </script>
     </c:if>

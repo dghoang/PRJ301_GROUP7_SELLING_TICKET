@@ -115,6 +115,7 @@
                             <p class="mb-1">
                                 <c:choose>
                                     <c:when test="${order.status == 'paid'}"><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span></c:when>
+                                    <c:when test="${order.status == 'checked_in'}"><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;"><i class="fas fa-door-open me-1"></i>Đã check-in</span></c:when>
                                     <c:when test="${order.status == 'pending'}"><span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="fas fa-clock me-1"></i>Chờ thanh toán</span>
                                         <a href="${pageContext.request.contextPath}/resume-payment?orderId=${order.orderId}" class="btn btn-sm rounded-pill px-3 ms-2" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-1"></i>Thanh toán ngay</a>
                                     </c:when>

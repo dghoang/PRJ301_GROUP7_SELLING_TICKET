@@ -213,7 +213,8 @@ var usersTable = new AjaxTable({
             actions = '<span class="badge bg-light text-muted border">Bạn</span>';
         } else {
             var roleLower = (u.role||'').toLowerCase();
-            actions += '<form action="' + ctxPath + '/admin/users/update-role" method="POST" class="d-flex gap-1 align-items-center">' +
+            if (!u.isDeleted) {
+                actions += '<form action="' + ctxPath + '/admin/users/update-role" method="POST" class="d-flex gap-1 align-items-center">' +
                 '<input type="hidden" name="csrf_token" value="' + csrfToken + '">' +
                 '<input type="hidden" name="userId" value="' + u.userId + '">' +
                 '<select name="role" class="form-select form-select-sm rounded-3" style="font-size:0.75rem;width:120px;" id="roleSelect_' + u.userId + '" onchange="handleRoleChange(this,' + u.userId + ')">' +
@@ -223,20 +224,26 @@ var usersTable = new AjaxTable({
                 '</select>' +
                 '<input type="password" name="adminKey" class="form-control form-control-sm rounded-3 d-none" id="adminKey_' + u.userId + '" style="font-size:0.75rem;width:120px;" placeholder="Mật khẩu admin">' +
                 '<button type="submit" class="btn btn-sm btn-primary rounded-pill px-2 d-none" id="submitRole_' + u.userId + '"><i class="fas fa-check"></i></button></form>';
+            }
             actions += '<a href="' + ctxPath + '/admin/users/' + u.userId + '" class="btn btn-sm btn-light text-primary rounded-circle shadow-sm" title="Xem chi tiết"><i class="fas fa-eye"></i></a>';
-            if (u.isActive) {
+            if (u.isDeleted) {
+                actions += '<span class="badge bg-secondary-subtle text-secondary border">Đã xóa</span>';
+            } else if (u.isActive) {
                 actions += '<form action="' + ctxPath + '/admin/users/deactivate" method="POST" class="d-inline"><input type="hidden" name="csrf_token" value="' + csrfToken + '"><input type="hidden" name="userId" value="' + u.userId + '"><button class="btn btn-sm btn-light text-warning rounded-circle shadow-sm" title="Khóa" onclick="return confirm(\'Khóa tài khoản này?\')"><i class="fas fa-ban"></i></button></form>';
             } else {
                 actions += '<form action="' + ctxPath + '/admin/users/activate" method="POST" class="d-inline"><input type="hidden" name="csrf_token" value="' + csrfToken + '"><input type="hidden" name="userId" value="' + u.userId + '"><button class="btn btn-sm btn-light text-success rounded-circle shadow-sm" title="Mở khóa" onclick="return confirm(\'Mở khóa tài khoản?\')"><i class="fas fa-unlock"></i></button></form>';
             }
         }
 
+        var statusClass = u.isDeleted ? 'bg-secondary' : (u.isActive ? 'bg-success' : 'bg-danger');
+        var statusLabel = u.isDeleted ? 'Đã xóa' : (u.isActive ? 'Hoạt động' : 'Bị khóa');
+
         return '<tr class="hover-lift" style="transition:all 0.2s;">' +
             '<td><div class="d-flex align-items-center gap-3">' + avatar + '<span class="fw-medium">' + esc(u.fullName) + '</span></div></td>' +
             '<td class="text-muted">' + esc(u.email) + '</td>' +
             '<td><span class="badge rounded-pill px-3 py-2" style="' + roleStyle(u.role) + '">' + esc(u.role) + '</span></td>' +
             '<td class="text-muted">' + fmtDate(u.createdAt) + '</td>' +
-            '<td><span class="badge ' + (u.isActive ? 'bg-success' : 'bg-danger') + ' rounded-pill px-3 py-2">' + (u.isActive ? 'Hoạt động' : 'Bị khóa') + '</span></td>' +
+            '<td><span class="badge ' + statusClass + ' rounded-pill px-3 py-2">' + statusLabel + '</span></td>' +
             '<td class="text-center"><div class="d-flex justify-content-center gap-2 flex-wrap">' + actions + '</div></td>' +
         '</tr>';
     }

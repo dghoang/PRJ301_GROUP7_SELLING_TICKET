@@ -1,5 +1,6 @@
 package com.sellingticket.controller.api;
 
+import com.sellingticket.dao.SeepayWebhookDedupDAO;
 import com.sellingticket.model.Order;
 import com.sellingticket.service.OrderService;
 
@@ -7,8 +8,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -48,14 +51,17 @@ public class SeepayWebhookServlet extends HttpServlet {
             Pattern.compile("(ORD-\\d{10,15}-[A-Z0-9]{4,8})");
 
     private OrderService orderService;
+        private SeepayWebhookDedupDAO dedupDAO;
     private String seepayApiKey;
 
     /** In-memory fast-path dedup. Falls through to DB check if miss. */
     private final Set<String> processedTransactions = ConcurrentHashMap.newKeySet();
+        private final Queue<String> processedTransactionOrder = new ConcurrentLinkedQueue<>();
 
     @Override
     public void init() throws ServletException {
         orderService = new OrderService();
+        dedupDAO = new SeepayWebhookDedupDAO();
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("seepay.properties")) {
             if (is != null) {
                 Properties props = new Properties();
@@ -126,15 +132,13 @@ public class SeepayWebhookServlet extends HttpServlet {
                 content = extractJsonStringSafe(body, "description");
             }
 
-            // ===== V8 FIX: Multi-layer idempotency =====
-            // Layer 1: In-memory fast-path (evict if too large)
-            if (processedTransactions.size() > MAX_DEDUP_CACHE_SIZE) {
-                processedTransactions.clear();
-                LOGGER.info("SePay dedup cache evicted (exceeded " + MAX_DEDUP_CACHE_SIZE + ")");
-            }
+            // Multi-layer idempotency:
+            // Layer 1: in-memory fast-path
+            // Layer 2: persistent DB dedup (survives restarts)
             if (sepayId != null && !sepayId.isEmpty()) {
-                if (!processedTransactions.add(sepayId)) {
-                    LOGGER.log(Level.INFO, "SePay IPN: Duplicate txn (memory): {0}", sepayId);
+                if (processedTransactions.contains(sepayId) || dedupDAO.isProcessed(sepayId)) {
+                    rememberInMemory(sepayId);
+                    LOGGER.log(Level.INFO, "SePay IPN: Duplicate txn ignored: {0}", sepayId);
                     response.getWriter().write("{\"success\":true,\"message\":\"Duplicate ignored\"}");
                     return;
                 }
@@ -147,6 +151,7 @@ public class SeepayWebhookServlet extends HttpServlet {
             String orderCode = extractOrderCode(content);
             if (orderCode == null) {
                 LOGGER.warning("SePay IPN: No order code found in content: " + content);
+                markProcessed(sepayId, null, "ignored_no_order_code");
                 response.getWriter().write("{\"success\":true,\"message\":\"No matching order code\"}");
                 return;
             }
@@ -155,6 +160,7 @@ public class SeepayWebhookServlet extends HttpServlet {
             Order order = orderService.getOrderByCode(orderCode);
             if (order == null) {
                 LOGGER.warning("SePay IPN: Order not found: " + orderCode);
+                markProcessed(sepayId, orderCode, "ignored_order_not_found");
                 response.getWriter().write("{\"success\":true,\"message\":\"Order not found\"}");
                 return;
             }
@@ -162,6 +168,7 @@ public class SeepayWebhookServlet extends HttpServlet {
             // 5. Order-level dedup: skip if already paid (V8/V10 FIX)
             if (!"pending".equals(order.getStatus())) {
                 LOGGER.info("SePay IPN: Order not pending (status=" + order.getStatus() + "): " + orderCode);
+                markProcessed(sepayId, orderCode, "ignored_not_pending");
                 response.getWriter().write("{\"success\":true,\"message\":\"Order not pending\"}");
                 return;
             }
@@ -171,6 +178,7 @@ public class SeepayWebhookServlet extends HttpServlet {
             if (Math.abs(amount - expectedAmount) > 1) {
                 LOGGER.log(Level.WARNING, "SePay IPN: Amount mismatch for {0}: expected={1}, received={2}",
                         new Object[]{orderCode, expectedAmount, amount});
+                markProcessed(sepayId, orderCode, "ignored_amount_mismatch");
                 response.getWriter().write("{\"success\":true,\"message\":\"Amount mismatch\"}");
                 return;
             }
@@ -183,9 +191,11 @@ public class SeepayWebhookServlet extends HttpServlet {
                 orderService.issueTickets(order.getOrderId(), order.getBuyerName(), order.getBuyerEmail());
                 LOGGER.log(Level.INFO, "SePay IPN: Order confirmed: {0}, ref={1}",
                         new Object[]{orderCode, txRef});
+                markProcessed(sepayId, orderCode, "confirmed");
             } else {
                 // confirmPayment returned false = order was already processed (race condition handled)
                 LOGGER.log(Level.INFO, "SePay IPN: confirmPayment returned false (concurrent): {0}", orderCode);
+                markProcessed(sepayId, orderCode, "ignored_concurrent");
             }
 
             response.getWriter().write("{\"success\":true,\"message\":\"Payment confirmed\"}");
@@ -299,5 +309,30 @@ public class SeepayWebhookServlet extends HttpServlet {
         if (val == null) return 0;
         try { return Long.parseLong(val.replaceAll("[^0-9]", "")); }
         catch (NumberFormatException e) { return 0; }
+    }
+
+    private void markProcessed(String sepayId, String orderCode, String result) {
+        if (sepayId == null || sepayId.isEmpty()) {
+            return;
+        }
+        dedupDAO.markProcessed(sepayId, orderCode, result);
+        rememberInMemory(sepayId);
+    }
+
+    private void rememberInMemory(String sepayId) {
+        if (sepayId == null || sepayId.isEmpty()) {
+            return;
+        }
+        if (!processedTransactions.add(sepayId)) {
+            return;
+        }
+        processedTransactionOrder.offer(sepayId);
+        while (processedTransactions.size() > MAX_DEDUP_CACHE_SIZE) {
+            String oldest = processedTransactionOrder.poll();
+            if (oldest == null) {
+                break;
+            }
+            processedTransactions.remove(oldest);
+        }
     }
 }

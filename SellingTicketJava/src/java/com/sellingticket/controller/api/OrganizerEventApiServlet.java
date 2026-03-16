@@ -9,6 +9,9 @@ import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,15 +54,31 @@ public class OrganizerEventApiServlet extends HttpServlet {
         int page = parseIntOrDefault(request.getParameter("page"), 1);
         int size = parseIntOrDefault(request.getParameter("size"), 12);
 
-        PageResult<Event> result;
-        if ("admin".equals(role)) {
-            // Admin sees all events across all organizers
-            result = eventService.getAllEventsPaged(keyword, statuses, null, page, size);
-        } else {
-            // organizer and customer: only see their own events
-            result = eventService.getEventsByOrganizerPaged(
-                    user.getUserId(), keyword, statuses, page, size);
+        // Use a single source of truth for all roles to avoid mismatch with counters in organizer/events.jsp.
+        List<Event> accessible = eventService.getAccessibleEvents(user.getUserId(), role);
+        List<Event> filtered = new ArrayList<>();
+        for (Event e : accessible) {
+            if (!matchesKeyword(e, keyword)) continue;
+            if (!matchesAnyStatus(e, statuses)) continue;
+            filtered.add(e);
         }
+
+        filtered.sort((a, b) -> {
+            Date da = a.getCreatedAt();
+            Date db = b.getCreatedAt();
+            if (da == null && db == null) return 0;
+            if (da == null) return 1;
+            if (db == null) return -1;
+            return db.compareTo(da);
+        });
+
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(100, size));
+        int totalItems = filtered.size();
+        int from = Math.min((safePage - 1) * safeSize, totalItems);
+        int to = Math.min(from + safeSize, totalItems);
+        List<Event> pageItems = new ArrayList<>(filtered.subList(from, to));
+        PageResult<Event> result = new PageResult<>(pageItems, totalItems, safePage, safeSize);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
 
@@ -95,5 +114,27 @@ public class OrganizerEventApiServlet extends HttpServlet {
         if (v == null) return "";
         return v.replace("\\", "\\\\").replace("\"", "\\\"")
                 .replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    private static boolean matchesKeyword(Event event, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) return true;
+        String kw = keyword.trim().toLowerCase();
+        return toSafeLower(event.getTitle()).contains(kw)
+                || toSafeLower(event.getDescription()).contains(kw)
+                || toSafeLower(event.getLocation()).contains(kw);
+    }
+
+    private static boolean matchesAnyStatus(Event event, String[] statuses) {
+        if (statuses == null || statuses.length == 0) return true;
+        String eventStatus = toSafeLower(event.getStatus());
+        for (String s : statuses) {
+            if (s == null || s.trim().isEmpty()) continue;
+            if (eventStatus.equals(s.trim().toLowerCase())) return true;
+        }
+        return false;
+    }
+
+    private static String toSafeLower(String value) {
+        return value == null ? "" : value.toLowerCase();
     }
 }

@@ -5,6 +5,7 @@ import com.sellingticket.security.LoginAttemptTracker;
 import com.sellingticket.service.AuthTokenService;
 import com.sellingticket.service.UserService;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -143,6 +144,10 @@ public class LoginServlet extends HttpServlet {
         HttpSession session = request.getSession(true);
         session.setAttribute("user", user);
         session.setAttribute("account", user);
+        if (session.getAttribute("csrf_token") == null) {
+            session.setAttribute("csrf_token", UUID.randomUUID().toString());
+            session.removeAttribute("csrf_token_prev");
+        }
         session.setMaxInactiveInterval(3600);
 
         // Issue JWT tokens (access + refresh) as HttpOnly cookies

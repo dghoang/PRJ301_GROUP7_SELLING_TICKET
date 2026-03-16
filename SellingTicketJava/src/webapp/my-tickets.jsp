@@ -111,6 +111,9 @@
                     <a class="nav-link nav-tabs-glass-item rounded-pill px-3 py-2" href="#" data-pill-value="paid">
                         <i class="fas fa-check-circle me-1"></i>Đã thanh toán
                     </a>
+                    <a class="nav-link nav-tabs-glass-item rounded-pill px-3 py-2" href="#" data-pill-value="checked_in">
+                        <i class="fas fa-door-open me-1"></i>Đã check-in
+                    </a>
                     <a class="nav-link nav-tabs-glass-item rounded-pill px-3 py-2" href="#" data-pill-value="cancelled">
                         <i class="fas fa-times-circle me-1"></i>Đã hủy
                     </a>
@@ -342,6 +345,7 @@
         switch (status) {
             case 'pending': return '<span class="badge rounded-pill px-3 py-2 status-pulse" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"><i class="fas fa-clock me-1"></i>Chờ thanh toán</span>';
             case 'paid': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span>';
+            case 'checked_in': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;"><i class="fas fa-door-open me-1"></i>Đã check-in</span>';
             case 'cancelled': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;"><i class="fas fa-times-circle me-1"></i>Đã hủy</span>';
             case 'refunded': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;"><i class="fas fa-undo me-1"></i>Đã hoàn tiền</span>';
             default: return '<span class="badge rounded-pill px-3 py-2 bg-secondary">' + esc(status) + '</span>';
@@ -352,6 +356,7 @@
         switch (status) {
             case 'pending': return {gradient: '#f59e0b,#d97706', icon: 'fa-clock'};
             case 'paid': return {gradient: '#10b981,#06b6d4', icon: 'fa-check-circle'};
+            case 'checked_in': return {gradient: '#8b5cf6,#6366f1', icon: 'fa-door-open'};
             case 'cancelled': return {gradient: '#ef4444,#dc2626', icon: 'fa-times-circle'};
             default: return {gradient: '#6366f1,#8b5cf6', icon: 'fa-receipt'};
         }
@@ -437,7 +442,7 @@
             if (o.status === 'pending') {
                 card += '<a href="' + ctxPath + '/resume-payment?orderId=' + o.orderId + '" class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-2"></i>Thanh toán ngay</a>';
             }
-            if (o.status === 'paid') {
+            if (o.status === 'paid' || o.status === 'checked_in') {
                 card += '<a href="' + ctxPath + '/order-confirmation?id=' + o.orderId + '" class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;border:none;"><i class="fas fa-qrcode me-2"></i>Xem vé điện tử</a>';
             }
             card += '</div>';

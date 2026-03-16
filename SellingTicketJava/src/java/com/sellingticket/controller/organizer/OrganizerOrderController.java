@@ -5,6 +5,7 @@ import com.sellingticket.model.Order;
 import com.sellingticket.model.User;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
+import com.sellingticket.util.AppConstants;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -82,12 +83,12 @@ public class OrganizerOrderController extends HttpServlet {
 
                     List<Order> allOrders = orderService.getOrdersByEvent(eventId, 1, 9999);
                     for (Order o : allOrders) {
-                        if ("PAID".equals(o.getStatus())) {
+                        if (AppConstants.OrderStatus.PAID.getValue().equals(o.getStatus())) {
                             totalPaid++;
                             totalRevenueStr += o.getFinalAmount();
-                        } else if ("PENDING".equals(o.getStatus())) {
+                        } else if (AppConstants.OrderStatus.PENDING.getValue().equals(o.getStatus())) {
                             totalPending++;
-                        } else if ("CANCELED".equals(o.getStatus())) {
+                        } else if (AppConstants.OrderStatus.CANCELLED.getValue().equals(o.getStatus())) {
                             totalCanceled++;
                         }
                     }

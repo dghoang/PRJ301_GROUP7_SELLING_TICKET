@@ -148,6 +148,15 @@
 
         <div class="col-lg-10">
             <!-- Header -->
+            <c:if test="${param.createStatus == 'success'}">
+                <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 d-flex align-items-center mb-4 shadow-sm animate-fadeInDown" role="alert" style="background: rgba(16, 185, 129, 0.1); color: #047857;">
+                    <i class="fas fa-check-circle fs-4 me-3"></i>
+                    <div>
+                        <strong>Tạo sự kiện thành công!</strong> Sự kiện đã được lưu. Bạn có thể tiếp tục chỉnh sửa hoặc gửi duyệt.
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
             <c:if test="${param.error == 'unapproved_events'}">
                 <div class="alert alert-warning alert-dismissible fade show rounded-4 border-0 d-flex align-items-center mb-4 shadow-sm animate-fadeInDown" role="alert" style="background: rgba(245, 158, 11, 0.1); color: #b45309;">
                     <i class="fas fa-lock fs-4 me-3"></i>

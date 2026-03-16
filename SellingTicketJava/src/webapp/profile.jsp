@@ -152,6 +152,7 @@
                             <button type="button" class="btn btn-sm btn-gradient rounded-pill" data-status="">Tất cả</button>
                             <button type="button" class="btn btn-sm glass rounded-pill" data-status="pending">Chờ thanh toán</button>
                             <button type="button" class="btn btn-sm glass rounded-pill" data-status="paid">Đã thanh toán</button>
+                            <button type="button" class="btn btn-sm glass rounded-pill" data-status="checked_in">Đã check-in</button>
                         </div>
                         <div id="profileOrdersContainer" class="d-flex flex-column gap-3"></div>
                         <div class="text-end mt-3">
@@ -317,8 +318,11 @@ function orderStatusBadge(status) {
     if (status === 'pending') {
         return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"><i class="fas fa-clock me-1"></i>Chờ thanh toán</span>';
     }
-    if (status === 'paid' || status === 'checked_in') {
+    if (status === 'paid') {
         return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span>';
+    }
+    if (status === 'checked_in') {
+        return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;"><i class="fas fa-door-open me-1"></i>Đã check-in</span>';
     }
     if (status === 'cancelled') {
         return '<span class="badge bg-danger rounded-pill px-3 py-2"><i class="fas fa-times-circle me-1"></i>Đã hủy</span>';

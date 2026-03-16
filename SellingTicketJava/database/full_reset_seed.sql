@@ -1,7 +1,7 @@
 ﻿-- =============================================
 -- TICKETBOX — FULL RESET & SEED DATA
 -- SQL Server | PRJ301 Group 4
--- Version: 2026-03-11
+-- Version: 2026-03-16
 -- =============================================
 -- CHỈ CẦN CHẠY FILE NÀY 1 LẦN ĐỂ SETUP TOÀN BỘ
 -- An toàn khi chuyển máy — DROP & CREATE lại tất cả
@@ -25,6 +25,7 @@ IF OBJECT_ID('TicketMessages', 'U') IS NOT NULL DROP TABLE TicketMessages;
 IF OBJECT_ID('SupportTickets','U') IS NOT NULL DROP TABLE SupportTickets;
 IF OBJECT_ID('VoucherUsages', 'U') IS NOT NULL DROP TABLE VoucherUsages;
 IF OBJECT_ID('Vouchers',      'U') IS NOT NULL DROP TABLE Vouchers;
+IF OBJECT_ID('SeepayWebhookDedup','U') IS NOT NULL DROP TABLE SeepayWebhookDedup;
 IF OBJECT_ID('PaymentTransactions','U') IS NOT NULL DROP TABLE PaymentTransactions;
 IF OBJECT_ID('Tickets',       'U') IS NOT NULL DROP TABLE Tickets;
 IF OBJECT_ID('OrderItems',    'U') IS NOT NULL DROP TABLE OrderItems;
@@ -82,6 +83,7 @@ CREATE TABLE Categories (
     slug NVARCHAR(100) NOT NULL UNIQUE,
     icon NVARCHAR(50),
     description NVARCHAR(500),
+    display_order INT DEFAULT 0,
     is_deleted BIT DEFAULT 0,
     created_at DATETIME DEFAULT GETDATE()
 );
@@ -236,7 +238,17 @@ CREATE TABLE PaymentTransactions (
 );
 GO
 
--- 10. VOUCHERS
+-- 10. SEEPAY WEBHOOK DEDUP
+CREATE TABLE SeepayWebhookDedup (
+    dedup_id INT IDENTITY(1,1) PRIMARY KEY,
+    sepay_transaction_id NVARCHAR(100) NOT NULL UNIQUE,
+    order_code NVARCHAR(100),
+    process_result NVARCHAR(30) NOT NULL DEFAULT 'processed',
+    created_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+GO
+
+-- 11. VOUCHERS
 CREATE TABLE Vouchers (
     voucher_id INT IDENTITY(1,1) PRIMARY KEY,
     organizer_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
@@ -318,7 +330,7 @@ CREATE TABLE EventStaff (
     staff_id INT IDENTITY(1,1) PRIMARY KEY,
     event_id INT NOT NULL FOREIGN KEY REFERENCES Events(event_id) ON DELETE CASCADE,
     user_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id) ON DELETE CASCADE,
-    role NVARCHAR(20) DEFAULT 'editor' CHECK (role IN ('manager','editor','checkin')),
+    role NVARCHAR(20) DEFAULT 'staff' CHECK (role IN ('manager','staff','scanner')),
     granted_by INT FOREIGN KEY REFERENCES Users(user_id),
     created_at DATETIME DEFAULT GETDATE(),
     UNIQUE (event_id, user_id)
@@ -417,6 +429,7 @@ CREATE INDEX IX_Media_UploaderID ON Media(uploader_id);
 CREATE INDEX IX_PaymentTx_OrderID ON PaymentTransactions(order_id);
 CREATE INDEX IX_PaymentTx_Status ON PaymentTransactions(status);
 CREATE INDEX IX_PaymentTx_SeepayID ON PaymentTransactions(seepay_transaction_id);
+CREATE INDEX IX_SeepayWebhookDedup_CreatedAt ON SeepayWebhookDedup(created_at DESC);
 
 CREATE INDEX IX_UserSessions_Token ON UserSessions(session_token);
 CREATE INDEX IX_UserSessions_UserID ON UserSessions(user_id);
@@ -442,14 +455,14 @@ GO
 -- =============================================
 -- SEED DATA — CATEGORIES (7)
 -- =============================================
-INSERT INTO Categories (name, slug, icon, description) VALUES
-(N'Âm nhạc',    'music',      'fa-music',      N'Concert, liveshow, EDM festival, acoustic night'),
-(N'Thể thao',   'sports',     'fa-futbol',     N'Bóng đá, marathon, tennis, esports'),
-(N'Workshop',   'workshop',   'fa-laptop',     N'Hội thảo, khóa học, training chuyên môn'),
-(N'Ẩm thực',    'food',       'fa-utensils',   N'Lễ hội ẩm thực, food tour, cooking class'),
-(N'Nghệ thuật', 'art',        'fa-palette',    N'Triển lãm, kịch, múa ballet, gallery'),
-(N'Kinh doanh', 'business',   'fa-briefcase',  N'Hội nghị, networking, startup pitch day'),
-(N'Công nghệ',  'technology', 'fa-microchip',  N'Tech conference, hackathon, AI summit');
+INSERT INTO Categories (name, slug, icon, description, display_order) VALUES
+(N'Âm nhạc',    'music',      'fa-music',      N'Concert, liveshow, EDM festival, acoustic night', 1),
+(N'Thể thao',   'sports',     'fa-futbol',     N'Bóng đá, marathon, tennis, esports', 2),
+(N'Workshop',   'workshop',   'fa-laptop',     N'Hội thảo, khóa học, training chuyên môn', 3),
+(N'Ẩm thực',    'food',       'fa-utensils',   N'Lễ hội ẩm thực, food tour, cooking class', 4),
+(N'Nghệ thuật', 'art',        'fa-palette',    N'Triển lãm, kịch, múa ballet, gallery', 5),
+(N'Kinh doanh', 'business',   'fa-briefcase',  N'Hội nghị, networking, startup pitch day', 6),
+(N'Công nghệ',  'technology', 'fa-microchip',  N'Tech conference, hackathon, AI summit', 7);
 GO
 
 -- =============================================
@@ -653,7 +666,7 @@ INSERT INTO Users (email, password_hash, full_name, phone, gender, date_of_birth
 ('deleted.user@test.com',
  '$2a$12$07H.CL1nHx2kzH7oo1odGOClkIg/oK3s7.D/wxcRIL6xjhIo9sYhK',
  N'Người Dùng Đã Xóa', '0900000002', NULL, NULL, 'customer',
- NULL, 1, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+ NULL, 0, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL),
 
 -- 25: Customer — long bio & full social profiles (profile page test)
 ('fullprofile@gmail.com',
@@ -1502,17 +1515,17 @@ GO
 -- SEED DATA — EVENT STAFF (diverse roles)
 -- =============================================
 INSERT INTO EventStaff (event_id, user_id, role, granted_by) VALUES
-(1, 9, 'checkin', 4),    -- An is checkin for Hà Anh Tuấn
-(1, 10, 'editor', 4),    -- Bình is editor
-(3, 12, 'checkin', 4),   -- Đức is checkin for Sơn Tùng
-(8, 12, 'checkin', 7),   -- Đức checkin for Marathon
-(13, 14, 'editor', 6),   -- Khải editor for UI/UX
-(26, 12, 'checkin', 6),  -- Đức checkin for AI Summit
+(1, 9, 'scanner', 4),    -- An is scanner for Hà Anh Tuấn
+(1, 10, 'staff', 4),     -- Bình is staff
+(3, 12, 'scanner', 4),   -- Đức is scanner for Sơn Tùng
+(8, 12, 'scanner', 7),   -- Đức scanner for Marathon
+(13, 14, 'staff', 6),    -- Khải staff for UI/UX
+(26, 12, 'scanner', 6),  -- Đức scanner for AI Summit
 (26, 11, 'manager', 6),  -- Cường manager for AI Summit
-(6, 17, 'checkin', 8),   -- Bảo checkin for Indie Sunset
-(12, 21, 'checkin', 7),  -- Kiên checkin for Fun Run 2025
-(17, 13, 'checkin', 5),  -- Hà checkin for Food Festival
-(2, 20, 'editor', 4);    -- Diễm editor for Mỹ Tâm
+(6, 17, 'scanner', 8),   -- Bảo scanner for Indie Sunset
+(12, 21, 'scanner', 7),  -- Kiên scanner for Fun Run 2025
+(17, 13, 'scanner', 5),  -- Hà scanner for Food Festival
+(2, 20, 'staff', 4);     -- Diễm staff for Mỹ Tâm
 GO
 
 -- =============================================

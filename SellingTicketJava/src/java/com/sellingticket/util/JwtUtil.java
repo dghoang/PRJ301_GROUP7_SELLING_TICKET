@@ -140,6 +140,11 @@ public final class JwtUtil {
         return new String[]{ header + "." + payload + "." + signature, jti };
     }
 
+    /** Generate a compact opaque token ID for cookie-based refresh flows. */
+    public static String generateRefreshTokenId() {
+        return UUID.randomUUID().toString();
+    }
+
     /**
      * Verify an auth token (access or refresh) and return claims.
      * Returns null if invalid, expired, or tampered.

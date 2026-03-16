@@ -4,6 +4,7 @@ import com.sellingticket.dao.EventDAO;
 import com.sellingticket.dao.TicketTypeDAO;
 import com.sellingticket.dao.CategoryDAO;
 import com.sellingticket.dao.EventStaffDAO;
+import com.sellingticket.util.AppConstants;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.TicketType;
 import com.sellingticket.model.Category;
@@ -214,7 +215,7 @@ public class EventService {
         if (event.getOrganizerId() == userId) return "owner";
 
         String staffRole = eventStaffDAO.getStaffRole(eventId, userId);
-        return staffRole; // "manager", "editor", "checkin", or null
+        return AppConstants.normalizeEventStaffRole(staffRole); // "manager", "staff", "scanner", or null
     }
 
     public boolean hasManagerPermission(int eventId, int userId) {
@@ -233,14 +234,14 @@ public class EventService {
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role)
-                || "manager".equals(role) || "editor".equals(role);
+                || "manager".equals(role) || "staff".equals(role);
     }
 
     public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role)
-                || "manager".equals(role) || "checkin".equals(role);
+                || "manager".equals(role) || "scanner".equals(role);
     }
 
     public boolean hasDeletePermission(int eventId, int userId, String userRole) {

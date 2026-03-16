@@ -79,12 +79,20 @@ public class ChatDAO extends DBContext {
                    + "  WHEN ISNULL(os.total_spent, 0) >= 5000000 THEN 100 "
                    + "  WHEN ISNULL(os.order_count, 0) >= 5 OR ISNULL(os.total_spent, 0) >= 2000000 THEN 80 "
                    + "  WHEN ISNULL(os.order_count, 0) >= 1 THEN 50 "
-                   + "  ELSE 20 END AS priority_score "
+                   + "  ELSE 20 END AS priority_score, "
+                   + "CASE WHEN ls.latest_sender_role = 'customer' THEN 1 ELSE 0 END AS unread_count "
                    + SESSION_FROM
                    + "LEFT JOIN (SELECT user_id, SUM(total_amount) AS total_spent, COUNT(*) AS order_count "
                    + "  FROM Orders WHERE status = 'paid' GROUP BY user_id) os ON os.user_id = s.customer_id "
+                   + "LEFT JOIN ("
+                   + "  SELECT m.session_id, m.created_at AS latest_message_at, u.role AS latest_sender_role "
+                   + "  FROM ChatMessages m "
+                   + "  JOIN Users u ON u.user_id = m.sender_id "
+                   + "  JOIN (SELECT session_id, MAX(message_id) AS max_message_id FROM ChatMessages GROUP BY session_id) mx "
+                   + "    ON mx.max_message_id = m.message_id"
+                   + ") ls ON ls.session_id = s.session_id "
                    + "WHERE s.status IN ('waiting','active') " + eventFilter + " "
-                   + "ORDER BY priority_score DESC, s.created_at ASC";
+                   + "ORDER BY unread_count DESC, priority_score DESC, ISNULL(ls.latest_message_at, s.created_at) DESC";
         List<ChatSession> list = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -93,6 +101,7 @@ public class ChatDAO extends DBContext {
                 ChatSession sess = mapSession(rs);
                 sess.setPriorityScore(rs.getInt("priority_score"));
                 sess.setCustomerTier(computeTierFromScore(rs.getInt("priority_score")));
+                sess.setUnreadCount(rs.getInt("unread_count"));
                 list.add(sess);
             }
         } catch (Exception e) {
@@ -154,13 +163,21 @@ public class ChatDAO extends DBContext {
                    + "  WHEN ISNULL(os.total_spent, 0) >= 5000000 THEN 100 "
                    + "  WHEN ISNULL(os.order_count, 0) >= 5 OR ISNULL(os.total_spent, 0) >= 2000000 THEN 80 "
                    + "  WHEN ISNULL(os.order_count, 0) >= 1 THEN 50 "
-                   + "  ELSE 20 END AS priority_score "
+                   + "  ELSE 20 END AS priority_score, "
+                   + "CASE WHEN ls.latest_sender_role = 'customer' THEN 1 ELSE 0 END AS unread_count "
                    + SESSION_FROM
                    + "LEFT JOIN (SELECT user_id, SUM(total_amount) AS total_spent, COUNT(*) AS order_count "
                    + "  FROM Orders WHERE status = 'paid' GROUP BY user_id) os ON os.user_id = s.customer_id "
+                   + "LEFT JOIN ("
+                   + "  SELECT m.session_id, m.created_at AS latest_message_at, u.role AS latest_sender_role "
+                   + "  FROM ChatMessages m "
+                   + "  JOIN Users u ON u.user_id = m.sender_id "
+                   + "  JOIN (SELECT session_id, MAX(message_id) AS max_message_id FROM ChatMessages GROUP BY session_id) mx "
+                   + "    ON mx.max_message_id = m.message_id"
+                   + ") ls ON ls.session_id = s.session_id "
                    + "WHERE s.status IN ('waiting','active') AND s.event_id IS NOT NULL "
                    + "AND (e.organizer_id = ? OR EXISTS (SELECT 1 FROM EventStaff es WHERE es.event_id = s.event_id AND es.user_id = ?)) "
-                   + "ORDER BY priority_score DESC, s.created_at ASC";
+                   + "ORDER BY unread_count DESC, priority_score DESC, ISNULL(ls.latest_message_at, s.created_at) DESC";
         List<ChatSession> list = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -171,6 +188,7 @@ public class ChatDAO extends DBContext {
                 ChatSession sess = mapSession(rs);
                 sess.setPriorityScore(rs.getInt("priority_score"));
                 sess.setCustomerTier(computeTierFromScore(rs.getInt("priority_score")));
+                sess.setUnreadCount(rs.getInt("unread_count"));
                 list.add(sess);
             }
         } catch (Exception e) {

@@ -81,6 +81,7 @@ public class AdminCategoryController extends HttpServlet {
 
     private void createCategory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String name = request.getParameter("name");
+        int displayOrder = Math.max(0, parseIntOrDefault(request.getParameter("displayOrder"), 0));
         if (!InputValidator.isValidCategoryName(name)) {
             FlashUtil.error(request, "Tên danh mục phải từ 1-100 ký tự!");
             response.sendRedirect(request.getContextPath() + "/admin/categories");
@@ -91,6 +92,7 @@ public class AdminCategoryController extends HttpServlet {
         category.setName(name);
         category.setIcon(InputValidator.truncate(request.getParameter("icon"), 500));
         category.setDescription(InputValidator.truncate(request.getParameter("description"), 1000));
+        category.setDisplayOrder(displayOrder);
 
         if (categoryService.createCategory(category)) {
             FlashUtil.success(request, "Danh mục đã được tạo!");
@@ -103,6 +105,7 @@ public class AdminCategoryController extends HttpServlet {
     private void updateCategory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int categoryId = parseIntOrDefault(request.getParameter("categoryId"), -1);
         String name = request.getParameter("name");
+        int displayOrder = Math.max(0, parseIntOrDefault(request.getParameter("displayOrder"), 0));
 
         if (categoryId <= 0 || !InputValidator.isValidCategoryName(name)) {
             FlashUtil.error(request, "Tên danh mục phải từ 1-100 ký tự!");
@@ -116,6 +119,7 @@ public class AdminCategoryController extends HttpServlet {
         category.setSlug(request.getParameter("slug"));
         category.setIcon(InputValidator.truncate(request.getParameter("icon"), 500));
         category.setDescription(InputValidator.truncate(request.getParameter("description"), 1000));
+        category.setDisplayOrder(displayOrder);
 
         if (categoryService.updateCategory(category)) {
             FlashUtil.success(request, "Danh mục đã được cập nhật!");

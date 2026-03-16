@@ -1,6 +1,7 @@
 package com.sellingticket.dao;
 
 import com.sellingticket.model.EventStaff;
+import com.sellingticket.util.AppConstants;
 import com.sellingticket.util.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,7 +42,7 @@ public class EventStaffDAO extends DBContext {
                 es.setStaffId(rs.getInt("staff_id"));
                 es.setEventId(rs.getInt("event_id"));
                 es.setUserId(rs.getInt("user_id"));
-                es.setRole(rs.getString("role"));
+                es.setRole(AppConstants.normalizeEventStaffRole(rs.getString("role")));
                 es.setGrantedBy(rs.getInt("granted_by"));
                 es.setCreatedAt(rs.getTimestamp("created_at"));
                 es.setUserEmail(rs.getString("email"));
@@ -55,14 +56,19 @@ public class EventStaffDAO extends DBContext {
     }
 
     public boolean addStaffByEmail(int eventId, String email, String role, int grantedBy) {
+        String normalizedRole = AppConstants.normalizeEventStaffRole(role);
+        if (normalizedRole == null || email == null || email.trim().isEmpty()) {
+            return false;
+        }
+
         String sql = "INSERT INTO EventStaff (event_id, user_id, role, granted_by) " +
                      "SELECT ?, user_id, ?, ? FROM Users WHERE email = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, eventId);
-            ps.setString(2, role);
+            ps.setString(2, normalizedRole);
             ps.setInt(3, grantedBy);
-            ps.setString(4, email);
+            ps.setString(4, email.trim());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error adding event staff", e);
@@ -78,7 +84,7 @@ public class EventStaffDAO extends DBContext {
             ps.setInt(1, eventId);
             ps.setInt(2, userId);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getString("role");
+            if (rs.next()) return AppConstants.normalizeEventStaffRole(rs.getString("role"));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error getting staff role", e);
         }

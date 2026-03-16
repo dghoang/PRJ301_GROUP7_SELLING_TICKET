@@ -83,11 +83,15 @@
                     </c:if>
                 </ul>
                 
-                <!-- Search & Auth -->
+                <!-- Language & Auth -->
                 <div class="d-flex align-items-center gap-3">
-                    <div class="input-group d-none d-lg-flex search-input-nav glass" style="max-width: 220px;">
-                        <span class="input-group-text border-0 bg-transparent"><i class="fas fa-search text-primary"></i></span>
-                        <input type="text" class="form-control border-0 bg-transparent py-2" placeholder="Tìm kiếm..." id="navSearchInput">
+                    <div class="d-flex align-items-center gap-2 nav-language-switch glass px-2 py-1">
+                        <i class="fas fa-language text-primary small"></i>
+                        <select class="form-select form-select-sm border-0 bg-transparent shadow-none" id="navLanguageSelect" aria-label="Language switcher">
+                            <option value="vi">🇻🇳 Tiếng Việt (VN)</option>
+                            <option value="en">🇬🇧 English (EN)</option>
+                            <option value="ja">🇯🇵 日本語 (JP)</option>
+                        </select>
                     </div>
                     
                     <c:choose>
@@ -145,3 +149,15 @@
     <main class="flex-grow-1">
 
 <script src="${pageContext.request.contextPath}/assets/js/navbar.js"></script>
+<div id="google_translate_element" class="google-translate-mount" aria-hidden="true"></div>
+<script>
+window.googleTranslateElementInit = function() {
+    new google.translate.TranslateElement({
+        pageLanguage: 'vi',
+        includedLanguages: 'vi,en,ja',
+        autoDisplay: false,
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+    }, 'google_translate_element');
+};
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>

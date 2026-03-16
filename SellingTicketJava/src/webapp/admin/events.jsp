@@ -231,6 +231,7 @@ function toggleFeatured(eventId, currentState, btn) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         credentials: 'same-origin',
         body: 'eventId=' + eventId + '&featured=' + (!currentState)
+            + '&csrf_token=' + encodeURIComponent('${sessionScope.csrf_token}')
     })
     .then(function(res) { return res.json(); })
     .then(function(data) { btn.disabled = false; if (data.success) window.adminEventsTable.load(); })

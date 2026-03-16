@@ -13,6 +13,7 @@ public class User {
     private String role;
     private String avatar;
     private boolean isActive;
+    private boolean isDeleted;
 
     // Organizer profile
     private String bio;
@@ -68,6 +69,9 @@ public class User {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean deleted) { isDeleted = deleted; }
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }

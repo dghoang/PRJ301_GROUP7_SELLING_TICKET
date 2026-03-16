@@ -100,6 +100,10 @@
         <filter-name>CsrfFilter</filter-name>
         <url-pattern>/admin/*</url-pattern>
     </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
 
     <!-- ============================= -->
     <!-- AUTHORIZATION FILTER          -->

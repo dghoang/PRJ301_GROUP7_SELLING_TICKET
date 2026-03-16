@@ -25,6 +25,7 @@ import java.util.Date;
 public final class ServletUtil {
 
     private static final int MAX_RETURN_URL_LENGTH = 1000;
+    public static final String AUTHENTICATED_USER_ATTR = "authenticatedUser";
 
     /** Thread-safe date formatter (yyyy-MM-dd). */
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -104,6 +105,11 @@ public final class ServletUtil {
 
     /** Get logged-in user from session (checks both "user" and "account" keys). */
     public static User getSessionUser(HttpServletRequest request) {
+        Object requestUser = request.getAttribute(AUTHENTICATED_USER_ATTR);
+        if (requestUser instanceof User) {
+            return (User) requestUser;
+        }
+
         HttpSession session = request.getSession(false);
         if (session == null) return null;
         User user = (User) session.getAttribute("user");

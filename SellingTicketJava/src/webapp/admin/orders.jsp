@@ -245,6 +245,7 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             credentials: 'same-origin',
             body: 'orderId=' + encodeURIComponent(orderId)
+                + '&csrf_token=' + encodeURIComponent(csrfToken || '')
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {

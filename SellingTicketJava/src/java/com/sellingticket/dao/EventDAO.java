@@ -717,8 +717,12 @@ public class EventDAO extends BaseDAO {
     public PageResult<Event> getEventsByOrganizerPaged(int organizerId, String keyword,
             String[] statuses, int page, int pageSize) {
 
-        StringBuilder where = new StringBuilder("WHERE e.organizer_id = ? ");
+        StringBuilder where = new StringBuilder(
+            "WHERE (e.organizer_id = ? OR EXISTS (" +
+            "SELECT 1 FROM EventStaff es WHERE es.event_id = e.event_id AND es.user_id = ?" +
+            ")) AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
         List<Object> params = new ArrayList<>();
+        params.add(organizerId);
         params.add(organizerId);
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -727,12 +731,28 @@ public class EventDAO extends BaseDAO {
             params.add(kw); params.add(kw);
         }
         if (statuses != null && statuses.length > 0) {
-            where.append("AND e.status IN (");
-            for (int i = 0; i < statuses.length; i++) {
-                where.append(i > 0 ? ",?" : "?");
-                params.add(statuses[i]);
+            List<String> statusClauses = new ArrayList<>();
+            for (String raw : statuses) {
+                if (raw == null || raw.trim().isEmpty()) continue;
+                String status = raw.trim().toLowerCase();
+                switch (status) {
+                    case "ended":
+                        // "ended" is a computed state: approved events with past end_date.
+                        statusClauses.add("(e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE())");
+                        break;
+                    case "approved":
+                        // Ongoing approved events only (exclude computed-ended rows).
+                        statusClauses.add("(e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()))");
+                        break;
+                    default:
+                        statusClauses.add("e.status = ?");
+                        params.add(status);
+                        break;
+                }
             }
-            where.append(") ");
+            if (!statusClauses.isEmpty()) {
+                where.append("AND (").append(String.join(" OR ", statusClauses)).append(") ");
+            }
         }
 
         String baseSql = "SELECT e.*, c.name as category_name, " +

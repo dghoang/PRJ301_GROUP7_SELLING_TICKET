@@ -2,6 +2,7 @@ package com.sellingticket.filter;
 
 import com.sellingticket.model.User;
 import com.sellingticket.service.AuthTokenService;
+import static com.sellingticket.util.ServletUtil.AUTHENTICATED_USER_ATTR;
 import static com.sellingticket.util.ServletUtil.getSessionUser;
 import static com.sellingticket.util.ServletUtil.redirectToLogin;
 
@@ -80,6 +81,7 @@ public class AuthFilter implements Filter {
         String uri = httpRequest.getRequestURI();
         String contextPath = httpRequest.getContextPath();
         String path = uri.startsWith(contextPath) ? uri.substring(contextPath.length()) : uri;
+        boolean isApiPath = path.startsWith("/api/");
 
         // Welcome file / root path — always allow (index.jsp forwards to /home)
         if (path.isEmpty() || "/".equals(path)) {
@@ -104,6 +106,20 @@ public class AuthFilter implements Filter {
         if (path.equals("/api/seepay/webhook")) {
             chain.doFilter(request, response);
             return;
+        }
+
+        // --- API Bearer auth path (preferred for external API clients) ---
+        String bearerToken = extractBearerToken(httpRequest);
+        if (isApiPath && bearerToken != null) {
+            User bearerUser = authTokenService.validateAccessToken(bearerToken);
+            if (bearerUser != null) {
+                user = bearerUser;
+                httpRequest.setAttribute(AUTHENTICATED_USER_ATTR, user);
+            } else {
+                // Compatibility mode during migration: stale bearer headers should not break
+                // existing cookie/session-authenticated web flows.
+                LOGGER.log(Level.FINE, "Invalid bearer token on {0}; falling back to session/cookie auth", path);
+            }
         }
 
         // --- Try JWT cookie restoration if session is empty ---
@@ -134,10 +150,15 @@ public class AuthFilter implements Filter {
             }
         }
 
+        if (user != null) {
+            httpRequest.setAttribute(AUTHENTICATED_USER_ATTR, user);
+            authTokenService.cleanupLegacyAccessCookie(httpRequest, httpResponse);
+        }
+
         // --- Not logged in: redirect to login with returnUrl ---
         if (user == null) {
             // For API endpoints, return 401 JSON instead of redirect
-            if (path.startsWith("/api/")) {
+            if (isApiPath) {
                 httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 httpResponse.setContentType("application/json");
                 httpResponse.setCharacterEncoding("UTF-8");
@@ -240,5 +261,18 @@ public class AuthFilter implements Filter {
 
     private boolean isPublicJsp(String path) {
         return path.endsWith(".jsp") && PUBLIC_ROOT_JSP.contains(path);
+    }
+
+    private String extractBearerToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null) {
+            return null;
+        }
+        String prefix = "Bearer ";
+        if (!authHeader.regionMatches(true, 0, prefix, 0, prefix.length())) {
+            return null;
+        }
+        String token = authHeader.substring(prefix.length()).trim();
+        return token.isEmpty() ? null : token;
     }
 }

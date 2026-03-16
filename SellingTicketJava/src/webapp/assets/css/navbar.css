@@ -1,6 +1,6 @@
 /* Navbar enhancements */
 .navbar-glass {
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 .navbar-glass.scrolled {
     background: rgba(255, 255, 255, 0.95) !important;
@@ -19,7 +19,7 @@
     width: 0;
     height: 2px;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
-    transition: all 0.3s ease;
+    transition: width 0.3s ease;
     transform: translateX(-50%);
     border-radius: 2px;
 }
@@ -27,12 +27,19 @@
 .nav-link.active::after {
     width: 60%;
 }
-.search-input-nav {
-    transition: all 0.3s ease;
-    border-radius: 12px !important;
+.nav-language-switch {
+    border-radius: 12px;
+    min-width: 186px;
 }
-.search-input-nav:focus-within {
-    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
+.nav-language-switch .form-select {
+    font-size: 0.78rem;
+    font-weight: 500;
+    min-height: 32px;
+    cursor: pointer;
+    color: var(--text-dark);
+}
+.nav-language-switch .form-select:focus {
+    box-shadow: none;
 }
 .user-avatar {
     width: 36px;
@@ -58,4 +65,17 @@
 }
 .nav-cta::after {
     display: none;
+}
+
+/* Keep Google Translate container mounted but invisible: language is controlled by custom switcher. */
+.google-translate-mount {
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+.goog-te-banner-frame.skiptranslate {
+    display: none !important;
+}
+body {
+    top: 0 !important;
 }

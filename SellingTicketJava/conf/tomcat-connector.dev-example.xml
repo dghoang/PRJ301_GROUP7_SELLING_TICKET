@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Development-only Tomcat Connector sample.
+    Merge this Connector into Tomcat 10.1 conf/server.xml instead of replacing the full file.
+
+    Purpose:
+    - increase header limits for local debugging
+    - keep URI handling UTF-8 safe
+    - match the common local port used by this project
+-->
+<TomcatConnectorExample>
+    <Connector
+        port="9999"
+        protocol="HTTP/1.1"
+        connectionTimeout="20000"
+        redirectPort="8443"
+        URIEncoding="UTF-8"
+        maxHttpHeaderSize="65536"
+        maxHttpRequestHeaderSize="65536"
+        maxHttpResponseHeaderSize="65536" />
+</TomcatConnectorExample>

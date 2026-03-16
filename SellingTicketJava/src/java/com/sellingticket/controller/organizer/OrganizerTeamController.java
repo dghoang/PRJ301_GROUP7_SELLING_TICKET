@@ -4,6 +4,7 @@ import com.sellingticket.model.Event;
 import com.sellingticket.model.EventStaff;
 import com.sellingticket.model.User;
 import com.sellingticket.service.EventService;
+import com.sellingticket.util.AppConstants;
 import com.sellingticket.util.InputValidator;
 import com.sellingticket.util.PermissionCache;
 import static com.sellingticket.util.ServletUtil.*;
@@ -99,10 +100,10 @@ public class OrganizerTeamController extends HttpServlet {
 
             if ("add".equals(action)) {
                 String email = request.getParameter("email");
-                String role = request.getParameter("role");
+                String role = AppConstants.normalizeEventStaffRole(request.getParameter("role"));
                 if (!InputValidator.isValidEmail(email)) {
                     setToast(request, "Email không hợp lệ", "error");
-                } else if (!InputValidator.isOneOf(role, "staff", "scanner", "manager")) {
+                } else if (role == null) {
                     setToast(request, "Vai trò không hợp lệ", "error");
                 } else {
                     boolean ok = eventService.addEventStaff(eventId, email.trim(), role, user.getUserId());

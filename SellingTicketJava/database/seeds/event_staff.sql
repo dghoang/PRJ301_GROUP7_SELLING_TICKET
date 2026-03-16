@@ -12,7 +12,7 @@ BEGIN
         staff_id INT IDENTITY(1,1) PRIMARY KEY,
         event_id INT NOT NULL,
         user_id INT NOT NULL,
-        role NVARCHAR(20) DEFAULT 'editor' CHECK (role IN ('manager', 'editor', 'checkin')),
+        role NVARCHAR(20) DEFAULT 'staff' CHECK (role IN ('manager', 'staff', 'scanner')),
         granted_by INT,
         created_at DATETIME DEFAULT GETDATE(),
         

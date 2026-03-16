@@ -174,15 +174,44 @@ public class TicketDAO extends DBContext {
      * Mark a ticket as checked in.
      */
     public boolean checkInTicket(int ticketId, int checkedInBy) {
-        String sql = "UPDATE Tickets SET is_checked_in = 1, checked_in_at = GETDATE(), checked_in_by = ? "
+        String markTicketSql = "UPDATE Tickets SET is_checked_in = 1, checked_in_at = GETDATE(), checked_in_by = ? "
                 + "WHERE ticket_id = ? AND is_checked_in = 0";
+        String markOrderCheckedInSql =
+                "UPDATE o SET o.status = 'checked_in' "
+                + "FROM Orders o "
+                + "JOIN OrderItems oi ON oi.order_id = o.order_id "
+                + "JOIN Tickets t ON t.order_item_id = oi.order_item_id "
+                + "WHERE t.ticket_id = ? AND o.status = 'paid' "
+                + "AND NOT EXISTS ("
+                + "    SELECT 1 FROM OrderItems oi2 "
+                + "    JOIN Tickets t2 ON t2.order_item_id = oi2.order_item_id "
+                + "    WHERE oi2.order_id = o.order_id AND t2.is_checked_in = 0"
+                + ")";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, checkedInBy);
-            ps.setInt(2, ticketId);
-            int rows = ps.executeUpdate();
-            return rows > 0;
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement markTicketPs = conn.prepareStatement(markTicketSql);
+                 PreparedStatement markOrderPs = conn.prepareStatement(markOrderCheckedInSql)) {
+                markTicketPs.setInt(1, checkedInBy);
+                markTicketPs.setInt(2, ticketId);
+                int rows = markTicketPs.executeUpdate();
+                if (rows <= 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                // Promote order status once all tickets in the order are checked in.
+                markOrderPs.setInt(1, ticketId);
+                markOrderPs.executeUpdate();
+
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to check in ticket " + ticketId, e);
         }

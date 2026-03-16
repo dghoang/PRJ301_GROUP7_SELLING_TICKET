@@ -6,7 +6,7 @@ public class EventStaff {
     private int staffId;
     private int eventId;
     private int userId;
-    private String role; // manager, editor, checkin
+    private String role; // manager, staff, scanner
     private int grantedBy;
     private Date createdAt;
     

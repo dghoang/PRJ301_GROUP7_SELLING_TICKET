@@ -319,12 +319,16 @@ function applyPromo() {
 
     var ctx = '${pageContext.request.contextPath}';
     var eventId = '${event.eventId}';
+    var csrfToken = '${not empty requestScope.csrf_token ? requestScope.csrf_token : sessionScope.csrf_token}';
 
     fetch(ctx + '/api/voucher/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         credentials: 'same-origin',
-        body: 'code=' + encodeURIComponent(code) + '&eventId=' + encodeURIComponent(eventId) + '&amount=' + encodeURIComponent(baseSubtotal)
+        body: 'code=' + encodeURIComponent(code)
+            + '&eventId=' + encodeURIComponent(eventId)
+            + '&amount=' + encodeURIComponent(baseSubtotal)
+            + '&csrf_token=' + encodeURIComponent(csrfToken || '')
     })
         .then(function(r) { return r.json(); })
         .then(function(data) {

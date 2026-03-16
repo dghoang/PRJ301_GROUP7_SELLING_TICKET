@@ -61,6 +61,44 @@ public final class AppConstants {
     }
 
     // ========================
+    // EVENT STAFF ROLE
+    // ========================
+    public enum EventStaffRole {
+        MANAGER("manager"),
+        STAFF("staff"),
+        SCANNER("scanner");
+
+        private final String value;
+        EventStaffRole(String value) { this.value = value; }
+        public String getValue() { return value; }
+
+        @Override
+        public String toString() { return value; }
+    }
+
+    /**
+     * Normalize event staff role to canonical values: manager/staff/scanner.
+     * Legacy aliases are mapped for backward compatibility.
+     */
+    public static String normalizeEventStaffRole(String role) {
+        if (role == null) return null;
+        String value = role.trim().toLowerCase();
+        switch (value) {
+            case "manager":
+                return EventStaffRole.MANAGER.getValue();
+            case "staff":
+            case "editor":
+            case "viewer":
+                return EventStaffRole.STAFF.getValue();
+            case "scanner":
+            case "checkin":
+                return EventStaffRole.SCANNER.getValue();
+            default:
+                return null;
+        }
+    }
+
+    // ========================
     // JWT SECRET
     // ========================
     public static final String JWT_SECRET = loadSecret();

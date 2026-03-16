@@ -34,8 +34,8 @@
     font-weight: 600;
 }
 .role-manager { background: rgba(147,51,234,0.1); color: var(--primary); }
-.role-editor { background: rgba(59,130,246,0.1); color: #3b82f6; }
-.role-checkin { background: rgba(16,185,129,0.1); color: #10b981; }
+.role-staff { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.role-scanner { background: rgba(16,185,129,0.1); color: #10b981; }
 .invite-card {
     border: 2px dashed rgba(147,51,234,0.2);
     border-radius: var(--radius-lg);
@@ -94,9 +94,9 @@
                                 <!-- Staff Members -->
                                 <c:forEach var="s" items="${staff}">
                                     <div class="staff-card" style="border-left: 4px solid
-                                        ${s.role == 'manager' ? 'var(--primary)' : s.role == 'editor' ? '#3b82f6' : '#10b981'};">
+                                        ${s.role == 'manager' ? 'var(--primary)' : s.role == 'staff' ? '#3b82f6' : '#10b981'};">
                                         <div class="staff-avatar" style="background: linear-gradient(135deg,
-                                            ${s.role == 'manager' ? 'var(--primary), var(--secondary)' : s.role == 'editor' ? '#3b82f6, #06b6d4' : '#10b981, #14b8a6'});">
+                                            ${s.role == 'manager' ? 'var(--primary), var(--secondary)' : s.role == 'staff' ? '#3b82f6, #06b6d4' : '#10b981, #14b8a6'});">
                                             ${s.userName != null ? s.userName.substring(0,1) : '?'}
                                         </div>
                                         <div class="flex-grow-1">
@@ -104,8 +104,8 @@
                                             <div class="text-muted" style="font-size: 0.75rem;">${s.userEmail}</div>
                                         </div>
                                         <span class="role-badge role-${s.role}">
-                                            <i class="fas ${s.role == 'manager' ? 'fa-shield-alt' : s.role == 'editor' ? 'fa-pen' : 'fa-qrcode'}"></i>
-                                            ${s.role == 'manager' ? 'Quản lý' : s.role == 'editor' ? 'Biên tập' : 'Soát vé'}
+                                            <i class="fas ${s.role == 'manager' ? 'fa-shield-alt' : s.role == 'staff' ? 'fa-pen' : 'fa-qrcode'}"></i>
+                                            ${s.role == 'manager' ? 'Quản lý' : s.role == 'staff' ? 'Staff' : 'Scanner'}
                                         </span>
                                         <c:if test="${userEventRole == 'admin' || userEventRole == 'owner' || userEventRole == 'manager'}">
                                             <button class="btn btn-sm btn-outline-danger rounded-pill px-2"
@@ -153,22 +153,22 @@
                                             </div>
                                         </label>
                                         <label class="invite-card d-flex align-items-center gap-3 m-0" style="cursor:pointer;">
-                                            <input type="radio" name="role" value="editor" class="form-check-input">
+                                            <input type="radio" name="role" value="staff" class="form-check-input">
                                             <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;color:#3b82f6;flex-shrink:0;">
                                                 <i class="fas fa-pen"></i>
                                             </div>
                                             <div>
-                                                <div class="fw-bold small">Biên tập viên</div>
+                                                <div class="fw-bold small">Staff</div>
                                                 <div class="text-muted" style="font-size:0.7rem;">Chỉnh sửa thông tin, vé, mô tả sự kiện</div>
                                             </div>
                                         </label>
                                         <label class="invite-card d-flex align-items-center gap-3 m-0" style="cursor:pointer;">
-                                            <input type="radio" name="role" value="checkin" class="form-check-input">
+                                            <input type="radio" name="role" value="scanner" class="form-check-input">
                                             <div style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;color:#10b981;flex-shrink:0;">
                                                 <i class="fas fa-qrcode"></i>
                                             </div>
                                             <div>
-                                                <div class="fw-bold small">Soát vé</div>
+                                                <div class="fw-bold small">Scanner</div>
                                                 <div class="text-muted" style="font-size:0.7rem;">Chỉ có quyền check-in, xem danh sách</div>
                                             </div>
                                         </label>

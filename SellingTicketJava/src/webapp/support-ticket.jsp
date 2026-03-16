@@ -27,7 +27,7 @@
         </c:if>
 
         <form method="POST" action="${pageContext.request.contextPath}/support/create">
-            <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}">
+            <input type="hidden" name="csrf_token" value="${csrf_token}">
             <c:if test="${not empty orderId}">
                 <input type="hidden" name="orderId" value="${orderId}">
                 <div class="alert glass rounded-4 border-0 mb-4 py-2 px-3">

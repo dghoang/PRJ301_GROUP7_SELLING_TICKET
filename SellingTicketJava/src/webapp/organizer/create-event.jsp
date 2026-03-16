@@ -433,7 +433,7 @@
                             <div class="row g-3">
                                 <div class="col-6">
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="isPrivate" id="isPrivate">
+                                        <input class="form-check-input" type="checkbox" name="isPrivate" id="isPrivate" ${(not empty formEvent and formEvent['private']) ? 'checked' : ''} onchange="syncDisplayOptions('private')">
                                         <label class="form-check-label fw-medium" for="isPrivate">
                                             <i class="fas fa-lock me-1 text-warning"></i>Riêng tư
                                         </label>
@@ -442,12 +442,15 @@
                                 </div>
                                 <div class="col-6">
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="isFeatured" id="isFeatured">
+                                        <input class="form-check-input" type="checkbox" name="isFeatured" id="isFeatured" ${(not empty formEvent and formEvent.featured) ? 'checked' : ''} onchange="syncDisplayOptions('featured')">
                                         <label class="form-check-label fw-medium" for="isFeatured">
                                             <i class="fas fa-star me-1 text-warning"></i>Nổi bật
                                         </label>
-                                        <br><small class="text-muted">Hiện trên trang chủ</small>
+                                        <br><small class="text-muted" id="featuredHint">Hiện trên trang chủ</small>
                                     </div>
+                                </div>
+                                <div class="col-12">
+                                    <small id="displayOptionConflictMsg" class="text-danger" style="display:none;">Sự kiện riêng tư không thể ở chế độ nổi bật.</small>
                                 </div>
                             </div>
                         </div>
@@ -564,9 +567,8 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small fw-medium">Tổng vé tối đa cho sự kiện</label>
-                                    <input type="number" class="form-control" name="maxTotalTickets" value="0" min="0"
-                                           placeholder="0 = không giới hạn">
-                                    <small class="text-muted">0 = không giới hạn</small>
+                                    <input type="number" class="form-control" name="maxTotalTickets" id="maxTotalTickets" value="0" min="0" readonly>
+                                    <small class="text-muted">Tự động bằng tổng số lượng các loại vé</small>
                                 </div>
                                 <div class="col-md-4 d-flex align-items-center">
                                     <div class="form-check form-switch mt-3">
@@ -675,9 +677,8 @@
                                         </small>
                                     </div>
                                     <div class="col-md-6 d-flex align-items-end">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="isPrivate" id="isPrivate">
-                                            <label class="form-check-label small" for="isPrivate">Sự kiện riêng tư (chỉ truy cập qua link)</label>
+                                        <div class="small text-muted">
+                                            <i class="fas fa-eye me-1"></i><span id="reviewVisibility">Công khai</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1057,11 +1058,12 @@ function updateTotal() {
     });
     document.getElementById('totalTickets').textContent = totalQty.toLocaleString('vi-VN');
     document.getElementById('totalRevenue').textContent = totalRev.toLocaleString('vi-VN') + ' \u0111';
+    var maxTotalTicketsInput = document.getElementById('maxTotalTickets');
+    if (maxTotalTicketsInput) maxTotalTicketsInput.value = String(totalQty);
 }
 
 // ========== REVIEW POPULATION ==========
 // ========== DYNAMIC SUBMIT BUTTON ==========
-(function() {
 // ========== SET MIN DATE on startDate input ==========
 (function() {
     var t = new Date();
@@ -1102,6 +1104,14 @@ function populateReview() {
     var startVal = document.getElementById('startDate').value;
     document.getElementById('reviewStart').textContent = startVal ? new Date(startVal).toLocaleString('vi-VN') : '\u2014';
     document.getElementById('reviewLocation').textContent = document.getElementById('eventLocation').value || '\u2014';
+    var reviewVisibility = document.getElementById('reviewVisibility');
+    if (reviewVisibility) {
+        var isPrivate = document.getElementById('isPrivate').checked;
+        var isFeatured = document.getElementById('isFeatured').checked;
+        reviewVisibility.textContent = isPrivate
+            ? 'Riêng tư (chỉ ai có link mới xem)'
+            : (isFeatured ? 'Công khai + Nổi bật trang chủ' : 'Công khai');
+    }
 
     var tbody = document.getElementById('reviewTickets');
     tbody.innerHTML = '';
@@ -1144,6 +1154,16 @@ document.getElementById('createEventForm').addEventListener('submit', function(e
         }
     }
 
+    var privateToggle = document.getElementById('isPrivate');
+    var featuredToggle = document.getElementById('isFeatured');
+    if (privateToggle && featuredToggle && privateToggle.checked && featuredToggle.checked) {
+        e.preventDefault();
+        document.getElementById('displayOptionConflictMsg').style.display = 'block';
+        goToStep(1);
+        if (typeof showToast === 'function') showToast('Sự kiện riêng tư không thể ở chế độ nổi bật', 'error');
+        return false;
+    }
+
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
     var statusSelect = document.getElementById('eventStatus');
@@ -1168,10 +1188,8 @@ if (shortDescEl) {
 (function() {
     var now = new Date();
     var y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'),
-        d = String(now.getDate()).padStart(2, '0'),
-        h = String(now.getHours()).padStart(2, '0'),
-        mi = String(now.getMinutes()).padStart(2, '0');
-    var minDate = y + '-' + m + '-' + d + 'T' + h + ':' + mi;
+        d = String(now.getDate()).padStart(2, '0');
+    var minDate = y + '-' + m + '-' + d + 'T00:00';
     document.getElementById('startDate').setAttribute('min', minDate);
 
     // Real-time validation when user changes start date
@@ -1179,7 +1197,9 @@ if (shortDescEl) {
         var pastDateErr = document.getElementById('pastDateError');
         if (this.value) {
             var chosen = new Date(this.value);
-            if (chosen < new Date()) {
+            var todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            if (chosen < todayStart) {
                 this.classList.add('field-error');
                 if (pastDateErr) pastDateErr.style.display = 'block';
                 if (typeof showToast === 'function') showToast('Ngày bắt đầu không được trong quá khứ!', 'error');
@@ -1192,6 +1212,29 @@ if (shortDescEl) {
         if (this.value) document.getElementById('endDate').setAttribute('min', this.value);
     });
 })();
+
+function syncDisplayOptions(changedBy) {
+    var privateToggle = document.getElementById('isPrivate');
+    var featuredToggle = document.getElementById('isFeatured');
+    var featuredHint = document.getElementById('featuredHint');
+    var conflictMsg = document.getElementById('displayOptionConflictMsg');
+    if (!privateToggle || !featuredToggle) return;
+
+    if (changedBy === 'private' && privateToggle.checked) {
+        featuredToggle.checked = false;
+    }
+    if (changedBy === 'featured' && featuredToggle.checked) {
+        privateToggle.checked = false;
+    }
+
+    featuredToggle.disabled = privateToggle.checked;
+    if (featuredHint) {
+        featuredHint.textContent = privateToggle.checked
+            ? 'Bị tắt vì sự kiện đang ở chế độ riêng tư'
+            : 'Hiện trên trang chủ';
+    }
+    if (conflictMsg) conflictMsg.style.display = 'none';
+}
 
 // ========== RESTORE FORM STATE FROM SERVER ON ERRORS ==========
 <c:if test="${not empty formEvent}">
@@ -1215,6 +1258,9 @@ if (shortDescEl) {
     }
 })();
 </c:if>
+
+syncDisplayOptions();
+updateTotal();
 </script>
 
 

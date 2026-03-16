@@ -69,6 +69,7 @@ public class AdminUserApiServlet extends HttpServlet {
             item.append("\"role\":\"").append(esc(u.getRole())).append("\",");
             item.append("\"avatar\":\"").append(esc(u.getAvatar())).append("\",");
             item.append("\"isActive\":").append(u.isActive()).append(",");
+            item.append("\"isDeleted\":").append(u.isDeleted()).append(",");
             item.append("\"createdAt\":\"").append(u.getCreatedAt() != null ? sdf.format(u.getCreatedAt()) : "").append("\"");
             item.append("}");
             json.arrayElement(item.toString());
