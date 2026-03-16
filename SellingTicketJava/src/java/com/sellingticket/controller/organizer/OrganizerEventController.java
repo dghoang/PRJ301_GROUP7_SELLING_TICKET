@@ -386,10 +386,12 @@ public class OrganizerEventController extends HttpServlet {
                 existing.setEndDate(parseDateOrNull(endDateStr));
             }
 
-            // Event ticket settings
-            existing.setMaxTicketsPerOrder(parseIntOrDefault(request.getParameter("maxTicketsPerOrder"), existing.getMaxTicketsPerOrder()));
-            existing.setMaxTotalTickets(parseIntOrDefault(request.getParameter("maxTotalTickets"), existing.getMaxTotalTickets()));
-            existing.setPreOrderEnabled("true".equals(request.getParameter("preOrderEnabled")));
+                // Event ticket settings
+                existing.setMaxTicketsPerOrder(InputValidator.parseIntInRange(
+                    request.getParameter("maxTicketsPerOrder"), 0, 50, existing.getMaxTicketsPerOrder()));
+                existing.setMaxTotalTickets(InputValidator.parseIntInRange(
+                    request.getParameter("maxTotalTickets"), 0, 1000000, existing.getMaxTotalTickets()));
+                existing.setPreOrderEnabled("true".equals(request.getParameter("preOrderEnabled")));
 
             // Validate: start date must not be in the past (for new dates only)
                 if (existing.getStartDate() != null && existing.getStartDate().before(todayMidnight())) {
@@ -566,8 +568,8 @@ public class OrganizerEventController extends HttpServlet {
         }
 
         // Event ticket settings
-        event.setMaxTicketsPerOrder(parseIntOrDefault(request.getParameter("maxTicketsPerOrder"), 0));
-        event.setMaxTotalTickets(parseIntOrDefault(request.getParameter("maxTotalTickets"), 0));
+        event.setMaxTicketsPerOrder(InputValidator.parseIntInRange(request.getParameter("maxTicketsPerOrder"), 0, 50, 0));
+        event.setMaxTotalTickets(InputValidator.parseIntInRange(request.getParameter("maxTotalTickets"), 0, 1000000, 0));
         event.setPreOrderEnabled("true".equals(request.getParameter("preOrderEnabled")));
 
         return event;

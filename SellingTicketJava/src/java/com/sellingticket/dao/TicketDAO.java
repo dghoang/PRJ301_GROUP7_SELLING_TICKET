@@ -98,7 +98,7 @@ public class TicketDAO extends DBContext {
      * Find a ticket by its unique code.
      */
     public Ticket getTicketByCode(String ticketCode) {
-        String sql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, e.event_id, o.order_code "
+        String sql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, e.event_id, o.order_code, o.status as order_status "
                 + "FROM Tickets t "
                 + "JOIN OrderItems oi ON t.order_item_id = oi.order_item_id "
                 + "JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id "
@@ -122,7 +122,7 @@ public class TicketDAO extends DBContext {
      * Find a ticket by its ID.
      */
     public Ticket getTicketById(int ticketId) {
-        String sql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, e.event_id, o.order_code "
+        String sql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, e.event_id, o.order_code, o.status as order_status "
                 + "FROM Tickets t "
                 + "JOIN OrderItems oi ON t.order_item_id = oi.order_item_id "
                 + "JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id "
@@ -146,7 +146,7 @@ public class TicketDAO extends DBContext {
      * Get all tickets for a given order.
      */
     public List<Ticket> getTicketsByOrder(int orderId) {
-        String sql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, e.event_id, o.order_code "
+        String sql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, e.event_id, o.order_code, o.status as order_status "
                 + "FROM Tickets t "
                 + "JOIN OrderItems oi ON t.order_item_id = oi.order_item_id "
                 + "JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id "
@@ -235,6 +235,27 @@ public class TicketDAO extends DBContext {
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to count checked-in for event " + eventId, e);
+        }
+        return 0;
+    }
+
+    /**
+     * Count total issued tickets for an event.
+     */
+    public int countIssuedByEvent(int eventId) {
+        String sql = "SELECT COUNT(*) FROM Tickets t "
+                + "JOIN OrderItems oi ON t.order_item_id = oi.order_item_id "
+                + "JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id "
+                + "WHERE tt.event_id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, eventId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to count issued tickets for event " + eventId, e);
         }
         return 0;
     }

@@ -16,7 +16,6 @@ import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -32,15 +31,6 @@ import jakarta.servlet.http.HttpSession;
  *   <li><b>user</b>: /checkout, /tickets, /profile, etc.</li>
  * </ul>
  */
-@WebFilter(filterName = "AuthFilter", urlPatterns = {
-    "/organizer/*", "/admin/*",
-    "/checkout", "/tickets", "/my-tickets",
-    "/order-confirmation", "/profile", "/change-password",
-    "/resume-payment", "/support/*",
-    "/api/admin/*", "/api/organizer/*", "/api/my-tickets", "/api/my-orders",
-    "/api/chat/*", "/api/payment/*", "/api/voucher/*", "/api/upload",
-    "/media/upload", "*.jsp"
-})
 public class AuthFilter implements Filter {
 
     private static final Logger LOGGER = Logger.getLogger(AuthFilter.class.getName());
@@ -63,6 +53,13 @@ public class AuthFilter implements Filter {
             "/login.jsp", "/register.jsp",
             "/header.jsp", "/footer.jsp",
             "/404.jsp", "/500.jsp"
+    );
+
+    private static final Set<String> PUBLIC_EXACT_PATHS = Set.of(
+            "/", "/home", "/events", "/event-detail",
+            "/categories", "/about", "/faq", "/terms",
+            "/login", "/register",
+            "/auth/google", "/auth/google/callback"
     );
 
     private final AuthTokenService authTokenService = new AuthTokenService();
@@ -96,8 +93,8 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // Public JSPs (home, events, etc.) — skip auth, let them through.
-        if (isPublicJsp(path)) {
+        // Public pages/routes (home, events, event detail, static pages, auth pages).
+        if (isPublicJsp(path) || isPublicRoute(path)) {
             chain.doFilter(request, response);
             return;
         }
@@ -261,6 +258,13 @@ public class AuthFilter implements Filter {
 
     private boolean isPublicJsp(String path) {
         return path.endsWith(".jsp") && PUBLIC_ROOT_JSP.contains(path);
+    }
+
+    private boolean isPublicRoute(String path) {
+        if (PUBLIC_EXACT_PATHS.contains(path)) {
+            return true;
+        }
+        return path.startsWith("/event/");
     }
 
     private String extractBearerToken(HttpServletRequest request) {

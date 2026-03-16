@@ -1114,16 +1114,30 @@
 <script>
 // Ticket cart
 let ticketCart = {};
+const MAX_TICKETS_PER_BUYER = ${event.maxTicketsPerOrder > 0 ? event.maxTicketsPerOrder : 4};
 
 function changeQty(ticketId, delta) {
     const qtyEl = document.getElementById('qty-' + ticketId);
+    const card = qtyEl.closest('.ticket-card');
+    const perTypeMax = parseInt(card.dataset.max, 10) || MAX_TICKETS_PER_BUYER;
+
+    let otherQty = 0;
+    Object.keys(ticketCart).forEach(function(id) {
+        if (String(id) !== String(ticketId)) {
+            otherQty += (ticketCart[id] && ticketCart[id].qty) ? ticketCart[id].qty : 0;
+        }
+    });
+
     let current = parseInt(qtyEl.textContent) || 0;
     current += delta;
     if (current < 0) current = 0;
-    if (current > 10) current = 10;
+    if (current > perTypeMax) current = perTypeMax;
+
+    const allowedByGlobalCap = Math.max(0, MAX_TICKETS_PER_BUYER - otherQty);
+    if (current > allowedByGlobalCap) current = allowedByGlobalCap;
+
     qtyEl.textContent = current;
     
-    const card = qtyEl.closest('.ticket-card');
     const price = parseFloat(card.dataset.price) || 0;
     ticketCart[ticketId] = { qty: current, price: price };
     
@@ -1162,7 +1176,11 @@ function updateTotal() {
     
     if (buyBtn) {
         const termsOk = agreeTerms ? agreeTerms.checked : false;
-        if (totalQty > 0 && termsOk) {
+        if (totalQty > MAX_TICKETS_PER_BUYER) {
+            buyBtn.disabled = true;
+            buyBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Giới hạn tối đa ' + MAX_TICKETS_PER_BUYER + ' vé/mỗi khách';
+            buyBtn.style.opacity = '0.6';
+        } else if (totalQty > 0 && termsOk) {
             buyBtn.disabled = false;
             buyBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Mua ' + totalQty + ' vé — ' + totalPrice.toLocaleString('vi-VN') + 'đ';
             buyBtn.style.opacity = '1';
@@ -1250,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h6 class="fw-bold">1. Điều khoản mua vé</h6>
                 <ul class="small text-muted mb-3">
                     <li>Vé đã mua <strong>không được hoàn lại</strong> trừ khi sự kiện bị hủy bởi ban tổ chức.</li>
-                    <li>Mỗi giao dịch giới hạn tối đa <strong>10 vé</strong>.</li>
+                    <li>Mỗi khách được mua tối đa <strong>${event.maxTicketsPerOrder > 0 ? event.maxTicketsPerOrder : 4} vé</strong> cho sự kiện này.</li>
                     <li>Vé chỉ hợp lệ khi xuất trình mã QR tại cổng check-in.</li>
                     <li>Mỗi vé chỉ sử dụng <strong>một lần duy nhất</strong>. Không chuyển nhượng, sao chép.</li>
                 </ul>

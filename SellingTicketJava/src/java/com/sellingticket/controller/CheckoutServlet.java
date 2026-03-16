@@ -20,7 +20,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -33,13 +32,12 @@ import jakarta.servlet.http.HttpServletResponse;
 public class CheckoutServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(CheckoutServlet.class.getName());
-    private static final int MAX_QUANTITY = 10;
+    private static final int DEFAULT_MAX_TICKETS_PER_BUYER = 4;
+    private static final int ABSOLUTE_MAX_QUANTITY = 50;
     private static final int MAX_BUYER_NAME_LEN = 100;
     private static final int MAX_BUYER_EMAIL_LEN = 255;
     private static final int MAX_BUYER_PHONE_LEN = 20;
     private static final int MAX_NOTES_LEN = 500;
-    private static final Set<String> ALLOWED_PAYMENT_METHODS = Set.of(
-            "seepay", "bank_transfer", "cash");
 
     private OrderService orderService;
     private EventService eventService;
@@ -61,9 +59,10 @@ public class CheckoutServlet extends HttpServlet {
 
         User user = getSessionUser(request);
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        Event event = null;
 
         if (eventId > 0) {
-            Event event = eventService.getEventDetails(eventId);
+            event = eventService.getEventDetails(eventId);
             // Block checkout page for past events
             if (event != null && event.getEndDate() != null && event.getEndDate().before(new java.util.Date())) {
                 request.setAttribute("error", "Sự kiện đã kết thúc, không thể thanh toán.");
@@ -78,7 +77,8 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         // Parse items param: "typeId:qty,typeId:qty" (multi-ticket support)
-        List<Map<String, Object>> selectedItems = parseItemsParam(request);
+        int maxQtyForPreview = resolvePerBuyerLimit(event);
+        List<Map<String, Object>> selectedItems = parseItemsParam(request, maxQtyForPreview);
         if (!selectedItems.isEmpty()) {
             request.setAttribute("selectedItems", selectedItems);
             double totalAmount = 0;
@@ -179,26 +179,18 @@ public class CheckoutServlet extends HttpServlet {
             LOGGER.log(Level.INFO, "Order created: id={0}, user={1}, amount={2}",
                     new Object[]{orderId, user.getUserId(), order.getFinalAmount()});
 
-            // SeePay flow: show QR → wait for IPN → then issue tickets
-            if ("seepay".equals(order.getPaymentMethod())) {
-                PaymentResult paymentResult = orderService.processPayment(order);
-                SeepayProvider sp = new SeepayProvider();
+            // Business policy: QR transfer only via SeePay pending flow.
+            PaymentResult paymentResult = orderService.processPayment(order);
+            SeepayProvider sp = new SeepayProvider();
 
-                request.setAttribute("order", order);
-                request.setAttribute("paymentResult", paymentResult);
-                request.setAttribute("bankName", getBankDisplayName(sp.getBankId()));
-                request.setAttribute("accountNo", sp.getAccountNo());
-                request.setAttribute("accountName", sp.getAccountName());
-                request.setAttribute("timeoutMinutes", sp.getTimeoutMinutes());
-                request.getRequestDispatcher("/payment-pending.jsp").forward(request, response);
-                return;
-            }
-
-            // Non-SeePay: mark as paid + issue tickets + redirect
-            orderService.markAsPaid(orderId);
-            int ticketsIssued = orderService.issueTickets(orderId, order.getBuyerName(), order.getBuyerEmail());
-            LOGGER.log(Level.INFO, "Tickets issued: orderId={0}, count={1}", new Object[]{orderId, ticketsIssued});
-            response.sendRedirect("order-confirmation?id=" + orderId);
+            request.setAttribute("order", order);
+            request.setAttribute("paymentResult", paymentResult);
+            request.setAttribute("bankName", getBankDisplayName(sp.getBankId()));
+            request.setAttribute("accountNo", sp.getAccountNo());
+            request.setAttribute("accountName", sp.getAccountName());
+            request.setAttribute("timeoutMinutes", sp.getTimeoutMinutes());
+            request.getRequestDispatcher("/payment-pending.jsp").forward(request, response);
+            return;
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Checkout error for user=" + user.getUserId(), e);
@@ -235,9 +227,10 @@ public class CheckoutServlet extends HttpServlet {
      * Parse the items parameter format: "typeId:qty,typeId:qty".
      * Falls back to legacy single ticketTypeId + quantity params.
      */
-    private List<Map<String, Object>> parseItemsParam(HttpServletRequest request) {
+    private List<Map<String, Object>> parseItemsParam(HttpServletRequest request, int maxQty) {
         List<Map<String, Object>> result = new ArrayList<>();
         String itemsParam = request.getParameter("items");
+        int safeMax = Math.max(1, Math.min(maxQty, ABSOLUTE_MAX_QUANTITY));
 
         if (itemsParam != null && !itemsParam.isEmpty()) {
             String[] parts = itemsParam.split(",");
@@ -246,7 +239,7 @@ public class CheckoutServlet extends HttpServlet {
                 if (pair.length != 2) continue;
                 int typeId = parseIntOrDefault(pair[0].trim(), -1);
                 int qty = parseIntOrDefault(pair[1].trim(), 0);
-                if (typeId <= 0 || qty <= 0 || qty > MAX_QUANTITY) continue;
+                if (typeId <= 0 || qty <= 0 || qty > safeMax) continue;
 
                 TicketType ticket = ticketService.getTicketTypeById(typeId);
                 if (ticket == null) continue;
@@ -259,7 +252,7 @@ public class CheckoutServlet extends HttpServlet {
             }
         } else {
             int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
-            int quantity = Math.max(1, Math.min(parseIntOrDefault(request.getParameter("quantity"), 1), MAX_QUANTITY));
+            int quantity = Math.max(1, Math.min(parseIntOrDefault(request.getParameter("quantity"), 1), safeMax));
             if (ticketTypeId > 0) {
                 TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
                 if (ticket != null) {
@@ -291,9 +284,8 @@ public class CheckoutServlet extends HttpServlet {
             return null;
         }
 
-        // Determine max quantity per order from event settings
-        int eventMaxPerOrder = event.getMaxTicketsPerOrder();
-        int maxQty = (eventMaxPerOrder > 0) ? eventMaxPerOrder : MAX_QUANTITY;
+        // Anti-hoarding limit per buyer (configurable per event).
+        int perBuyerLimit = resolvePerBuyerLimit(event);
 
         List<OrderItem> items = new ArrayList<>();
         double totalAmount = 0;
@@ -307,7 +299,7 @@ public class CheckoutServlet extends HttpServlet {
                 if (pair.length != 2) continue;
                 int typeId = parseIntOrDefault(pair[0].trim(), -1);
                 int qty = parseIntOrDefault(pair[1].trim(), 0);
-                if (typeId <= 0 || qty <= 0 || qty > maxQty) continue;
+                if (typeId <= 0 || qty <= 0 || qty > perBuyerLimit) continue;
 
                 TicketType ticket = ticketService.getTicketTypeById(typeId);
                 if (ticket == null) continue;
@@ -331,7 +323,7 @@ public class CheckoutServlet extends HttpServlet {
         } else {
             int ticketTypeId = parseIntOrDefault(request.getParameter("ticketTypeId"), -1);
             int quantity = parseIntOrDefault(request.getParameter("quantity"), 1);
-            if (ticketTypeId <= 0 || quantity < 1 || quantity > maxQty) return null;
+            if (ticketTypeId <= 0 || quantity < 1 || quantity > perBuyerLimit) return null;
 
             TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
             if (ticket == null) return null;
@@ -355,21 +347,18 @@ public class CheckoutServlet extends HttpServlet {
         if (items.isEmpty()) return null;
 
         // Enforce max tickets per order
-        if (totalTicketsInOrder > maxQty) return null;
+        if (totalTicketsInOrder > perBuyerLimit) return null;
 
         // Enforce max total tickets for event
         int eventMaxTotal = event.getMaxTotalTickets();
         if (eventMaxTotal > 0 && (event.getSoldTickets() + totalTicketsInOrder) > eventMaxTotal) return null;
 
-        // Per-user purchase limit: existing tickets + new tickets <= maxQty
+        // Per-user purchase limit: existing tickets + new tickets <= configured cap.
         int existingUserTickets = orderService.countUserTicketsForEvent(user.getUserId(), eventId);
-        if ((existingUserTickets + totalTicketsInOrder) > maxQty) return null;
+        if ((existingUserTickets + totalTicketsInOrder) > perBuyerLimit) return null;
 
-        // V4 FIX: Whitelist payment methods
-        String paymentMethod = request.getParameter("paymentMethod");
-        if (paymentMethod == null || !ALLOWED_PAYMENT_METHODS.contains(paymentMethod)) {
-            paymentMethod = "bank_transfer";
-        }
+        // Business policy: only QR bank transfer via SeePay is accepted.
+        String paymentMethod = "seepay";
 
         Order order = new Order();
         order.setOrderCode(orderService.generateOrderCode());
@@ -428,5 +417,16 @@ public class CheckoutServlet extends HttpServlet {
             case "VTB": return "VietinBank";
             default: return bankId;
         }
+    }
+
+    private int resolvePerBuyerLimit(Event event) {
+        if (event == null) {
+            return DEFAULT_MAX_TICKETS_PER_BUYER;
+        }
+        int configured = event.getMaxTicketsPerOrder();
+        if (configured <= 0) {
+            return DEFAULT_MAX_TICKETS_PER_BUYER;
+        }
+        return Math.min(configured, ABSOLUTE_MAX_QUANTITY);
     }
 }

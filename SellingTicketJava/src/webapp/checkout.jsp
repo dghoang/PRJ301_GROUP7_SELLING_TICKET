@@ -128,7 +128,7 @@
                 <!-- Payment Method -->
                 <div class="glass-strong p-4 rounded-4 mb-4 animate-on-scroll">
                     <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
-                        <i class="fas fa-credit-card text-primary"></i> Phương thức thanh toán
+                        <i class="fas fa-qrcode text-primary"></i> Phương thức thanh toán
                     </h5>
                     <div class="d-flex flex-column gap-3">
                         <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 selected hover-lift" onclick="selectPayment('seepay')" data-type="seepay" style="border: 2px solid var(--primary); cursor: pointer; transition: all 0.3s;">
@@ -140,26 +140,6 @@
                                 <small class="text-muted">Quét mã QR VietQR qua app ngân hàng</small>
                             </div>
                             <i class="fas fa-check-circle text-primary fs-5"></i>
-                        </div>
-                        <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 hover-lift" onclick="selectPayment('momo')" data-type="momo" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s;">
-                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #a855f7, #ec4899);">
-                                <span class="fw-bold text-white">M</span>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h6 class="fw-bold mb-0">Ví MoMo</h6>
-                                <small class="text-muted">Thanh toán qua ví điện tử</small>
-                            </div>
-                            <i class="fas fa-check-circle text-muted fs-5"></i>
-                        </div>
-                        <div class="payment-option glass p-4 rounded-4 d-flex align-items-center gap-3 hover-lift" onclick="selectPayment('vnpay')" data-type="vnpay" style="border: 2px solid transparent; cursor: pointer; transition: all 0.3s;">
-                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: linear-gradient(135deg, #06b6d4, #3b82f6);">
-                                <span class="fw-bold text-white">V</span>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h6 class="fw-bold mb-0">VNPay</h6>
-                                <small class="text-muted">Thẻ ngân hàng, Visa, MasterCard</small>
-                            </div>
-                            <i class="fas fa-check-circle text-muted fs-5"></i>
                         </div>
                     </div>
                     <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="seepay">
@@ -278,7 +258,7 @@
 </div>
 
 <script>
-var selectedPayment = 'bank_transfer';
+var selectedPayment = 'seepay';
 var currentDiscount = 0;
 var baseSubtotal = ${subtotal != null ? subtotal : 0};
 

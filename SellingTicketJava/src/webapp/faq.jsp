@@ -80,13 +80,10 @@
             </h2>
             <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                 <div class="accordion-body text-muted pb-4">
-                    <p class="mb-3">Ticketbox hỗ trợ nhiều phương thức thanh toán phổ biến:</p>
+                    <p class="mb-3">Ticketbox hiện hỗ trợ thanh toán bằng chuyển khoản QR:</p>
                     <div class="d-flex flex-wrap gap-2">
-                        <span class="badge glass px-3 py-2"><i class="fas fa-wallet text-pink-500 me-1"></i> MoMo</span>
-                        <span class="badge glass px-3 py-2"><i class="fas fa-credit-card text-blue-500 me-1"></i> VNPay</span>
-                        <span class="badge glass px-3 py-2"><i class="fas fa-wallet text-blue-600 me-1"></i> ZaloPay</span>
-                        <span class="badge glass px-3 py-2"><i class="fas fa-building text-green-500 me-1"></i> Chuyển khoản</span>
-                        <span class="badge glass px-3 py-2"><i class="fab fa-cc-visa text-purple-500 me-1"></i> Visa/MC</span>
+                        <span class="badge glass px-3 py-2"><i class="fas fa-qrcode text-green-600 me-1"></i> VietQR / SePay</span>
+                        <span class="badge glass px-3 py-2"><i class="fas fa-university text-blue-600 me-1"></i> Ứng dụng ngân hàng</span>
                     </div>
                 </div>
             </div>

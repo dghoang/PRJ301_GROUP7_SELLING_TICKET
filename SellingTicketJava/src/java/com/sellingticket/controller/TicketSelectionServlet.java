@@ -65,7 +65,7 @@ public class TicketSelectionServlet extends HttpServlet {
         }
         request.setAttribute("isPreOrder", isPreOrder);
         request.setAttribute("preOrderEnabled", event.isPreOrderEnabled());
-        request.setAttribute("maxTicketsPerOrder", event.getMaxTicketsPerOrder() > 0 ? event.getMaxTicketsPerOrder() : 10);
+        request.setAttribute("maxTicketsPerOrder", event.getMaxTicketsPerOrder() > 0 ? event.getMaxTicketsPerOrder() : 4);
 
         request.setAttribute("event", event);
         request.setAttribute("ticketTypes", ticketTypes);

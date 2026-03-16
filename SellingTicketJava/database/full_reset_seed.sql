@@ -416,10 +416,16 @@ CREATE NONCLUSTERED INDEX IX_Events_Display ON Events(pin_order DESC, display_pr
     WHERE is_deleted = 0 AND status = 'approved';
 
 CREATE NONCLUSTERED INDEX IX_Orders_User ON Orders(user_id, is_deleted, created_at DESC) INCLUDE (status, final_amount);
-CREATE NONCLUSTERED INDEX IX_Orders_Event ON Orders(event_id, status) INCLUDE (final_amount, created_at);
+CREATE NONCLUSTERED INDEX IX_Orders_Event ON Orders(event_id, status)
+    INCLUDE (order_id, order_code, buyer_name, buyer_email, final_amount, created_at);
 CREATE NONCLUSTERED INDEX IX_Orders_Status ON Orders(status) INCLUDE (final_amount, created_at);
 
+CREATE NONCLUSTERED INDEX IX_OrderItems_Order_TicketType ON OrderItems(order_id, ticket_type_id)
+    INCLUDE (order_item_id);
+
 CREATE INDEX IX_Tickets_TicketCode ON Tickets(ticket_code);
+CREATE NONCLUSTERED INDEX IX_Tickets_OrderItem_CheckedIn ON Tickets(order_item_id, is_checked_in)
+    INCLUDE (ticket_id, checked_in_at, checked_in_by);
 CREATE NONCLUSTERED INDEX IX_TicketTypes_Event ON TicketTypes(event_id, is_active) INCLUDE (price, quantity, sold_quantity);
 
 CREATE INDEX IX_Media_Entity ON Media(entity_type, entity_id);

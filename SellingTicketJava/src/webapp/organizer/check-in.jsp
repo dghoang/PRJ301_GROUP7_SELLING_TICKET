@@ -267,9 +267,14 @@
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-bold mb-0"><i class="fas fa-qrcode me-2 text-primary"></i>Quét mã QR</h6>
-                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" id="cameraToggle" onclick="toggleCamera()">
-                                    <i class="fas fa-video me-1"></i><span>Bật camera</span>
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="cameraSwitch" onclick="switchCamera()" style="display:none;">
+                                        <i class="fas fa-sync-alt me-1"></i><span>Đổi camera</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" id="cameraToggle" onclick="toggleCamera()">
+                                        <i class="fas fa-video me-1"></i><span>Bật camera</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="scanner-container" id="scannerArea">
                                 <div id="reader"></div>
@@ -292,7 +297,7 @@
                             <h6 class="fw-bold mb-3"><i class="fas fa-keyboard me-2 text-primary"></i>Nhập mã thủ công</h6>
                             <div class="manual-input-wrapper">
                                 <input type="text" class="form-control form-control-lg glass" id="manualCode"
-                                       placeholder="VD: ORD-20260225-ABCD" onkeypress="if(event.key==='Enter'){checkInManual();}">
+                                        placeholder="VD: ORD-... hoặc TIX-..." onkeypress="if(event.key==='Enter'){checkInManual();}">
                                 <button class="submit-btn" onclick="checkInManual()"><i class="fas fa-arrow-right"></i></button>
                             </div>
                         </div>
@@ -336,8 +341,8 @@
                                 </div>
                                 <div class="col-4">
                                     <div class="checkin-stat">
-                                        <div class="stat-val text-primary" id="statTotal">${totalOrders != null ? totalOrders : 0}</div>
-                                        <div class="stat-lbl">Tổng đơn</div>
+                                        <div class="stat-val text-primary" id="statTotal">${totalTickets != null ? totalTickets : 0}</div>
+                                        <div class="stat-lbl">Tổng vé</div>
                                     </div>
                                 </div>
                                 <div class="col-4">
@@ -379,7 +384,17 @@ var csrfToken = '${sessionScope.csrf_token}';
 let html5QrCode = null;
 let cameraOn = false;
 let checkedInCount = parseInt('${checkedInCount != null ? checkedInCount : 0}') || 0;
-let totalOrders = parseInt('${totalOrders != null ? totalOrders : 0}') || 0;
+let totalTickets = parseInt('${totalTickets != null ? totalTickets : 0}') || 0;
+let availableCameras = [];
+let activeCameraId = null;
+let isProcessingScan = false;
+let lastScanKey = '';
+let lastScanAt = 0;
+let scannerUnlockedAt = 0;
+
+const SCAN_DEDUP_MS = 2500;
+const SCAN_LOCK_MS = 900;
+const MAX_FEED_ITEMS = 80;
 
 /** Escape HTML to prevent XSS in template literals */
 function escapeHTML(str) {
@@ -396,14 +411,16 @@ function selectEvent(id) {
 // ========== CAMERA ==========
 function toggleCamera() {
     if (cameraOn) {
-        stopCamera();
+        stopCamera(true);
     } else {
         startCamera();
     }
 }
 
-function startCamera() {
+async function startCamera() {
     const btn = document.getElementById('cameraToggle');
+    const switchBtn = document.getElementById('cameraSwitch');
+    if (cameraOn) return;
 
     // Check if mediaDevices API is available (requires HTTPS or localhost)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -418,20 +435,52 @@ function startCamera() {
         return;
     }
 
+    btn.disabled = true;
     document.getElementById('cameraPlaceholder').style.display = 'none';
 
-    html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-        onScanSuccess,
-        () => {}
-    ).then(() => {
+    try {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+
+        await refreshCameraList();
+        if (!activeCameraId && availableCameras.length > 0) {
+            const preferred = findPreferredCamera(availableCameras);
+            activeCameraId = preferred.id;
+        }
+
+        const qrConfig = {
+            fps: 8,
+            aspectRatio: 4 / 3,
+            disableFlip: true,
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.62);
+                const size = Math.max(180, Math.min(260, edge));
+                return { width: size, height: size };
+            },
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+        };
+
+        const cameraSource = activeCameraId ? { deviceId: { exact: activeCameraId } } : { facingMode: "environment" };
+
+        await html5QrCode.start(
+            cameraSource,
+            qrConfig,
+            onScanSuccess,
+            () => {}
+        );
+
         cameraOn = true;
         btn.innerHTML = '<i class="fas fa-video-slash me-1"></i><span>Tắt camera</span>';
         btn.classList.replace('btn-outline-primary', 'btn-primary');
+        btn.disabled = false;
+        if (switchBtn) {
+            switchBtn.style.display = availableCameras.length > 1 ? 'inline-flex' : 'none';
+            switchBtn.disabled = availableCameras.length <= 1;
+        }
         document.getElementById('scanOverlay').style.display = 'flex';
-    }).catch(err => {
+        enforceCameraPreviewOrientation();
+    } catch (err) {
         let msg = 'Kiểm tra quyền truy cập camera trong cài đặt trình duyệt';
         if (err.name === 'NotAllowedError') {
             msg = 'Bạn đã từ chối quyền camera. Nhấn biểu tượng 🔒 trên thanh địa chỉ để cấp lại';
@@ -442,59 +491,176 @@ function startCamera() {
         }
         showResult('error', 'Không thể truy cập camera', msg);
         document.getElementById('cameraPlaceholder').style.display = 'flex';
-    });
-}
-
-function stopCamera() {
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-            cameraOn = false;
-            const btn = document.getElementById('cameraToggle');
-            btn.innerHTML = '<i class="fas fa-video me-1"></i><span>Bật camera</span>';
-            btn.classList.replace('btn-primary', 'btn-outline-primary');
-            document.getElementById('scanOverlay').style.display = 'none';
-            document.getElementById('cameraPlaceholder').style.display = 'flex';
-        });
+        btn.disabled = false;
     }
 }
 
-// ========== SCAN HANDLER ==========
-let lastScanned = '';
-let lastScanTime = 0;
+async function stopCamera(resetActiveCamera) {
+    const btn = document.getElementById('cameraToggle');
+    const switchBtn = document.getElementById('cameraSwitch');
 
+    if (html5QrCode) {
+        try {
+            await html5QrCode.stop();
+            await html5QrCode.clear();
+        } catch (e) {
+            // Ignore stop/clear errors if stream is already closed.
+        }
+    }
+
+    cameraOn = false;
+    isProcessingScan = false;
+    btn.innerHTML = '<i class="fas fa-video me-1"></i><span>Bật camera</span>';
+    btn.classList.replace('btn-primary', 'btn-outline-primary');
+    btn.disabled = false;
+    if (switchBtn) {
+        switchBtn.style.display = 'none';
+        switchBtn.disabled = true;
+    }
+    if (resetActiveCamera) {
+        activeCameraId = null;
+    }
+    document.getElementById('scanOverlay').style.display = 'none';
+    document.getElementById('cameraPlaceholder').style.display = 'flex';
+}
+
+async function switchCamera() {
+    if (!cameraOn || availableCameras.length < 2) return;
+    const currentIndex = availableCameras.findIndex(function(c) { return c.id === activeCameraId; });
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % availableCameras.length : 0;
+    activeCameraId = availableCameras[nextIndex].id;
+    await stopCamera(false);
+    await startCamera();
+}
+
+async function refreshCameraList() {
+    try {
+        const cameras = await Html5Qrcode.getCameras();
+        availableCameras = (cameras || []).map(function(cam) {
+            return { id: cam.id, label: cam.label || '' };
+        });
+    } catch (e) {
+        availableCameras = [];
+    }
+}
+
+function findPreferredCamera(cameras) {
+    if (!cameras || cameras.length === 0) return null;
+    const preferred = cameras.find(function(cam) {
+        const label = (cam.label || '').toLowerCase();
+        return label.includes('back') || label.includes('rear') || label.includes('environment');
+    });
+    return preferred || cameras[0];
+}
+
+function enforceCameraPreviewOrientation() {
+    setTimeout(function() {
+        const videoEl = document.querySelector('#reader video');
+        if (videoEl) {
+            videoEl.style.transform = 'none';
+        }
+    }, 80);
+}
+
+// ========== SCAN HANDLER ==========
 function onScanSuccess(code) {
     const now = Date.now();
-    if (code === lastScanned && now - lastScanTime < 3000) return;
-    lastScanned = code;
-    lastScanTime = now;
-    // QR scan → always send as qrToken
-    processQrCheckIn(code);
+    if (isProcessingScan || now < scannerUnlockedAt) return;
+
+    const parsed = parseScannedPayload(code);
+    if (!parsed.value) return;
+
+    const key = parsed.kind + ':' + parsed.value;
+    if (key === lastScanKey && now - lastScanAt < SCAN_DEDUP_MS) return;
+    lastScanKey = key;
+    lastScanAt = now;
+    isProcessingScan = true;
+
+    const action = parsed.kind === 'order'
+        ? lookupOrder(parsed.value)
+        : processQrCheckIn(parsed.value);
+
+    Promise.resolve(action).finally(function() {
+        isProcessingScan = false;
+        scannerUnlockedAt = Date.now() + SCAN_LOCK_MS;
+    });
 }
 
 function checkInManual() {
     const input = document.getElementById('manualCode');
-    const code = input.value.trim();
+    const code = (input.value || '').trim();
     if (!code) return;
-    // Manual input → always send as orderCode (lookup first)
-    lookupOrder(code);
+
+    const parsed = parseScannedPayload(code);
+    if (parsed.kind === 'order') {
+        lookupOrder(parsed.value);
+    } else {
+        processQrCheckIn(parsed.value);
+    }
     input.value = '';
 }
 
+function parseScannedPayload(raw) {
+    let value = (raw || '').trim();
+    if (!value) return { kind: 'qr', value: '' };
+
+    if ((value.startsWith('http://') || value.startsWith('https://')) && value.indexOf('?') > 0) {
+        try {
+            const u = new URL(value);
+            const fromQuery = u.searchParams.get('qrToken')
+                || u.searchParams.get('token')
+                || u.searchParams.get('code')
+                || u.searchParams.get('orderCode')
+                || u.searchParams.get('ticketCode');
+            if (fromQuery) {
+                value = fromQuery.trim();
+            }
+        } catch (e) {
+            // Keep original value if URL parse fails.
+        }
+    }
+
+    if (value.indexOf('%') >= 0) {
+        try {
+            value = decodeURIComponent(value).trim();
+        } catch (e) {
+            // Keep encoded text when decode fails.
+        }
+    }
+
+    const upper = value.toUpperCase();
+    if (upper.startsWith('ORD-') || upper.startsWith('TIX-')) {
+        return { kind: 'order', value: upper };
+    }
+
+    return { kind: 'qr', value: value };
+}
+
 // ========== QR SCAN CHECK-IN ==========
+function postCheckInApi(fields) {
+    const body = Object.keys(fields).map(function(key) {
+        return encodeURIComponent(key) + '=' + encodeURIComponent(fields[key] == null ? '' : fields[key]);
+    }).join('&') + '&csrf_token=' + encodeURIComponent(csrfToken);
+
+    return fetch(contextPath + '/organizer/check-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        credentials: 'same-origin',
+        body: body
+    }).then(function(r) {
+        if (r.status === 403) throw new Error('CSRF');
+        return r.json();
+    }).then(function(data) {
+        if (data && data.csrfToken) csrfToken = data.csrfToken;
+        return data;
+    });
+}
+
 function processQrCheckIn(code) {
     showResult('loading', 'Đang xử lý QR...', '');
 
-    fetch(contextPath + '/organizer/check-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'eventId=' + encodeURIComponent(eventId)
-            + '&qrToken=' + encodeURIComponent(code)
-            + '&csrf_token=' + encodeURIComponent(csrfToken)
-    })
-    .then(r => { if (r.status === 403) throw new Error('CSRF'); return r.json(); })
+    return postCheckInApi({ eventId: eventId, qrToken: code })
     .then(data => {
-        if (data.csrfToken) csrfToken = data.csrfToken;
         // Use ticketCode for display, NEVER the raw token
         const displayCode = data.ticketCode || 'QR vé';
         if (data.success) {
@@ -527,16 +693,8 @@ function processQrCheckIn(code) {
 function lookupOrder(orderCode) {
     showResult('loading', 'Đang tra cứu đơn hàng...', escapeHTML(orderCode));
 
-    fetch(contextPath + '/organizer/check-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'eventId=' + encodeURIComponent(eventId)
-            + '&orderCode=' + encodeURIComponent(orderCode)
-            + '&csrf_token=' + encodeURIComponent(csrfToken)
-    })
-    .then(r => { if (r.status === 403) throw new Error('CSRF'); return r.json(); })
+    return postCheckInApi({ eventId: eventId, orderCode: orderCode })
     .then(data => {
-        if (data.csrfToken) csrfToken = data.csrfToken;
         if (data.success && data.action === 'lookup') {
             showTicketPicker(data);
         } else {
@@ -597,18 +755,13 @@ function checkInTicket(orderCode, ticketId, btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    fetch(contextPath + '/organizer/check-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'eventId=' + encodeURIComponent(eventId)
-            + '&orderCode=' + encodeURIComponent(orderCode)
-            + '&action=checkin'
-            + '&ticketId=' + encodeURIComponent(ticketId)
-            + '&csrf_token=' + encodeURIComponent(csrfToken)
+    return postCheckInApi({
+        eventId: eventId,
+        orderCode: orderCode,
+        action: 'checkin',
+        ticketId: ticketId
     })
-    .then(r => { if (r.status === 403) throw new Error('CSRF'); return r.json(); })
     .then(data => {
-        if (data.csrfToken) csrfToken = data.csrfToken;
         if (data.success) {
             // Update button to checked state
             const row = btn.closest('.d-flex');
@@ -668,10 +821,10 @@ function updateStats() {
     el.classList.add('bump');
     setTimeout(() => el.classList.remove('bump'), 300);
 
-    const remaining = Math.max(0, totalOrders - checkedInCount);
+    const remaining = Math.max(0, totalTickets - checkedInCount);
     document.getElementById('statRemaining').textContent = remaining;
 
-    const pct = totalOrders > 0 ? Math.round(checkedInCount / totalOrders * 100) : 0;
+    const pct = totalTickets > 0 ? Math.round(checkedInCount / totalTickets * 100) : 0;
     document.getElementById('donutPercent').textContent = pct + '%';
     document.getElementById('donutPath').setAttribute('stroke-dasharray', pct + ', 100');
 }
@@ -694,24 +847,49 @@ function addFeedItem(code, name, type) {
         + '<div class="text-muted" style="font-size:0.7rem;">' + labels[type] + ' \u2022 ' + new Date().toLocaleTimeString('vi-VN') + '</div>'
         + '</div>';
     feed.insertBefore(item, feed.firstChild);
+
+    while (feed.children.length > MAX_FEED_ITEMS) {
+        feed.removeChild(feed.lastElementChild);
+    }
 }
 
 // ========== SOUND ==========
+let audioContext = null;
+let lastSoundPlayedAt = 0;
+
 function playSound(type) {
     try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc.frequency.setValueAtTime(type === 'success' ? 880 : 220, ctx.currentTime);
-        osc.start(); osc.stop(ctx.currentTime + 0.3);
+        const now = Date.now();
+        if (now - lastSoundPlayedAt < 120) return;
+        lastSoundPlayedAt = now;
+
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        gain.gain.setValueAtTime(0.12, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.18);
+        osc.frequency.setValueAtTime(type === 'success' ? 880 : 220, audioContext.currentTime);
+        osc.start();
+        osc.stop(audioContext.currentTime + 0.18);
     } catch(e) {}
 }
 
 // Init stats
 updateStats();
+
+window.addEventListener('beforeunload', function() {
+    if (cameraOn) {
+        stopCamera(false);
+    }
+});
 
 // Copy IP to clipboard
 function copyIP(elementId) {

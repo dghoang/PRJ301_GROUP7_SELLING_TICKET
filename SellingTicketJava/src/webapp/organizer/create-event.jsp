@@ -560,10 +560,10 @@
                             <h5 class="fw-bold mb-3"><i class="fas fa-cog text-primary me-2"></i>Cài đặt vé</h5>
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <label class="form-label small fw-medium">Giới hạn vé/đơn hàng</label>
+                                     <label class="form-label small fw-medium">Giới hạn vé tối đa/mỗi khách</label>
                                     <input type="number" class="form-control" name="maxTicketsPerOrder" value="0" min="0" max="50"
-                                           placeholder="0 = mặc định (10)">
-                                    <small class="text-muted">0 = dùng mặc định hệ thống (10)</small>
+                                         placeholder="0 = mặc định hệ thống (4)">
+                                     <small class="text-muted">Giới hạn tổng vé 1 khách được mua cho sự kiện này. 0 = mặc định hệ thống (4)</small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small fw-medium">Tổng vé tối đa cho sự kiện</label>

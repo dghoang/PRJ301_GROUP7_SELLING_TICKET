@@ -13,9 +13,11 @@ import static com.sellingticket.util.ServletUtil.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,9 +72,9 @@ public class OrganizerCheckInController extends HttpServlet {
                         request.setAttribute("expiredMessage", "Sự kiện đã kết thúc, không thể check-in.");
                     }
                     request.setAttribute("event", event);
-                    int totalOrders = orderService.getOrdersByEvent(eventId, 1, 9999).size();
+                    int totalTickets = ticketDAO.countIssuedByEvent(eventId);
                     int checkedIn = ticketDAO.countCheckedInByEvent(eventId);
-                    request.setAttribute("totalOrders", totalOrders);
+                    request.setAttribute("totalTickets", totalTickets);
                     request.setAttribute("checkedInCount", checkedIn);
                 }
             }
@@ -105,26 +107,31 @@ public class OrganizerCheckInController extends HttpServlet {
         String newCsrf = (String) request.getAttribute("csrf_token");
         String csrfField = newCsrf != null ? ",\"csrfToken\":\"" + escapeJson(newCsrf) + "\"" : "";
 
-        String qrToken = request.getParameter("qrToken");
-        String orderCode = request.getParameter("orderCode");
+        String qrToken = normalizeScannedValue(request.getParameter("qrToken"));
+        String orderCode = normalizeScannedValue(request.getParameter("orderCode"));
         String action = request.getParameter("action");
         int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
 
         // PATH 1: QR Scan — always uses qrToken param
-        if (qrToken != null && !qrToken.trim().isEmpty()) {
-            handleQrCheckIn(response, user, qrToken.trim(), eventId, csrfField);
+        if (qrToken != null && !qrToken.isEmpty()) {
+            // Compatibility: some old QR payloads contain raw order/ticket codes instead of JWT token.
+            if (looksLikeOrderCode(qrToken) || looksLikeTicketCode(qrToken)) {
+                handleOrderLookup(response, user, qrToken, eventId, csrfField);
+                return;
+            }
+            handleQrCheckIn(response, user, qrToken, eventId, csrfField);
             return;
         }
 
         // PATH 2: Manual Order Code
-        if (orderCode != null && !orderCode.trim().isEmpty()) {
+        if (orderCode != null && !orderCode.isEmpty()) {
             if ("checkin".equals(action)) {
                 // Check-in a specific ticket by ID
                 int ticketId = parseIntOrDefault(request.getParameter("ticketId"), 0);
-                handleSingleTicketCheckIn(response, user, orderCode.trim(), ticketId, eventId, csrfField);
+                handleSingleTicketCheckIn(response, user, orderCode, ticketId, eventId, csrfField);
             } else {
                 // Default: lookup tickets for this order
-                handleOrderLookup(response, user, orderCode.trim(), eventId, csrfField);
+                handleOrderLookup(response, user, orderCode, eventId, csrfField);
             }
             return;
         }
@@ -137,14 +144,6 @@ public class OrganizerCheckInController extends HttpServlet {
      */
     private void handleQrCheckIn(HttpServletResponse response, User user, String token, int eventId, String csrfField)
             throws IOException {
-
-        // Clean the token: trim whitespace, URL-decode if needed
-        token = token.trim();
-        if (token.contains("%")) {
-            try {
-                token = java.net.URLDecoder.decode(token, "UTF-8").trim();
-            } catch (Exception ignored) {}
-        }
 
         LOGGER.log(Level.INFO, "QR Check-in attempt: token length={0}, starts={1}",
                 new Object[]{token.length(), token.substring(0, Math.min(20, token.length()))});
@@ -180,14 +179,17 @@ public class OrganizerCheckInController extends HttpServlet {
             return;
         }
 
-        // Verify parent order is not cancelled/refunded
-        if (ticket.getOrderCode() != null) {
-            Order parentOrder = orderService.getOrderByCode(ticket.getOrderCode());
-            if (parentOrder != null && ("cancelled".equals(parentOrder.getStatus()) || "refunded".equals(parentOrder.getStatus()))) {
-                sendJson(response, "{\"success\":false,\"ticketCode\":\"" + escapeJson(ticketCode)
-                        + "\",\"message\":\"Đơn hàng đã bị huỷ/hoàn tiền — vé không hợp lệ\"" + csrfField + "}");
-                return;
-            }
+        // Verify parent order state from joined ticket query (avoids extra DB round-trip).
+        String orderStatus = ticket.getOrderStatus();
+        if ("cancelled".equals(orderStatus) || "refunded".equals(orderStatus)) {
+            sendJson(response, "{\"success\":false,\"ticketCode\":\"" + escapeJson(ticketCode)
+                    + "\",\"message\":\"Đơn hàng đã bị huỷ/hoàn tiền — vé không hợp lệ\"" + csrfField + "}");
+            return;
+        }
+        if (!("paid".equals(orderStatus) || "checked_in".equals(orderStatus))) {
+            sendJson(response, "{\"success\":false,\"ticketCode\":\"" + escapeJson(ticketCode)
+                    + "\",\"message\":\"Đơn hàng chưa thanh toán — không thể check-in\"" + csrfField + "}");
+            return;
         }
 
         if (ticket.isCheckedIn()) {
@@ -221,6 +223,16 @@ public class OrganizerCheckInController extends HttpServlet {
             throws IOException {
 
         Order order = orderService.getOrderByCode(orderCode);
+        if (order == null && looksLikeTicketCode(orderCode)) {
+            // Reverse lookup: allow entering/scanning ticket code (TIX-...) in manual flow.
+            Ticket ticket = ticketDAO.getTicketByCode(orderCode);
+            if (ticket != null && ticket.getOrderCode() != null) {
+                order = orderService.getOrderByCode(ticket.getOrderCode());
+                if (order != null) {
+                    orderCode = order.getOrderCode();
+                }
+            }
+        }
         if (order == null) {
             sendJson(response, "{\"success\":false,\"message\":\"Không tìm thấy đơn hàng\"" + csrfField + "}");
             return;
@@ -241,7 +253,7 @@ public class OrganizerCheckInController extends HttpServlet {
             return;
         }
 
-        if (!"paid".equals(order.getStatus())) {
+        if (!("paid".equals(order.getStatus()) || "checked_in".equals(order.getStatus()))) {
             sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng chưa thanh toán (trạng thái: "
                     + escapeJson(order.getStatus()) + ")\"" + csrfField + "}");
             return;
@@ -303,6 +315,16 @@ public class OrganizerCheckInController extends HttpServlet {
             return;
         }
 
+        String orderStatus = ticket.getOrderStatus();
+        if ("cancelled".equals(orderStatus) || "refunded".equals(orderStatus)) {
+            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng đã bị huỷ/hoàn tiền — không thể check-in\"" + csrfField + "}");
+            return;
+        }
+        if (!("paid".equals(orderStatus) || "checked_in".equals(orderStatus))) {
+            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng chưa thanh toán — không thể check-in\"" + csrfField + "}");
+            return;
+        }
+
         // Check if event is expired
         Event eventObj = eventService.getEventDetails(ticket.getEventId());
         boolean isExpired = (eventObj != null && eventObj.getEndDate() != null && eventObj.getEndDate().before(new java.util.Date()));
@@ -323,6 +345,82 @@ public class OrganizerCheckInController extends HttpServlet {
     private String escapeJson(String value) {
         if (value == null) return "";
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String normalizeScannedValue(String raw) {
+        if (raw == null) return null;
+        String value = raw.trim();
+        if (value.isEmpty()) return "";
+
+        // Strip wrapping quotes from scanners that include JSON-like payload wrappers.
+        if (value.length() >= 2 && ((value.startsWith("\"") && value.endsWith("\""))
+                || (value.startsWith("'") && value.endsWith("'")))) {
+            value = value.substring(1, value.length() - 1).trim();
+        }
+
+        // Decode percent-encoded payload (once is enough for our QR formats).
+        if (value.contains("%")) {
+            try {
+                value = java.net.URLDecoder.decode(value, "UTF-8").trim();
+            } catch (Exception ignored) {
+                // Keep original value when decode fails.
+            }
+        }
+
+        // Accept deep links: extract known query params when full URL is scanned.
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            try {
+                URI uri = URI.create(value);
+                String query = uri.getRawQuery();
+                String[] keys = new String[]{"qrToken", "token", "code", "orderCode", "ticketCode"};
+                for (String key : keys) {
+                    String found = extractQueryParam(query, key);
+                    if (found != null && !found.trim().isEmpty()) {
+                        return found.trim();
+                    }
+                }
+
+                String path = uri.getPath();
+                if (path != null && !path.isEmpty()) {
+                    String[] parts = path.split("/");
+                    String tail = parts.length > 0 ? parts[parts.length - 1] : "";
+                    if (looksLikeOrderCode(tail) || looksLikeTicketCode(tail)) {
+                        return tail;
+                    }
+                }
+            } catch (Exception ignored) {
+                // Fallback to raw value.
+            }
+        }
+
+        return value;
+    }
+
+    private String extractQueryParam(String rawQuery, String key) {
+        if (rawQuery == null || rawQuery.trim().isEmpty()) return null;
+        String[] pairs = rawQuery.split("&");
+        for (String pair : pairs) {
+            int idx = pair.indexOf('=');
+            String k = idx >= 0 ? pair.substring(0, idx) : pair;
+            if (!key.equals(k)) continue;
+            String v = idx >= 0 ? pair.substring(idx + 1) : "";
+            try {
+                return java.net.URLDecoder.decode(v, "UTF-8");
+            } catch (Exception ignored) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    private boolean looksLikeOrderCode(String value) {
+        if (value == null) return false;
+        return value.trim().toUpperCase(Locale.ROOT).matches("^ORD-[A-Z0-9-]{6,}$");
+    }
+
+    private boolean looksLikeTicketCode(String value) {
+        if (value == null) return false;
+        return value.trim().toUpperCase(Locale.ROOT).matches("^TIX-[A-Z0-9-]{6,}$");
     }
 
     /** Get all non-loopback IPv4 addresses for LAN access. */
