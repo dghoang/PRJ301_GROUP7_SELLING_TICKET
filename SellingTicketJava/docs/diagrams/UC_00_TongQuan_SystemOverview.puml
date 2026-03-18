@@ -1,0 +1,176 @@
+@startuml UC_00_TongQuan_SystemOverview
+' ================================================================
+'  USE CASE TỔNG QUAN — HỆ THỐNG BÁN VÉ SỰ KIỆN TRỰC TUYẾN
+'  PRJ301 — Group 4 — FPT University — v3.0 (Clean Layout)
+' ================================================================
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam handwritten false
+
+skinparam usecase {
+    BackgroundColor #FAFAFA
+    BorderColor #546E7A
+    FontSize 10
+}
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #B0BEC5
+    FontSize 11
+    FontStyle bold
+}
+skinparam rectangle {
+    RoundCorner 8
+    BorderColor #1976D2
+    BackgroundColor #FFFFFF
+}
+
+' ====== ACTORS (trái) ======
+actor "Guest" as G #C8E6C9
+actor "Customer" as C #BBDEFB
+actor "Organizer" as O #FFE082
+actor "Staff" as S #FFCDD2
+actor "Admin" as A #CE93D8
+
+G <|-- C
+
+' ====== Sắp xếp actor theo chiều dọc ======
+G -[hidden]d- C
+C -[hidden]d- O
+O -[hidden]d- S
+S -[hidden]d- A
+
+' ====== SYSTEM BOUNDARY ======
+rectangle "SellingTicket Platform" {
+
+    package "Truy cập công khai" as PKG1 {
+        usecase "Đăng ký tài khoản" as UC11
+        usecase "Đăng nhập" as UC12
+        usecase "Đăng nhập Google" as UC13
+        usecase "Duyệt sự kiện" as UC21
+        usecase "Tìm kiếm sự kiện" as UC23
+        usecase "Xem chi tiết sự kiện" as UC22
+    }
+
+    package "Mua vé & Thanh toán" as PKG2 {
+        usecase "Chọn vé" as UC41
+        usecase "Checkout đơn hàng" as UC42
+        usecase "Thanh toán VietQR" as UC43
+        usecase "Phát vé điện tử" as UC45
+        usecase "Xem vé đã mua" as UC46
+        usecase "Lịch sử đơn hàng" as UC47
+    }
+
+    package "Giao tiếp & Hỗ trợ" as PKG3 {
+        usecase "Chat trực tuyến" as UC61
+        usecase "Gửi Support Ticket" as UC64
+        usecase "Quản lý Profile" as UC15
+        usecase "Đăng xuất" as UC14
+    }
+
+    package "Quản lý Sự kiện" as PKG4 {
+        usecase "Tạo sự kiện" as UC24
+        usecase "Sửa / Xóa sự kiện" as UC25
+        usecase "Quản lý Loại vé" as UC31
+        usecase "Upload Media" as UC96
+    }
+
+    package "Vận hành Organizer" as PKG5 {
+        usecase "Quản lý Voucher" as UC71
+        usecase "Quản lý Staff" as UC97
+        usecase "Organizer Dashboard" as UC81
+        usecase "Xử lý Support Ticket" as UC65
+        usecase "Chat với khách" as UC62
+        usecase "Báo cáo / Export" as UC84
+    }
+
+    package "Check-in sự kiện" as PKG6 {
+        usecase "Scan QR Check-in" as UC51
+        usecase "Check-in thủ công" as UC52
+        usecase "Xem DS check-in" as UC54
+        usecase "Staff Dashboard" as UC83
+    }
+
+    package "Quản trị hệ thống" as PKG7 {
+        usecase "Duyệt / Từ chối sự kiện" as UC27
+        usecase "Quản lý Users" as UC91
+        usecase "Quản lý Categories" as UC92
+        usecase "Quản lý đơn hàng" as UC93
+        usecase "System Voucher" as UC72
+        usecase "Admin Dashboard" as UC82
+        usecase "Cấu hình hệ thống" as UC95
+        usecase "Activity Log" as UC85
+    }
+}
+
+' ====== Guest (→ PKG1) ======
+G --> UC11
+G --> UC12
+G --> UC13
+G --> UC21
+G --> UC23
+G --> UC22
+
+' ====== Customer (→ PKG2 + PKG3) ======
+C --> UC41
+C --> UC42
+C --> UC43
+C --> UC46
+C --> UC47
+C --> UC61
+C --> UC64
+C --> UC15
+C --> UC14
+
+' ====== Organizer (→ PKG4 + PKG5 + PKG6) ======
+O --> UC24
+O --> UC25
+O --> UC31
+O --> UC96
+O --> UC71
+O --> UC97
+O --> UC81
+O --> UC65
+O --> UC62
+O --> UC84
+O --> UC51
+O --> UC54
+
+' ====== Staff (→ PKG6) ======
+S --> UC51
+S --> UC52
+S --> UC54
+S --> UC83
+
+' ====== Admin (→ PKG7) ======
+A --> UC27
+A --> UC91
+A --> UC92
+A --> UC93
+A --> UC72
+A --> UC82
+A --> UC95
+A --> UC85
+
+' ====== Include (chỉ giữ quan trọng nhất) ======
+UC42 ..> UC45 : <<include>>
+UC24 ..> UC31 : <<include>>
+UC24 ..> UC96 : <<include>>
+
+' ====== Extend ======
+UC12 <.. UC13 : <<extend>>
+
+' ====== LEGEND ======
+legend bottom
+  |= Ký hiệu |= Ý nghĩa |
+  | ──▶ | Actor sử dụng Use Case |
+  | ..▶ <<include>> | Bắt buộc gọi |
+  | ..▶ <<extend>> | Tùy chọn mở rộng |
+  |= Tổng cộng: 42 Use Cases · 5 Actors · 7 Packages |
+endlegend
+
+footer PRJ301 — Group 4 — FPT University — v3.0 — 18/03/2026
+
+@enduml

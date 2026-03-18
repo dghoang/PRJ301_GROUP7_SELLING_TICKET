@@ -1,0 +1,108 @@
+@startuml UC_02_EventManagement
+' ============================================================
+' USE CASE DIAGRAM - MODULE 2: Quản lý Sự kiện
+' Event Management
+' ============================================================
+
+title **Biểu đồ Use Case - Module 2\nQuản lý Sự kiện**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #FFF3E0
+    BorderColor #E65100
+    FontSize 12
+    ArrowColor #E65100
+}
+
+' === ACTORS ===
+actor "Guest\n(Khách)" as Guest #LightGreen
+actor "Attendee\n(Người tham dự)" as Attendee #LightBlue
+actor "Organizer\n(Nhà tổ chức)" as Organizer #Gold
+actor "Admin\n(Quản trị viên)" as Admin #Orchid
+
+' === EXTERNAL ===
+actor "Cloudinary\nCDN" as Cloudinary #LightGray
+
+Guest <|-- Attendee
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 2: Quản lý Sự kiện" {
+
+    usecase "**UC-2.1: Tạo sự kiện mới**\n---\nNhập: title, slug, description,\nlocation, address, dates,\ncategory, isPrivate.\nUpload banner → Cloudinary.\nAuto-generate slug.\nstatus = pending." as UC_CREATE
+
+    usecase "**UC-2.2: Chỉnh sửa sự kiện**\n---\nCập nhật thông tin sự kiện\nown events only.\nActive events: giới hạn\nfields được sửa." as UC_EDIT
+
+    usecase "**UC-2.3: Xóa/Ẩn sự kiện**\n---\nSoft-delete hoặc\nchuyển status → draft/hidden.\nKhông xóa nếu có orders." as UC_DELETE
+
+    usecase "**UC-2.4: Duyệt/Từ chối sự kiện**\n---\nAdmin review events pending.\nApprove → status = approved.\nReject → rejectionReason +\nnotify organizer." as UC_APPROVE
+
+    usecase "**UC-2.5: Feature sự kiện**\n---\nisFeatured = true.\nHiển thị ưu tiên\ntrên trang chủ." as UC_FEATURE
+
+    usecase "**UC-2.6: Xem danh sách sự kiện**\n---\nPagination, filter theo\ncategory, sort by date.\nChỉ hiện approved events\ncho public." as UC_LIST
+
+    usecase "**UC-2.7: Xem chi tiết sự kiện**\n---\nBanner, mô tả, địa điểm,\nthời gian, loại vé,\norganizer info.\nTăng view count +1." as UC_DETAIL
+
+    usecase "**UC-2.8: Tìm kiếm sự kiện**\n---\nFull-text search: title,\nlocation, category.\nFilter: ngày, giá, status." as UC_SEARCH
+
+    ' --- Sub use cases ---
+    usecase "Upload Banner\n(Cloudinary CDN)" as UC_UPLOAD <<include>>
+
+    usecase "Auto-generate Slug\n(URL-friendly)" as UC_SLUG <<include>>
+
+    usecase "Gửi Notification\ncho Organizer" as UC_NOTIFY <<include>>
+
+    usecase "Gửi Notification\nAdmin (event pending)" as UC_NOTIFY_ADMIN <<include>>
+}
+
+' === ASSOCIATIONS ===
+Guest --> UC_LIST
+Guest --> UC_DETAIL
+Guest --> UC_SEARCH
+
+Organizer --> UC_CREATE
+Organizer --> UC_EDIT
+Organizer --> UC_DELETE
+
+Admin --> UC_APPROVE
+Admin --> UC_FEATURE
+
+' === EXTERNAL ===
+Cloudinary --> UC_UPLOAD
+
+' === INCLUDE / EXTEND ===
+UC_CREATE ..> UC_UPLOAD : <<include>>
+UC_CREATE ..> UC_SLUG : <<include>>
+UC_CREATE ..> UC_NOTIFY_ADMIN : <<include>>
+UC_EDIT ..> UC_UPLOAD : <<include>>
+
+UC_APPROVE ..> UC_NOTIFY : <<include>>
+
+UC_LIST <.. UC_SEARCH : <<extend>>
+
+' === NOTES ===
+note right of UC_CREATE
+  **FR-07, FR-08**
+  Multi-step form:
+  1. Basic info
+  2. Banner upload
+  3. Ticket types
+  4. Review & submit
+end note
+
+note right of UC_APPROVE
+  **FR-10**
+  Status flow:
+  pending → approved ✓
+  pending → rejected ✗
+  Notification auto-sent
+end note
+
+note bottom of UC_DETAIL
+  **FR-13**
+  Views counter
+  incremented on each
+  unique page view
+end note
+
+@enduml

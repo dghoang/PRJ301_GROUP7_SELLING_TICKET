@@ -1,0 +1,135 @@
+@startuml SD_05_ApproveRejectEvent
+' ============================================================
+' SEQUENCE DIAGRAM - Duyệt/Từ chối Sự kiện (Admin Approval)
+' FR-10: Admin duyệt hoặc từ chối event pending
+' ============================================================
+
+title **SD-05: Duyệt / Từ chối Sự kiện\n(Admin Event Approval)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #F3E5F5
+    ParticipantBorderColor #7B1FA2
+    ArrowColor #7B1FA2
+}
+
+actor "Admin" as Admin #Orchid
+participant "Browser\n(JSP)" as Browser #LightYellow
+participant "AdminEventController" as Controller #F3E5F5
+participant "EventService" as EventSvc #E8F5E9
+participant "NotificationService" as NotifSvc #E0F7FA
+participant "EventDAO" as DAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Xem danh sách Events Pending ==
+
+Admin -> Browser: Truy cập Admin → Events
+Browser -> Controller: GET /admin/events\n?status=pending
+activate Controller
+Controller -> EventSvc: getEventsByStatus("pending")
+activate EventSvc
+EventSvc -> DAO: findByStatus("pending")
+activate DAO
+DAO -> DB: SELECT e.*, u.fullName as organizerName,\nc.name as categoryName\nFROM Events e\nJOIN Users u ON e.organizerId = u.userId\nJOIN Categories c ON e.categoryId = c.categoryId\nWHERE e.status = 'pending'\nORDER BY e.createdAt DESC
+activate DB
+DB --> DAO: List<Event>
+deactivate DB
+DAO --> EventSvc: events
+deactivate DAO
+EventSvc --> Controller: events
+deactivate EventSvc
+Controller --> Browser: Forward → admin/events.jsp\n(events list, pagination)
+deactivate Controller
+Browser --> Admin: Danh sách events cần duyệt
+
+== Xem Chi tiết + Thao tác ==
+
+Admin -> Browser: Click vào event cần duyệt
+Browser -> Controller: GET /admin/events/detail?id={eventId}
+activate Controller
+Controller -> EventSvc: getEventWithDetails(eventId)
+activate EventSvc
+EventSvc -> DB: SELECT event + ticketTypes\n+ organizer info
+activate DB
+DB --> EventSvc: Event details
+deactivate DB
+EventSvc --> Controller: Event (full detail)
+deactivate EventSvc
+Controller --> Browser: Forward → admin/event-detail.jsp
+deactivate Controller
+Browser --> Admin: Chi tiết event:\ntitle, description, banner,\nticket types, organizer info
+
+== Luồng DUYỆT (Approve) ==
+
+Admin -> Browser: Click "Duyệt" (Approve)
+Browser -> Controller: POST /admin/events/approve\n{eventId, csrf_token}
+activate Controller
+
+Controller -> Controller: Validate:\n- event exists\n- event.status == 'pending'
+
+Controller -> EventSvc: approveEvent(eventId, adminId)
+activate EventSvc
+EventSvc -> DAO: updateStatus(eventId,\n"approved", null)
+activate DAO
+DAO -> DB: UPDATE Events\nSET status = 'approved',\napprovedAt = GETDATE(),\napprovedBy = ?\nWHERE eventId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> EventSvc: OK
+deactivate DAO
+
+EventSvc -> NotifSvc: notify(organizerId,\n"Sự kiện đã được duyệt",\neventId, 'EVENT_APPROVED')
+activate NotifSvc
+NotifSvc -> DB: INSERT INTO Notifications\n(userId=organizerId,\ntype='EVENT_APPROVED',\nmessage, relatedEventId,\nisRead=false, createdAt)
+activate DB
+DB --> NotifSvc: Created
+deactivate DB
+NotifSvc --> EventSvc: OK
+deactivate NotifSvc
+
+EventSvc --> Controller: Success
+deactivate EventSvc
+
+Controller -> DB: INSERT ActivityLogs\n(action='APPROVE_EVENT')
+Controller --> Browser: Redirect → /admin/events\n+ flash: "✅ Đã duyệt sự kiện"
+Browser --> Admin: ✅ Thông báo duyệt thành công
+
+== Luồng TỪ CHỐI (Reject) ==
+
+Admin -> Browser: Click "Từ chối" (Reject)\n+ Nhập lý do từ chối
+Browser -> Controller: POST /admin/events/reject\n{eventId, rejectionReason,\ncsrf_token}
+activate Controller
+
+Controller -> Controller: Validate:\n- rejectionReason not empty
+
+Controller -> EventSvc: rejectEvent(eventId,\nrejectionReason, adminId)
+activate EventSvc
+EventSvc -> DAO: updateStatus(eventId,\n"rejected", rejectionReason)
+activate DAO
+DAO -> DB: UPDATE Events\nSET status = 'rejected',\nrejectionReason = ?,\nrejectedAt = GETDATE()\nWHERE eventId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> EventSvc: OK
+deactivate DAO
+
+EventSvc -> NotifSvc: notify(organizerId,\n"Sự kiện bị từ chối: {reason}",\neventId, 'EVENT_REJECTED')
+activate NotifSvc
+NotifSvc -> DB: INSERT INTO Notifications
+activate DB
+DB --> NotifSvc: Created
+deactivate DB
+NotifSvc --> EventSvc: OK
+deactivate NotifSvc
+
+EventSvc --> Controller: Success
+deactivate EventSvc
+
+Controller -> DB: INSERT ActivityLogs\n(action='REJECT_EVENT')
+Controller --> Browser: Redirect → /admin/events\n+ flash: "❌ Đã từ chối sự kiện"
+Browser --> Admin: ❌ Thông báo từ chối thành công
+
+deactivate Controller
+
+@enduml

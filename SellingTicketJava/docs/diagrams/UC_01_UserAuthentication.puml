@@ -1,0 +1,107 @@
+@startuml UC_01_UserAuthentication
+' ============================================================
+' USE CASE DIAGRAM - MODULE 1: Quản lý Người dùng & Xác thực
+' User & Authentication Management
+' ============================================================
+
+title **Biểu đồ Use Case - Module 1\nQuản lý Người dùng & Xác thực**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #E3F2FD
+    BorderColor #1565C0
+    FontSize 12
+    ArrowColor #1565C0
+}
+
+' === ACTORS ===
+actor "Guest\n(Khách)" as Guest #LightGreen
+actor "Attendee\n(Người tham dự)" as Attendee #LightBlue
+actor "Organizer\n(Nhà tổ chức)" as Organizer #Gold
+actor "Staff\n(Nhân viên)" as Staff #LightCoral
+actor "Admin\n(Quản trị viên)" as Admin #Orchid
+
+' === EXTERNAL ACTORS ===
+actor "Google\nOAuth 2.0" as Google #LightGray
+
+' === Inheritance ===
+Guest <|-- Attendee
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 1: Quản lý Người dùng & Xác thực" {
+
+    usecase "**UC-1.1: Đăng ký tài khoản**\n---\nNhập email, password,\nfullName, phone.\nValidate email unique,\npassword ≥ 8 ký tự.\nBCrypt hash password." as UC_REG
+
+    usecase "**UC-1.2: Đăng nhập hệ thống**\n---\nNhập email/password.\nTạo session + JWT token.\nChuyển hướng theo role.\nRate limiting (5 lần/IP)." as UC_LOGIN
+
+    usecase "**UC-1.3: Đăng nhập Google OAuth**\n---\nOAuth 2.0 flow.\nTự tạo user nếu chưa\ntồn tại. oauthUser=true." as UC_OAUTH
+
+    usecase "**UC-1.4: Đổi mật khẩu**\n---\nNhập current password\n+ new password x2.\nBCrypt verify & hash." as UC_CHPASS
+
+    usecase "**UC-1.5: Quản lý Profile**\n---\nChỉnh sửa: fullName,\nphone, gender, dateOfBirth,\navatar. Organizer: bio,\nwebsite, social links." as UC_PROFILE
+
+    usecase "**UC-1.6: Đăng xuất**\n---\nHủy session, xóa\nrefresh token, xóa cookies.\nRedirect → trang chủ." as UC_LOGOUT
+
+    ' --- Sub use cases ---
+    usecase "Validate Input\n(email, password,\nphone format)" as UC_VALIDATE <<include>>
+
+    usecase "Tạo Session &\nJWT Token" as UC_SESSION <<include>>
+
+    usecase "Progressive\nLockout\n(Brute Force)" as UC_LOCKOUT <<extend>>
+
+    usecase "Remember Me\n(Refresh Token\n30 days)" as UC_REMEMBER <<extend>>
+
+    usecase "Upload Avatar\n(Cloudinary)" as UC_AVATAR <<extend>>
+}
+
+' === ASSOCIATIONS ===
+Guest --> UC_REG
+Guest --> UC_LOGIN
+Guest --> UC_OAUTH
+
+Attendee --> UC_CHPASS
+Attendee --> UC_PROFILE
+Attendee --> UC_LOGOUT
+Organizer --> UC_PROFILE
+Organizer --> UC_LOGOUT
+Staff --> UC_LOGOUT
+Admin --> UC_LOGOUT
+
+' === EXTERNAL ===
+Google --> UC_OAUTH
+
+' === INCLUDE / EXTEND ===
+UC_REG ..> UC_VALIDATE : <<include>>
+UC_LOGIN ..> UC_VALIDATE : <<include>>
+UC_LOGIN ..> UC_SESSION : <<include>>
+UC_OAUTH ..> UC_SESSION : <<include>>
+
+UC_LOGIN <.. UC_LOCKOUT : <<extend>>
+UC_LOGIN <.. UC_REMEMBER : <<extend>>
+UC_PROFILE <.. UC_AVATAR : <<extend>>
+
+' === NOTES ===
+note right of UC_REG
+  **FR-01**
+  Password: BCrypt cost 12
+  Email: unique constraint
+  Role default: customer
+end note
+
+note right of UC_LOGIN
+  **FR-02**
+  LoginAttemptTracker:
+  2-tier lockout
+  (email+IP, IP-only)
+end note
+
+note bottom of UC_OAUTH
+  **FR-03**
+  Google API Scopes:
+  - openid
+  - email
+  - profile
+end note
+
+@enduml

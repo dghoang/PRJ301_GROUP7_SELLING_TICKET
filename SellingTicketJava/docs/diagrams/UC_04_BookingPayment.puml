@@ -1,0 +1,109 @@
+@startuml UC_04_BookingPayment
+' ============================================================
+' USE CASE DIAGRAM - MODULE 4: Đặt vé & Thanh toán
+' Ticket Booking & Payment
+' ============================================================
+
+title **Biểu đồ Use Case - Module 4\nĐặt Vé & Thanh Toán**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #FCE4EC
+    BorderColor #C62828
+    FontSize 12
+    ArrowColor #C62828
+}
+
+' === ACTORS ===
+actor "Attendee\n(Người tham dự)" as Attendee #LightBlue
+actor "Admin\n(Quản trị viên)" as Admin #Orchid
+
+' === EXTERNAL ===
+actor "SePay\nPayment Gateway" as SePay #LightGray
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 4: Đặt Vé & Thanh Toán" {
+
+    usecase "**UC-4.1: Chọn vé**\n---\nChọn loại vé + số lượng.\nValidate: available qty,\nmaxTicketsPerOrder,\nsaleStart ≤ now ≤ saleEnd." as UC_SELECT
+
+    usecase "**UC-4.2: Checkout đơn hàng**\n---\nNhập buyer info:\nbuyerName, buyerEmail,\nbuyerPhone, notes.\nÁp dụng voucher code.\nTính: total, discount, final." as UC_CHECKOUT
+
+    usecase "**UC-4.3: Thanh toán VietQR**\n---\nTạo QR code qua SePay API.\nHiển thị QR + thông tin\nchuyển khoản.\nWebhook auto-confirm." as UC_PAY
+
+    usecase "**UC-4.4: Xác nhận thanh toán\nthủ công**\n---\nAdmin confirm payment\nkhi webhook fail.\nManual status update." as UC_MANUAL
+
+    usecase "**UC-4.5: Tạo vé QR Code**\n---\nAuto-generate N vé riêng lẻ.\nMỗi vé: ticketCode unique +\nQR code (JWT token).\nSau payment confirmed." as UC_GEN_TICKET
+
+    usecase "**UC-4.6: Xem vé đã mua**\n---\nDanh sách tất cả vé:\neventTitle, ticketType,\nticketCode, QR code,\ntrạng thái check-in." as UC_VIEW_TICKET
+
+    usecase "**UC-4.7: Xem lịch sử đơn hàng**\n---\nDanh sách orders:\norderCode, event, amount,\nstatus, paymentDate.\nChi tiết order items." as UC_ORDER_HIST
+
+    usecase "**UC-4.8: Resume thanh toán**\n---\nQuay lại thanh toán\ncho orders pending.\nRefresh QR code nếu expired." as UC_RESUME
+
+    ' --- Sub use cases ---
+    usecase "Validate Voucher\n(code, isActive, expiry,\nusageLimit, minAmount)" as UC_VOUCHER <<include>>
+
+    usecase "Atomic Transaction\n(BEGIN → INSERT Order\n→ INSERT Items\n→ UPDATE soldCount\n→ COMMIT)" as UC_ATOMIC <<include>>
+
+    usecase "Webhook Validation\n(API key, body size,\namount match, idempotency)" as UC_WEBHOOK <<include>>
+
+    usecase "Tạo Notification\n(Order confirmed)" as UC_NOTIFY <<include>>
+
+    usecase "Timeout 15 phút\n(Auto-cancel pending)" as UC_TIMEOUT <<extend>>
+}
+
+' === ASSOCIATIONS ===
+Attendee --> UC_SELECT
+Attendee --> UC_CHECKOUT
+Attendee --> UC_PAY
+Attendee --> UC_VIEW_TICKET
+Attendee --> UC_ORDER_HIST
+Attendee --> UC_RESUME
+
+Admin --> UC_MANUAL
+
+SePay --> UC_PAY
+SePay --> UC_WEBHOOK
+
+' === INCLUDE / EXTEND ===
+UC_CHECKOUT ..> UC_VOUCHER : <<include>>
+UC_CHECKOUT ..> UC_ATOMIC : <<include>>
+UC_PAY ..> UC_WEBHOOK : <<include>>
+UC_PAY ..> UC_GEN_TICKET : <<include>>
+UC_GEN_TICKET ..> UC_NOTIFY : <<include>>
+UC_MANUAL ..> UC_GEN_TICKET : <<include>>
+
+UC_PAY <.. UC_TIMEOUT : <<extend>>
+UC_PAY <.. UC_RESUME : <<extend>>
+
+' === NOTES ===
+note right of UC_CHECKOUT
+  **FR-18, FR-19**
+  Atomic checkout:
+  - BEGIN TRANSACTION
+  - INSERT Orders
+  - INSERT OrderItems (x N)
+  - UPDATE TicketTypes soldCount
+  - COMMIT or ROLLBACK
+end note
+
+note right of UC_PAY
+  **FR-20**
+  SePay VietQR flow:
+  1. Generate QR via API
+  2. Display QR to customer
+  3. Customer scans & pays
+  4. SePay sends webhook
+  5. System auto-confirms
+end note
+
+note bottom of UC_GEN_TICKET
+  **FR-22**
+  Each ticket gets:
+  - Unique ticketCode
+  - JWT-encoded QR code
+  - HMAC-SHA256 signed
+end note
+
+@enduml

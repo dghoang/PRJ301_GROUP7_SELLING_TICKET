@@ -1,0 +1,115 @@
+@startuml SD_12_BrowseSearchEvents
+' ============================================================
+' SEQUENCE DIAGRAM - Duyệt & Tìm kiếm Sự kiện
+' FR-12~FR-14: Browse + Search + Filter + Pagination
+' ============================================================
+
+title **SD-12: Duyệt & Tìm kiếm Sự kiện\n(Browse + Search + Filter)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #FFF3E0
+    ParticipantBorderColor #E65100
+    ArrowColor #E65100
+}
+
+actor "Guest/Attendee" as User #LightGreen
+participant "Browser" as Browser #LightYellow
+participant "EventListServlet\n(Controller)" as Controller #FFF3E0
+participant "EventService" as Service #E8F5E9
+participant "EventDAO" as DAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Trang chủ - Featured Events ==
+
+User -> Browser: Truy cập trang chủ
+Browser -> Controller: GET /
+activate Controller
+
+Controller -> Service: getFeaturedEvents()
+activate Service
+Service -> DAO: findFeatured()
+activate DAO
+DAO -> DB: SELECT TOP 6 e.*, c.name as cat,\nu.fullName as organizer\nFROM Events e\nJOIN Categories c ON e.categoryId=c.categoryId\nJOIN Users u ON e.organizerId=u.userId\nWHERE e.status='approved'\nAND e.isFeatured=1\nAND e.endDate > GETDATE()\nORDER BY e.startDate
+activate DB
+DB --> DAO: List<Event>
+deactivate DB
+DAO --> Service: featured events
+deactivate DAO
+Service --> Controller: events
+deactivate Service
+
+Controller -> Service: getUpcomingEvents(page=1, size=12)
+activate Service
+Service -> DAO: findUpcoming(offset, limit)
+activate DAO
+DAO -> DB: SELECT e.*, c.name,\nCOUNT(o.orderId) as orderCount\nFROM Events e ...\nWHERE status='approved'\nAND endDate > GETDATE()\nORDER BY startDate\nOFFSET ? ROWS\nFETCH NEXT ? ROWS ONLY
+activate DB
+DB --> DAO: List<Event> + totalCount
+deactivate DB
+DAO --> Service: events + total
+deactivate DAO
+Service --> Controller: events, pagination
+deactivate Service
+
+Controller --> Browser: Forward → index.jsp\n(featured, upcoming, categories)
+deactivate Controller
+Browser --> User: Homepage: Featured +\nUpcoming events
+
+== Tìm kiếm & Filter ==
+
+User -> Browser: Tìm kiếm "nhạc hội"\n+ Filter: category="Âm nhạc"\n+ Sort: Ngày gần nhất
+Browser -> Controller: GET /events?\nq=nhạc hội\n&category=music\n&sort=date_asc\n&page=1
+activate Controller
+
+Controller -> Controller: Parse query params:\n- searchQuery = "nhạc hội"\n- categorySlug = "music"\n- sortBy = "date_asc"\n- page = 1, pageSize = 12
+
+Controller -> Service: searchEvents(\nsearchQuery, filters, sort, page)
+activate Service
+
+Service -> DAO: searchWithFilters(params)
+activate DAO
+DAO -> DB: SELECT e.*, c.name, u.fullName,\n(SELECT COUNT(*) FROM ...) as totalCount\nFROM Events e\nJOIN Categories c ON ...\nJOIN Users u ON ...\nWHERE e.status = 'approved'\nAND e.endDate > GETDATE()\n**AND (e.title LIKE '%nhạc hội%'**\n**OR e.location LIKE '%nhạc hội%'**\n**OR e.shortDescription LIKE '%nhạc hội%')**\n**AND c.slug = 'music'**\n**ORDER BY e.startDate ASC**\nOFFSET 0 ROWS\nFETCH NEXT 12 ROWS ONLY
+activate DB
+DB --> DAO: List<Event> + totalCount
+deactivate DB
+DAO --> Service: events (filtered)
+deactivate DAO
+
+Service -> Service: Build pagination info:\ntotalPages = ceil(total/12)\ncurrentPage = 1\nhasNext = (page < totalPages)
+
+Service --> Controller: SearchResult {\n  events: [...],\n  total: 25,\n  page: 1,\n  totalPages: 3\n}
+deactivate Service
+
+Controller -> Service: getAllCategories()
+activate Service
+Service -> DB: SELECT * FROM Categories\nWHERE isActive=1 ORDER BY name
+activate DB
+DB --> Service: categories
+deactivate DB
+Service --> Controller: categories
+deactivate Service
+
+Controller --> Browser: Forward → events.jsp\n(events, pagination, categories,\ncurrent filters)
+deactivate Controller
+Browser --> User: Kết quả tìm kiếm:\n25 sự kiện (trang 1/3)\n+ Active filters sidebar
+
+== Pagination ==
+
+User -> Browser: Click trang 2
+Browser -> Controller: GET /events?q=nhạc hội\n&category=music&sort=date_asc\n&page=2
+activate Controller
+Controller -> Service: searchEvents(..., page=2)
+activate Service
+Service -> DB: ... OFFSET 12 ROWS\nFETCH NEXT 12 ROWS ONLY
+activate DB
+DB --> Service: Next 12 events
+deactivate DB
+Service --> Controller: page 2 results
+deactivate Service
+Controller --> Browser: Forward → events.jsp (page 2)
+deactivate Controller
+Browser --> User: Trang 2 kết quả
+
+@enduml

@@ -1,0 +1,128 @@
+@startuml SD_08_QRCheckIn
+' ============================================================
+' SEQUENCE DIAGRAM - Check-in QR Code
+' FR-26~FR-28: Scan QR → Validate → Confirm Check-in
+' ============================================================
+
+title **SD-08: Check-in QR Code\n(QR Scan → Validate → Confirm)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #F3E5F5
+    ParticipantBorderColor #7B1FA2
+    ArrowColor #7B1FA2
+}
+
+actor "Staff/Organizer" as Staff #LightCoral
+participant "Browser\n(Mobile)" as Browser #LightYellow
+participant "CheckInServlet\n(Controller)" as Controller #F3E5F5
+participant "CheckInService" as Service #E8F5E9
+participant "TicketDAO" as TicketDAO #FFF3E0
+participant "OrderDAO" as OrderDAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Bước 1: Mở trang Check-in ==
+
+Staff -> Browser: Truy cập trang Check-in
+Browser -> Controller: GET /organizer/checkin?eventId={id}\n(hoặc /staff/checkin?eventId={id})
+activate Controller
+Controller -> Controller: Validate:\nuser có quyền check-in\ncho event này?
+Controller -> DB: SELECT event info +\ncheckin stats
+activate DB
+DB --> Controller: Event + stats:\n{total: 500, checkedIn: 123}
+deactivate DB
+Controller --> Browser: Forward → checkin.jsp\n(event info, camera controls,\nmanual input, stats)
+deactivate Controller
+Browser --> User: Hiển thị trang Check-in:\n- Camera QR scanner (jsQR)\n- Input thủ công\n- Stats: 123/500 đã check-in
+
+== Bước 2: Scan QR Code ==
+
+Staff -> Browser: Hướng camera vào\nQR code trên vé
+Browser -> Browser: jsQR library:\nDecode QR → Extract data\n(JWT token hoặc ticketCode)
+
+alt QR chứa JWT Token
+    Browser -> Browser: Extract ticketCode\nfrom JWT payload\n(client-side decode)
+end
+
+Browser -> Controller: POST /api/checkin\n{ticketCode: "TKT-A1B2C3D4",\neventId: 123}
+activate Controller
+
+== Bước 3: Server Validation ==
+
+Controller -> Service: processCheckIn(\nticketCode, eventId, staffId)
+activate Service
+
+' --- Step 1: Find Ticket ---
+Service -> TicketDAO: findByTicketCode(ticketCode)
+activate TicketDAO
+TicketDAO -> DB: SELECT t.*, tt.name as typeName,\no.status as orderStatus,\no.buyerName, o.buyerEmail,\ne.eventId as ticketEventId\nFROM Tickets t\nJOIN OrderItems oi ON t.orderItemId = oi.orderItemId\nJOIN TicketTypes tt ON oi.ticketTypeId = tt.ticketTypeId\nJOIN Orders o ON t.orderId = o.orderId\nJOIN Events e ON o.eventId = e.eventId\nWHERE t.ticketCode = ?
+activate DB
+DB --> TicketDAO: Ticket + Order + Event data
+deactivate DB
+TicketDAO --> Service: TicketInfo or null
+deactivate TicketDAO
+
+' --- Validation Chain ---
+alt #FFE0E0 Ticket NOT found
+    Service --> Controller: CheckInResult\n{success: false,\nmessage: "❌ Vé không hợp lệ.\nMã vé không tồn tại\ntrong hệ thống."}
+
+else #FFFDE7 Order NOT confirmed
+    Service -> Service: Check: order.status\n== "confirmed"?
+    Service --> Controller: CheckInResult\n{success: false,\nmessage: "❌ Đơn hàng chưa\nthanh toán (status: pending)"}
+
+else #FFFDE7 Wrong Event
+    Service -> Service: Check: ticket.eventId\n== requested eventId?
+    Service --> Controller: CheckInResult\n{success: false,\nmessage: "❌ Vé không thuộc\nsự kiện này"}
+
+else #FFFDE7 Already Checked In
+    Service -> Service: Check: ticket.isCheckedIn\n== false?
+    Service --> Controller: CheckInResult\n{success: false,\nmessage: "⚠️ Vé đã được check-in\nlúc {checkedInAt}\nbởi {checkedInBy}"}
+
+else #E8F5E9 All Validations Passed
+
+    == Bước 4: Mark Check-in ==
+
+    Service -> TicketDAO: markCheckedIn(\nticketId, staffId)
+    activate TicketDAO
+    TicketDAO -> DB: UPDATE Tickets SET\nisCheckedIn = 1,\ncheckedInAt = GETDATE(),\ncheckedInBy = ?\nWHERE ticketId = ?
+    activate DB
+    DB --> TicketDAO: Updated
+    deactivate DB
+    TicketDAO --> Service: OK
+    deactivate TicketDAO
+
+    Service --> Controller: CheckInResult\n{success: true,\nmessage: "✅ Check-in thành công!",\nattendee: {\n  name: "Nguyễn Văn A",\n  ticketType: "VIP",\n  ticketCode: "TKT-A1B2C3D4"\n}}
+end
+
+deactivate Service
+
+Controller --> Browser: JSON Response\n{success, message, attendee}
+deactivate Controller
+
+== Bước 5: Hiển thị kết quả ==
+
+alt success == true
+    Browser -> Browser: ✅ Animation + Sound\nHiển thị thông tin attendee:\n- Tên: Nguyễn Văn A\n- Loại vé: VIP\n- Mã: TKT-A1B2C3D4
+    Browser -> Browser: Update stats:\ncheckedIn: 124/500 (24.8%)
+    Browser --> Staff: ✅ Check-in thành công
+
+else success == false
+    Browser -> Browser: ❌ Error animation\nHiển thị message lỗi\n(đỏ hoặc vàng tùy loại)
+    Browser --> Staff: ❌ / ⚠️ Thông báo lỗi
+end
+
+note over Browser
+  Sau 3 giây tự động reset
+  camera để sẵn sàng scan tiếp
+end note
+
+== Alternative: Nhập mã thủ công ==
+
+Staff -> Browser: Nhập mã vé "TKT-A1B2C3D4"
+Browser -> Controller: POST /api/checkin\n{ticketCode: "TKT-A1B2C3D4",\neventId: 123}
+note over Browser, Controller
+  Cùng luồng xử lý như QR scan
+end note
+
+@enduml

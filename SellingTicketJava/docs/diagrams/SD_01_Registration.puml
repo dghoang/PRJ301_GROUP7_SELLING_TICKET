@@ -1,0 +1,99 @@
+@startuml SD_01_Registration
+' ============================================================
+' SEQUENCE DIAGRAM - Đăng ký tài khoản (User Registration)
+' FR-01: Guest có thể tạo tài khoản mới
+' ============================================================
+
+title **SD-01: Đăng ký Tài khoản\n(User Registration)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequence {
+    ParticipantBackgroundColor #E3F2FD
+    ParticipantBorderColor #1565C0
+    LifeLineBorderColor #1565C0
+    ArrowColor #1565C0
+}
+
+actor "Guest" as User #LightGreen
+participant "Browser\n(JSP)" as Browser #LightYellow
+participant "RegisterServlet\n(Controller)" as Controller #E3F2FD
+participant "UserService" as Service #E8F5E9
+participant "UserDAO" as DAO #FFF3E0
+database "SQL Server\nDatabase" as DB #F3E5F5
+
+== Hiển thị Form Đăng ký ==
+
+User -> Browser: Truy cập /register
+activate Browser
+Browser -> Controller: GET /register
+activate Controller
+Controller --> Browser: Forward → register.jsp\n(form + CSRF token)
+deactivate Controller
+Browser --> User: Hiển thị form đăng ký\n(fullName, email, password,\nconfirmPassword, phone, gender)
+deactivate Browser
+
+== Submit Form Đăng ký ==
+
+User -> Browser: Nhập thông tin + Submit
+activate Browser
+Browser -> Controller: POST /register\n{fullName, email, password,\nconfirmPassword, phone, gender,\ncsrf_token}
+activate Controller
+
+' --- CSRF Validation ---
+Controller -> Controller: CsrfFilter validates\ncsrf_token (double-submit cookie)
+
+' --- Server-side Validation ---
+Controller -> Controller: Validate inputs:\n- fullName not empty\n- email format valid\n- password ≥ 8 chars\n- password == confirmPassword\n- phone format valid
+
+alt #FFE0E0 Validation Failed
+    Controller --> Browser: Forward → register.jsp\n+ error messages\n+ giữ nguyên form data
+    Browser --> User: Hiển thị lỗi validation\n(highlight lỗi từng field)
+else #E8F5E9 Validation OK
+
+    Controller -> Service: register(fullName, email,\npassword, phone, gender)
+    activate Service
+
+    ' --- Check email unique ---
+    Service -> DAO: findByEmail(email)
+    activate DAO
+    DAO -> DB: SELECT * FROM Users\nWHERE email = ?
+    activate DB
+    DB --> DAO: Result (null or User)
+    deactivate DB
+    DAO --> Service: User or null
+    deactivate DAO
+
+    alt #FFE0E0 Email Already Exists
+        Service --> Controller: throw DuplicateEmailException
+        Controller --> Browser: Forward → register.jsp\n+ "Email đã được sử dụng"
+        Browser --> User: Hiển thị lỗi email trùng
+    else #E8F5E9 Email Available
+
+        ' --- Hash Password ---
+        Service -> Service: BCrypt.hashpw(password, genSalt(12))\n→ hashedPassword
+
+        ' --- Create User ---
+        Service -> DAO: create(User)
+        activate DAO
+        DAO -> DB: INSERT INTO Users\n(userId, fullName, email,\npassword, phone, gender,\nrole='customer', isActive=true,\ncreatedAt=GETDATE())
+        activate DB
+        DB --> DAO: Rows affected = 1
+        deactivate DB
+        DAO --> Service: User created
+        deactivate DAO
+
+        Service --> Controller: User object (success)
+        deactivate Service
+
+        Controller --> Browser: Redirect → /login\n+ flash: "Đăng ký thành công!\nVui lòng đăng nhập."
+        Browser --> User: ✅ Hiển thị trang Login\nvới thông báo thành công
+
+    end
+end
+
+deactivate Controller
+deactivate Browser
+
+@enduml

@@ -1,0 +1,132 @@
+@startuml SD_04_CreateEvent
+' ============================================================
+' SEQUENCE DIAGRAM - Tạo Sự kiện mới (Create Event)
+' FR-07: Organizer tạo sự kiện + Upload Banner + Tạo Loại vé
+' ============================================================
+
+title **SD-04: Tạo Sự kiện Mới\n(Create Event + Ticket Types)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #FFF3E0
+    ParticipantBorderColor #E65100
+    ArrowColor #E65100
+}
+
+actor "Organizer" as User #Gold
+participant "Browser\n(JSP)" as Browser #LightYellow
+participant "OrganizerAccessFilter" as Filter #FFE0B2
+participant "CreateEventServlet\n(Controller)" as Controller #FFF3E0
+participant "EventService" as EventSvc #E8F5E9
+participant "EventDAO" as EventDAO #FFF3E0
+participant "TicketTypeDAO" as TTDAO #FFF3E0
+participant "CloudinaryService" as Cloudinary #E0F7FA
+participant "SlugUtils" as Slug #F3E5F5
+box "External" #F5F5F5
+    participant "Cloudinary\nCDN" as CDN #FFCDD2
+end box
+database "SQL Server" as DB #F3E5F5
+
+== Bước 1: Load Form Tạo Sự kiện ==
+
+User -> Browser: Click "Tạo Sự kiện mới"
+Browser -> Filter: GET /organizer/events/create
+activate Filter
+Filter -> Filter: Check session:\nuser.role == "organizer"?
+Filter -> Controller: Forward (authorized)
+deactivate Filter
+activate Controller
+
+Controller -> EventSvc: getAllCategories()
+activate EventSvc
+EventSvc -> DB: SELECT * FROM Categories\nWHERE isActive = 1\nORDER BY name
+activate DB
+DB --> EventSvc: List<Category>
+deactivate DB
+EventSvc --> Controller: categories
+deactivate EventSvc
+
+Controller --> Browser: Forward → create-event.jsp\n(categories, CSRF token)
+deactivate Controller
+Browser --> User: Hiển thị form tạo sự kiện\n(Multi-step form)
+
+== Bước 2: Submit Form ==
+
+User -> Browser: Nhập thông tin sự kiện:\n- title, shortDescription\n- description (rich text)\n- location, address\n- startDate, endDate\n- category, isPrivate\n- maxTicketsPerOrder\n- Banner image file\n- TicketTypes[] (name, price, qty)
+Browser -> Controller: POST /organizer/events/create\n{multipart form data}
+activate Controller
+
+' --- Server Validation ---
+Controller -> Controller: Validate:\n- title not empty\n- startDate < endDate\n- startDate > now()\n- quantity > 0 per ticket type\n- price ≥ 0\n- ≥ 1 ticket type required
+
+alt #FFE0E0 Validation Failed
+    Controller --> Browser: Forward → create-event.jsp\n+ error messages + form data
+    Browser --> User: ❌ Hiển thị lỗi validation
+else #E8F5E9 Validation OK
+
+    == Bước 3: Upload Banner Image ==
+
+    alt Banner image provided
+        Controller -> Cloudinary: uploadImage(\nbanner file, "events/")
+        activate Cloudinary
+        Cloudinary -> CDN: POST /v1_1/upload\n{file: banner, folder: "events"}
+        activate CDN
+        CDN --> Cloudinary: {\n  secure_url: "https://res.cloudinary.com/...",\n  public_id: "events/abc123"\n}
+        deactivate CDN
+        Cloudinary --> Controller: imageUrl
+        deactivate Cloudinary
+    else No banner
+        Controller -> Controller: bannerImage = DEFAULT_BANNER
+    end
+
+    == Bước 4: Generate Slug ==
+
+    Controller -> Slug: generateSlug(title)
+    activate Slug
+    Slug -> Slug: toLowerCase()\nreplace spaces → hyphens\nremove special chars\nappend random suffix
+    Slug --> Controller: slug (URL-friendly)
+    deactivate Slug
+
+    == Bước 5: Create Event + Ticket Types (Transaction) ==
+
+    Controller -> EventSvc: createEvent(event, ticketTypes[])
+    activate EventSvc
+
+    EventSvc -> DB: BEGIN TRANSACTION
+    activate DB
+
+    EventSvc -> EventDAO: create(event)
+    activate EventDAO
+    EventDAO -> DB: INSERT INTO Events\n(eventId, title, slug, shortDesc,\ndescription, bannerImage, location,\naddress, startDate, endDate,\ncategoryId, organizerId, status='pending',\nmaxTicketsPerOrder, isPrivate,\ncreatedAt)
+    DB --> EventDAO: eventId
+    deactivate EventDAO
+
+    loop for each TicketType
+        EventSvc -> TTDAO: create(ticketType)
+        activate TTDAO
+        TTDAO -> DB: INSERT INTO TicketTypes\n(ticketTypeId, eventId, name,\ndescription, price, quantity,\nsaleStart, saleEnd, sortOrder,\nisActive=true)
+        DB --> TTDAO: created
+        deactivate TTDAO
+    end
+
+    EventSvc -> DB: COMMIT TRANSACTION
+    deactivate DB
+
+    == Bước 6: Notify Admin ==
+
+    EventSvc -> DB: INSERT INTO Notifications\n(userId=admin, type='NEW_EVENT',\nmessage='Event pending review',\nrelatedEventId)
+
+    EventSvc --> Controller: Event (created, status=pending)
+    deactivate EventSvc
+
+    Controller -> DB: INSERT INTO ActivityLogs\n(action='CREATE_EVENT', eventId)
+
+    Controller --> Browser: Redirect → /organizer/events\n+ flash: "Sự kiện đã được gửi\nchờ Admin duyệt"
+    Browser --> User: ✅ Sự kiện đã tạo (pending)
+
+end
+
+deactivate Controller
+
+@enduml

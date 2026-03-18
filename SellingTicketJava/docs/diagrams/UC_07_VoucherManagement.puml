@@ -1,0 +1,92 @@
+@startuml UC_07_VoucherManagement
+' ============================================================
+' USE CASE DIAGRAM - MODULE 7: Voucher & Khuyến mãi
+' Voucher Management
+' ============================================================
+
+title **Biểu đồ Use Case - Module 7\nVoucher & Khuyến Mãi**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #FFFDE7
+    BorderColor #F9A825
+    FontSize 12
+    ArrowColor #F9A825
+}
+
+' === ACTORS ===
+actor "Organizer\n(Nhà tổ chức)" as Organizer #Gold
+actor "Admin\n(Quản trị viên)" as Admin #Orchid
+actor "Attendee\n(Người tham dự)" as Attendee #LightBlue
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 7: Voucher & Khuyến Mãi" {
+
+    usecase "**UC-7.1: Tạo Event Voucher**\n---\nOrganizer tạo mã giảm giá\ncho sự kiện cụ thể.\nScope: EVENT.\nFund source: ORGANIZER." as UC_EVT_VOUCH
+
+    usecase "**UC-7.2: Tạo System Voucher**\n---\nAdmin tạo mã giảm giá\ntoàn hệ thống.\nScope: SYSTEM.\nFund source: SYSTEM." as UC_SYS_VOUCH
+
+    usecase "**UC-7.3: Validate Voucher**\n---\nKhi checkout, validate:\ncode tồn tại, isActive,\nchưa hết hạn,\nusedCount < usageLimit,\ntotalAmount ≥ minOrderAmount.\nTrả về discountAmount." as UC_VALIDATE
+
+    usecase "**UC-7.4: Quản lý Voucher**\n---\nCRUD + kích hoạt/\nvô hiệu hóa voucher.\nXem thống kê:\nusedCount/usageLimit." as UC_MANAGE
+
+    ' --- Sub use cases ---
+    usecase "Tính Discount Amount\n---\npercentage: min(amount × %,\nmaxDiscount)\nfixed: min(fixedValue,\ntotalAmount)" as UC_CALC <<include>>
+
+    usecase "Tách nguồn chi phí\n---\neventDiscount (organizer bears)\nsystemDiscount (platform bears)" as UC_SPLIT <<include>>
+
+    usecase "Cập nhật usedCount\nkhi order confirmed" as UC_INCREMENT <<include>>
+
+    usecase "Bulk Import\nVoucher Codes" as UC_BULK <<extend>>
+}
+
+' === ASSOCIATIONS ===
+Organizer --> UC_EVT_VOUCH
+Organizer --> UC_MANAGE
+
+Admin --> UC_SYS_VOUCH
+Admin --> UC_MANAGE
+
+Attendee --> UC_VALIDATE
+
+' === INCLUDE / EXTEND ===
+UC_VALIDATE ..> UC_CALC : <<include>>
+UC_VALIDATE ..> UC_SPLIT : <<include>>
+UC_VALIDATE ..> UC_INCREMENT : <<include>>
+
+UC_EVT_VOUCH <.. UC_BULK : <<extend>>
+
+' === NOTES ===
+note right of UC_EVT_VOUCH
+  **FR-33**
+  Fields:
+  - code (unique)
+  - discountType: percentage | fixed
+  - discountValue
+  - minOrderAmount
+  - maxDiscount
+  - usageLimit
+  - startDate, endDate
+end note
+
+note right of UC_VALIDATE
+  **FR-35**
+  Validation chain:
+  1. code exists?
+  2. isActive == true?
+  3. now ≥ startDate?
+  4. now ≤ endDate?
+  5. usedCount < usageLimit?
+  6. totalAmount ≥ minOrder?
+  7. voucherScope matches?
+end note
+
+note bottom of UC_SPLIT
+  Order stores both:
+  - eventDiscountAmount
+  - systemDiscountAmount
+  For revenue reconciliation.
+end note
+
+@enduml

@@ -1,0 +1,183 @@
+@startuml SD_07_SepayPayment
+' ============================================================
+' SEQUENCE DIAGRAM - Thanh toán SePay VietQR + Webhook
+' FR-20, FR-21, FR-22: QR Payment → Webhook → Ticket Generation
+' ============================================================
+
+title **SD-07: Thanh toán VietQR qua SePay\n(Payment + Webhook + Ticket Generation)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 180
+skinparam sequence {
+    ParticipantBackgroundColor #E8EAF6
+    ParticipantBorderColor #283593
+    ArrowColor #283593
+}
+
+actor "Attendee" as User #LightBlue
+participant "Browser\n(JSP)" as Browser #LightYellow
+participant "PaymentServlet\n(Controller)" as PayCtrl #E8EAF6
+participant "PaymentFactory" as Factory #FFF3E0
+participant "SepayPaymentService\n(Strategy)" as SepaySvc #E8F5E9
+participant "OrderService" as OrderSvc #E8F5E9
+participant "TicketService" as TicketSvc #E0F7FA
+participant "WebhookServlet\n(Callback)" as Webhook #FCE4EC
+box "External" #F5F5F5
+    participant "SePay API\n(Payment Gateway)" as SePay #FFCDD2
+    participant "Ngân hàng\n(User's Bank)" as Bank #FFCDD2
+end box
+database "SQL Server" as DB #F3E5F5
+
+== Phase 1: Tạo QR Code Thanh toán ==
+
+User -> Browser: Truy cập trang thanh toán
+Browser -> PayCtrl: GET /checkout/payment\n?orderId={orderId}
+activate PayCtrl
+
+PayCtrl -> OrderSvc: getOrder(orderId)
+activate OrderSvc
+OrderSvc -> DB: SELECT * FROM Orders\nWHERE orderId = ?\nAND customerId = ?\nAND status = 'pending'
+activate DB
+DB --> OrderSvc: Order
+deactivate DB
+OrderSvc --> PayCtrl: Order
+deactivate OrderSvc
+
+PayCtrl -> Factory: getProvider("sepay")
+activate Factory
+Factory --> PayCtrl: SepayPaymentService
+deactivate Factory
+
+PayCtrl -> SepaySvc: createPayment(order)
+activate SepaySvc
+SepaySvc -> SepaySvc: Build transfer info:\nbank = "MBBank"\naccount = "0389966997"\namount = order.totalAmount\ncontent = "ST" + order.orderCode\n(unique payment reference)
+
+SepaySvc -> SepaySvc: Generate VietQR URL:\nhttps://img.vietqr.io/image/\n{bankId}-{account}-compact2.png\n?amount={amount}\n&addInfo={content}\n&accountName={name}
+
+SepaySvc --> PayCtrl: PaymentResult\n{qrUrl, bankInfo, amount,\ncontent, expiresAt=now+15min}
+deactivate SepaySvc
+
+PayCtrl -> DB: UPDATE Orders SET\npaymentMethod = 'sepay_qr',\npaymentExpiry = NOW() + 15min
+PayCtrl --> Browser: Forward → payment.jsp\n(QR image, bank info, countdown timer)
+deactivate PayCtrl
+Browser --> User: Hiển thị:\n- QR Code VietQR\n- Thông tin CK (STK, ngân hàng)\n- Nội dung CK: ST{orderCode}\n- Đếm ngược 15 phút
+
+== Phase 2: Khách thanh toán qua ngân hàng ==
+
+User -> Browser: Mở app Banking\nquét QR code
+Browser -> Bank: Quét QR → Điền thông tin CK
+activate Bank
+User -> Bank: Xác nhận chuyển khoản
+Bank -> Bank: Xử lý giao dịch
+Bank --> User: ✅ Chuyển khoản thành công
+Bank -> SePay: Notification giao dịch mới
+deactivate Bank
+
+== Phase 3: SePay Webhook Callback ==
+
+SePay -> Webhook: POST /api/sepay/webhook\nHeaders:\n  Authorization: Apikey {API_KEY}\nBody: {\n  "id": 12345,\n  "transferType": "in",\n  "transferAmount": 500000,\n  "content": "ST ORD-ABC123",\n  "referenceCode": "FT24xxx"\n}
+activate Webhook
+
+' --- Security Validation ---
+Webhook -> Webhook: **Security Checks:**\n1. Validate API Key header\n2. Check Content-Type\n3. Validate body size < 10KB\n4. Check IP whitelist (optional)
+
+alt #FFE0E0 Invalid API Key
+    Webhook --> SePay: HTTP 401 Unauthorized
+else #E8F5E9 Valid Request
+
+    ' --- Extract Order Code ---
+    Webhook -> Webhook: Parse "content" field:\nExtract orderCode from\n"ST ORD-ABC123"\n→ orderCode = "ORD-ABC123"
+
+    ' --- Find Order ---
+    Webhook -> OrderSvc: findByOrderCode(orderCode)
+    activate OrderSvc
+    OrderSvc -> DB: SELECT * FROM Orders\nWHERE orderCode = ?
+    activate DB
+    DB --> OrderSvc: Order
+    deactivate DB
+    OrderSvc --> Webhook: Order
+    deactivate OrderSvc
+
+    alt #FFE0E0 Order Not Found
+        Webhook --> SePay: HTTP 200 OK\n(acknowledge, no action)
+    else #E8F5E9 Order Found
+
+        ' --- Validate Amount ---
+        Webhook -> Webhook: Validate:\ntransferAmount == order.totalAmount?\n(tolerance check)
+
+        alt #FFE0E0 Amount Mismatch
+            Webhook -> DB: INSERT INTO PaymentLogs\n(status='AMOUNT_MISMATCH')
+            Webhook --> SePay: HTTP 200 OK\n(log discrepancy)
+        else #E8F5E9 Amount Matches
+
+            ' --- Idempotency Check ---
+            Webhook -> Webhook: Check order.status\n!= 'confirmed'\n(prevent double processing)
+
+            alt order.status == 'confirmed'
+                Webhook --> SePay: HTTP 200 OK\n(already processed)
+            else order.status == 'pending'
+
+                == Phase 4: Confirm Order + Generate Tickets ==
+
+                Webhook -> OrderSvc: confirmOrder(orderId,\npaymentRef, transactionId)
+                activate OrderSvc
+
+                OrderSvc -> DB: **BEGIN TRANSACTION**
+                activate DB
+
+                OrderSvc -> DB: UPDATE Orders SET\nstatus = 'confirmed',\npaymentDate = GETDATE(),\npaymentRef = ?,\ntransactionId = ?
+
+                ' --- Generate Individual Tickets ---
+                OrderSvc -> TicketSvc: generateTickets(order)
+                activate TicketSvc
+
+                loop for each OrderItem (N tickets)
+                    TicketSvc -> TicketSvc: Generate unique ticketCode:\n"TKT-" + UUID.randomUUID()\n.substring(0, 8).toUpperCase()
+
+                    TicketSvc -> TicketSvc: Create QR payload:\nJWT.create()\n.withClaim("ticketCode", code)\n.withClaim("eventId", eventId)\n.sign(HMAC256(secret))
+
+                    TicketSvc -> DB: INSERT INTO Tickets\n(ticketId, orderId, orderItemId,\nticketTypeId, ticketCode,\nqrCodeData, isCheckedIn=false,\ncreatedAt)
+                end
+
+                TicketSvc --> OrderSvc: List<Ticket> generated
+                deactivate TicketSvc
+
+                OrderSvc -> DB: COMMIT
+                deactivate DB
+
+                ' --- Send Notification ---
+                OrderSvc -> DB: INSERT INTO Notifications\n(userId=customerId,\ntype='ORDER_CONFIRMED',\nmessage='Đơn hàng đã thanh toán\nthành công. Xem vé của bạn.')
+
+                OrderSvc --> Webhook: Success
+                deactivate OrderSvc
+
+                Webhook -> DB: INSERT INTO PaymentLogs\n(orderId, status='SUCCESS',\ntransactionId, amount)
+
+                Webhook --> SePay: HTTP 200 OK\n{"success": true}
+
+            end
+        end
+    end
+end
+
+deactivate Webhook
+
+== Phase 5: Attendee Kiểm tra kết quả ==
+
+User -> Browser: Refresh trang thanh toán
+Browser -> PayCtrl: GET /checkout/payment\n?orderId={orderId}
+activate PayCtrl
+PayCtrl -> OrderSvc: getOrder(orderId)
+activate OrderSvc
+OrderSvc -> DB: SELECT * FROM Orders
+activate DB
+DB --> OrderSvc: Order (status=confirmed)
+deactivate DB
+OrderSvc --> PayCtrl: Order
+deactivate OrderSvc
+PayCtrl --> Browser: Redirect → /tickets\n(Order confirmed!)
+deactivate PayCtrl
+Browser --> User: ✅ Thanh toán thành công!\nXem vé QR Code
+
+@enduml

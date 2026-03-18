@@ -1,0 +1,73 @@
+@startuml UC_03_TicketTypeManagement
+' ============================================================
+' USE CASE DIAGRAM - MODULE 3: Quản lý Loại vé
+' Ticket Type Management
+' ============================================================
+
+title **Biểu đồ Use Case - Module 3\nQuản lý Loại Vé**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #E8F5E9
+    BorderColor #2E7D32
+    FontSize 12
+    ArrowColor #2E7D32
+}
+
+' === ACTORS ===
+actor "Organizer\n(Nhà tổ chức)" as Organizer #Gold
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 3: Quản lý Loại Vé" {
+
+    usecase "**UC-3.1: Tạo loại vé**\n---\nTạo nhiều loại vé cho 1 event:\nname, description, price,\nquantity, saleStart, saleEnd.\nVí dụ: VIP, Standard, Early Bird." as UC_CREATE
+
+    usecase "**UC-3.2: Chỉnh sửa loại vé**\n---\nCập nhật thông tin loại vé.\nKhông được giảm quantity\ndưới soldCount." as UC_EDIT
+
+    usecase "**UC-3.3: Xóa/Vô hiệu hóa loại vé**\n---\nSoft-delete: isActive=false.\nKhông xóa nếu soldCount > 0.\nẨn khỏi trang mua vé." as UC_DELETE
+
+    ' --- Sub use cases ---
+    usecase "Validate Sale Window\n(saleStart < saleEnd,\nsaleEnd ≤ event.endDate)" as UC_VALIDATE <<include>>
+
+    usecase "Kiểm tra\nsoldCount constraint" as UC_CHECK_SOLD <<include>>
+
+    usecase "Sắp xếp thứ tự\n(sortOrder)" as UC_SORT <<extend>>
+}
+
+' === ASSOCIATIONS ===
+Organizer --> UC_CREATE
+Organizer --> UC_EDIT
+Organizer --> UC_DELETE
+
+' === INCLUDE / EXTEND ===
+UC_CREATE ..> UC_VALIDATE : <<include>>
+UC_EDIT ..> UC_VALIDATE : <<include>>
+UC_EDIT ..> UC_CHECK_SOLD : <<include>>
+UC_DELETE ..> UC_CHECK_SOLD : <<include>>
+UC_CREATE <.. UC_SORT : <<extend>>
+
+' === NOTES ===
+note right of UC_CREATE
+  **FR-15**
+  Mỗi event cần ≥ 1 TicketType.
+  Fields: name, description,
+  price (≥ 0), quantity (> 0),
+  saleStart, saleEnd, sortOrder.
+end note
+
+note right of UC_EDIT
+  **FR-16**
+  Business Rule:
+  newQuantity ≥ soldCount
+  (không giảm dưới số đã bán)
+end note
+
+note bottom of UC_DELETE
+  **FR-17**
+  Soft-delete only.
+  isActive = false.
+  Vé đã bán vẫn valid.
+end note
+
+@enduml

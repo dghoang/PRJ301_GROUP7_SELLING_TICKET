@@ -1,0 +1,95 @@
+@startuml UC_08_Dashboard
+' ============================================================
+' USE CASE DIAGRAM - MODULE 8: Dashboard & Thống kê
+' Dashboard & Analytics
+' ============================================================
+
+title **Biểu đồ Use Case - Module 8\nDashboard & Thống Kê**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #E8EAF6
+    BorderColor #283593
+    FontSize 12
+    ArrowColor #283593
+}
+
+' === ACTORS ===
+actor "Organizer\n(Nhà tổ chức)" as Organizer #Gold
+actor "Admin\n(Quản trị viên)" as Admin #Orchid
+actor "Staff\n(Nhân viên)" as Staff #LightCoral
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 8: Dashboard & Thống Kê" {
+
+    usecase "**UC-8.1: Organizer Dashboard**\n---\nThống kê own events:\ntổng sự kiện, tổng vé bán,\ntổng doanh thu.\nBiểu đồ: vé bán theo ngày,\ntop events, conversion rate." as UC_ORG_DASH
+
+    usecase "**UC-8.2: Admin Dashboard**\n---\nThống kê toàn hệ thống:\ntotal users, events, orders,\nrevenue.\nBiểu đồ: doanh thu/tháng,\nphân bổ theo category." as UC_ADM_DASH
+
+    usecase "**UC-8.3: Staff Dashboard**\n---\nOverview sự kiện phân công.\nThống kê check-in:\nđã/chưa/tổng.\nPending events count." as UC_STF_DASH
+
+    usecase "**UC-8.4: Báo cáo chi tiết**\n---\nRevenue by event,\norder summary, user growth,\ncategory performance.\nExport data." as UC_REPORT
+
+    usecase "**UC-8.5: Activity Log**\n---\nGhi nhận log hoạt động:\nlogin, event created,\norder paid, user banned.\nSearchable audit trail." as UC_ACTLOG
+
+    ' --- Sub use cases ---
+    usecase "Tính toán KPIs\n(Revenue, Growth Rate,\nConversion Rate)" as UC_KPI <<include>>
+
+    usecase "Render Charts\n(Chart.js Bar, Line,\nDoughnut, Pie)" as UC_CHART <<include>>
+
+    usecase "Filter by\nDate Range" as UC_DATE_FILTER <<extend>>
+
+    usecase "Export PDF/CSV\nReport" as UC_EXPORT <<extend>>
+}
+
+' === ASSOCIATIONS ===
+Organizer --> UC_ORG_DASH
+Admin --> UC_ADM_DASH
+Admin --> UC_REPORT
+Admin --> UC_ACTLOG
+Staff --> UC_STF_DASH
+
+' === INCLUDE / EXTEND ===
+UC_ORG_DASH ..> UC_KPI : <<include>>
+UC_ORG_DASH ..> UC_CHART : <<include>>
+UC_ADM_DASH ..> UC_KPI : <<include>>
+UC_ADM_DASH ..> UC_CHART : <<include>>
+UC_STF_DASH ..> UC_KPI : <<include>>
+
+UC_ORG_DASH <.. UC_DATE_FILTER : <<extend>>
+UC_ADM_DASH <.. UC_DATE_FILTER : <<extend>>
+UC_REPORT <.. UC_EXPORT : <<extend>>
+
+' === NOTES ===
+note right of UC_ORG_DASH
+  **FR-37**
+  KPIs:
+  - Total events (by status)
+  - Total tickets sold
+  - Total revenue (VND)
+  - Daily/weekly trends
+  - Top 5 events by revenue
+end note
+
+note right of UC_ADM_DASH
+  **FR-38**
+  System-wide KPIs:
+  - Total users (by role)
+  - Total events (by status)
+  - Total orders (by status)
+  - Monthly revenue chart
+  - Category distribution
+end note
+
+note bottom of UC_ACTLOG
+  **FR-41**
+  ActivityLog table:
+  userId, action, details,
+  ipAddress, createdAt.
+  Actions: LOGIN, LOGOUT,
+  CREATE_EVENT, APPROVE_EVENT,
+  CONFIRM_PAYMENT, BAN_USER...
+end note
+
+@enduml
