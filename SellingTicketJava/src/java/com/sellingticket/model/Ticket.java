@@ -26,6 +26,9 @@ public class Ticket {
     private String orderCode;
     private String orderStatus;
     private int orderId;
+    private Date eventStartDate;
+    private Date eventEndDate;
+    private String venue;
 
     public Ticket() {}
 
@@ -77,6 +80,15 @@ public class Ticket {
 
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
+
+    public Date getEventStartDate() { return eventStartDate; }
+    public void setEventStartDate(Date eventStartDate) { this.eventStartDate = eventStartDate; }
+
+    public Date getEventEndDate() { return eventEndDate; }
+    public void setEventEndDate(Date eventEndDate) { this.eventEndDate = eventEndDate; }
+
+    public String getVenue() { return venue; }
+    public void setVenue(String venue) { this.venue = venue; }
 
     @Override
     public String toString() {

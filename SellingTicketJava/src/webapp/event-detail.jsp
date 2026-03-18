@@ -767,10 +767,10 @@
                     
                     <!-- Price -->
                     <div class="price-section">
-                        <div class="label">Giá từ</div>
+                        <div class="label" data-i18n="eventdetail.price_from">Giá từ</div>
                         <span class="price">
                             <c:choose>
-                                <c:when test="${event.minPrice == 0}">Miễn phí</c:when>
+                                <c:when test="${event.minPrice == 0}"><span data-i18n="eventdetail.free">Miễn phí</span></c:when>
                                 <c:otherwise><fmt:formatNumber value="${event.minPrice}" pattern="#,###"/>đ</c:otherwise>
                             </c:choose>
                             <i class="fas fa-chevron-right price-arrow"></i>
@@ -780,7 +780,7 @@
                     <!-- CTA Button -->
                     <a href="#ticket-section" class="btn-book-ticket" onclick="document.getElementById('ticket-section').scrollIntoView({behavior:'smooth'}); return false;">
                         <i class="fas fa-ticket-alt"></i>
-                        Chọn vé & Mua ngay
+                        <span data-i18n="eventdetail.buy_tickets_cta">Chọn vé & Mua ngay</span>
                     </a>
                 </div>
             </div>
@@ -808,7 +808,7 @@
                             </div>
                             <div>
                                 <div class="ticket-organizer-name"><c:out value="${event.organizerName}" default="Ban tổ chức sự kiện"/></div>
-                                <div class="ticket-organizer-label">Đơn vị tổ chức</div>
+                                <div class="ticket-organizer-label" data-i18n="eventdetail.organizer_label">Đơn vị tổ chức</div>
                             </div>
                         </div>
                     </div>
@@ -835,7 +835,7 @@
                     <div class="p-4 p-lg-5 border-bottom">
                         <h5 class="section-title">
                             <i class="fas fa-info-circle"></i>
-                            Giới thiệu sự kiện
+                            <span data-i18n="eventdetail.about_event">Giới thiệu sự kiện</span>
                         </h5>
                         <div class="text-muted lh-lg event-html-content" style="white-space: normal; overflow-wrap: break-word;">
                             <c:out value="${event.description}" escapeXml="false" default="Thông tin chi tiết về sự kiện sẽ được cập nhật. Đây là một sự kiện đặc biệt với nhiều hoạt động hấp dẫn, mang đến cho khán giả những trải nghiệm tuyệt vời và đáng nhớ."/>
@@ -846,17 +846,17 @@
                     <div class="p-4 p-lg-5 border-bottom">
                         <h5 class="section-title">
                             <i class="fas fa-building"></i>
-                            Ban tổ chức
+                            <span data-i18n="eventdetail.organizer">Ban tổ chức</span>
                         </h5>
                         <div class="organizer-card">
                             <div class="organizer-avatar">T</div>
                             <div class="organizer-info">
                                 <h5><c:out value="${event.organizerName}" default="Ban tổ chức sự kiện"/></h5>
-                                <p>Đơn vị tổ chức sự kiện chuyên nghiệp hàng đầu</p>
+                                <p data-i18n="eventdetail.organizer_desc">Đơn vị tổ chức sự kiện chuyên nghiệp hàng đầu</p>
                                 <div class="organizer-stats">
                                     <span class="organizer-stat"><i class="fas fa-star"></i> 4.9</span>
-                                    <span class="organizer-stat"><i class="fas fa-calendar-check"></i> 50+ sự kiện</span>
-                                    <span class="organizer-stat"><i class="fas fa-users"></i> 100K+ người theo dõi</span>
+                                    <span class="organizer-stat"><i class="fas fa-calendar-check"></i> <span data-i18n="eventdetail.events_count">50+ sự kiện</span></span>
+                                    <span class="organizer-stat"><i class="fas fa-users"></i> <span data-i18n="eventdetail.followers_count">100K+ người theo dõi</span></span>
                                 </div>
                             </div>
                         </div>
@@ -865,7 +865,7 @@
                                 data-event-id="${event.eventId}" data-event-title="<c:out value='${event.title}'/>"
                                 onclick="openEventChat(Number(this.dataset.eventId), this.dataset.eventTitle)" 
                                 style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;">
-                            <i class="fas fa-comments me-2"></i>Chat với ban tổ chức
+                            <i class="fas fa-comments me-2"></i><span data-i18n="eventdetail.chat_organizer">Chat với ban tổ chức</span>
                         </button>
                         </c:if>
                     </div>
@@ -874,7 +874,7 @@
                     <div class="p-4 p-lg-5" id="ticket-section">
                         <h5 class="section-title">
                             <i class="fas fa-ticket-alt"></i>
-                            Chọn loại vé
+                            <span data-i18n="eventdetail.choose_ticket">Chọn loại vé</span>
                         </h5>
                         
                         <jsp:useBean id="now" class="java.util.Date" />
@@ -926,20 +926,20 @@
                                             <div class="ticket-stub-action">
                                                 <div class="ticket-price-lg">
                                                     <c:choose>
-                                                        <c:when test="${ticket.price == 0}">Miễn phí</c:when>
+                                                        <c:when test="${ticket.price == 0}"><span data-i18n="eventdetail.free">Miễn phí</span></c:when>
                                                         <c:otherwise><fmt:formatNumber value="${ticket.price}" pattern="#,###"/>đ</c:otherwise>
                                                     </c:choose>
                                                 </div>
                                                 
                                                 <c:choose>
                                                     <c:when test="${remaining > 50}">
-                                                        <span class="ticket-status-badge bg-status-success">Còn vé</span>
+                                                        <span class="ticket-status-badge bg-status-success" data-i18n="eventdetail.available">Còn vé</span>
                                                     </c:when>
                                                     <c:when test="${remaining > 0}">
-                                                        <span class="ticket-status-badge bg-status-warning">Sắp hết (${remaining})</span>
+                                                        <span class="ticket-status-badge bg-status-warning"><span data-i18n="eventdetail.almost_sold">Sắp hết</span> (${remaining})</span>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <span class="ticket-status-badge bg-status-danger">Hết vé</span>
+                                                        <span class="ticket-status-badge bg-status-danger" data-i18n="eventdetail.sold_out">Hết vé</span>
                                                     </c:otherwise>
                                                 </c:choose>
                                                 
@@ -962,12 +962,12 @@
                                                     <i class="fas fa-shopping-cart"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="text-muted small">Tổng số lượng</div>
-                                                    <div class="fw-bold fs-5" id="total-tickets">0 vé</div>
+                                                    <div class="text-muted small" data-i18n="eventdetail.total_qty">Tổng số lượng</div>
+                                                    <div class="fw-bold fs-5" id="total-tickets"><span>0</span> <span data-i18n="eventdetail.tickets_unit">vé</span></div>
                                                 </div>
                                             </div>
                                             <div class="text-end">
-                                                <div class="text-muted small">Tạm tính</div>
+                                                <div class="text-muted small" data-i18n="eventdetail.subtotal">Tạm tính</div>
                                                 <div class="fw-bold fs-3" style="color: #9333ea;" id="total-price">0đ</div>
                                             </div>
                                         </div>
@@ -976,9 +976,9 @@
                                         <div class="form-check mb-3 p-3" style="background: #f8f5ff; border-radius: 12px; border: 1px solid rgba(147,51,234,0.1);">
                                             <input class="form-check-input" type="checkbox" id="agreeTerms" style="margin-top: 0.35em;">
                                             <label class="form-check-label small" for="agreeTerms">
-                                                Tôi đồng ý với <a href="#" class="fw-bold" style="color: #9333ea;" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';">Điều khoản sử dụng</a>,
-                                                <a href="#" class="fw-bold" style="color: #9333ea;" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';">Chính sách bảo mật</a>
-                                                và xác nhận thông tin mua vé là chính xác.
+                                                <span data-i18n="eventdetail.agree_prefix">Tôi đồng ý với</span> <a href="#" class="fw-bold" style="color: #9333ea;" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';"><span data-i18n="eventdetail.terms_of_use">Điều khoản sử dụng</span></a>,
+                                                <a href="#" class="fw-bold" style="color: #9333ea;" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';"><span data-i18n="eventdetail.privacy_policy">Chính sách bảo mật</span></a>
+                                                <span data-i18n="eventdetail.agree_suffix">và xác nhận thông tin mua vé là chính xác.</span>
                                             </label>
                                         </div>
 
@@ -986,11 +986,11 @@
                                         <button type="button" class="btn w-100 py-3 fw-bold rounded-pill" id="buyBtn"
                                                 style="background: linear-gradient(135deg, #9333ea, #db2777); color: white; font-size: 1.1rem; border: none; box-shadow: 0 8px 25px rgba(147,51,234,0.3); transition: all 0.3s ease;"
                                                 onclick="proceedToCheckout()" disabled>
-                                            <i class="fas fa-lock me-2"></i>Chọn vé để tiếp tục
+                                            <i class="fas fa-lock me-2"></i><span data-i18n="eventdetail.select_to_continue">Chọn vé để tiếp tục</span>
                                         </button>
                                         <p class="text-center text-muted small mt-2 mb-0">
                                             <i class="fas fa-shield-alt text-success me-1"></i>
-                                            Thanh toán an toàn & bảo mật 100% · Không hoàn vé
+                                            <span data-i18n="eventdetail.safe_payment">Thanh toán an toàn & bảo mật 100% · Không hoàn vé</span>
                                         </p>
                                     </div>
                                 </c:when>
@@ -999,8 +999,8 @@
                                         <div style="font-size: 3rem; color: #d1d5db; margin-bottom: 1rem;">
                                             <i class="fas fa-ticket-alt"></i>
                                         </div>
-                                        <h5 class="text-muted">Chưa có loại vé mở bán</h5>
-                                        <p class="text-muted small">Sự kiện này hiện chưa có giá vé được công bố.</p>
+                                        <h5 class="text-muted" data-i18n="eventdetail.no_tickets_title">Chưa có loại vé mở bán</h5>
+                                        <p class="text-muted small" data-i18n="eventdetail.no_tickets_desc">Sự kiện này hiện chưa có giá vé được công bố.</p>
                                     </div>
                                 </c:otherwise>
                             </c:choose>
@@ -1014,10 +1014,10 @@
                 <div class="sticky-sidebar-card">
                     <!-- Price -->
                     <div class="sidebar-price-section">
-                        <div class="sidebar-price-label">Giá từ</div>
+                        <div class="sidebar-price-label" data-i18n="eventdetail.price_from">Giá từ</div>
                         <div class="sidebar-price-value">
                             <c:choose>
-                                <c:when test="${event.minPrice == 0}">Miễn phí</c:when>
+                                <c:when test="${event.minPrice == 0}"><span data-i18n="eventdetail.free">Miễn phí</span></c:when>
                                 <c:otherwise><fmt:formatNumber value="${event.minPrice}" pattern="#,###"/>đ</c:otherwise>
                             </c:choose>
                         </div>
@@ -1026,42 +1026,42 @@
                     <!-- Countdown -->
                     <div class="countdown-section">
                         <p class="text-center text-muted small mb-2">
-                            <i class="fas fa-clock me-1"></i>Thời gian còn lại
+                            <i class="fas fa-clock me-1"></i><span data-i18n="eventdetail.time_left">Thời gian còn lại</span>
                         </p>
                         <div class="countdown-grid">
                             <div class="countdown-box">
                                 <span class="countdown-num" id="days">00</span>
-                                <span class="countdown-lbl">Ngày</span>
+                                <span class="countdown-lbl" data-i18n="eventdetail.days">Ngày</span>
                             </div>
                             <div class="countdown-box">
                                 <span class="countdown-num" id="hours">00</span>
-                                <span class="countdown-lbl">Giờ</span>
+                                <span class="countdown-lbl" data-i18n="eventdetail.hours">Giờ</span>
                             </div>
                             <div class="countdown-box">
                                 <span class="countdown-num" id="minutes">00</span>
-                                <span class="countdown-lbl">Phút</span>
+                                <span class="countdown-lbl" data-i18n="eventdetail.minutes">Phút</span>
                             </div>
                             <div class="countdown-box">
                                 <span class="countdown-num" id="seconds">00</span>
-                                <span class="countdown-lbl">Giây</span>
+                                <span class="countdown-lbl" data-i18n="eventdetail.seconds">Giây</span>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Book Button -->
                     <a href="#ticket-section" class="sidebar-book-btn" onclick="document.getElementById('ticket-section').scrollIntoView({behavior:'smooth'}); return false;">
-                        <i class="fas fa-ticket-alt me-2"></i>Mua vé ngay
+                        <i class="fas fa-ticket-alt me-2"></i><span data-i18n="eventdetail.buy_now">Mua vé ngay</span>
                     </a>
                     
                     <p class="text-center text-muted small px-3 pb-3 mb-0">
                         <i class="fas fa-shield-alt text-success me-1"></i>
-                        Thanh toán an toàn & bảo mật 100%
+                        <span data-i18n="eventdetail.sidebar_safe_pay">Thanh toán an toàn & bảo mật 100%</span>
                     </p>
                     
                     <!-- Related Events -->
                     <div class="related-events-section">
                         <h6 class="fw-bold mb-3">
-                            <i class="fas fa-calendar-alt me-2" style="color: #9333ea;"></i>Sự kiện tương tự
+                            <i class="fas fa-calendar-alt me-2" style="color: #9333ea;"></i><span data-i18n="eventdetail.similar_events">Sự kiện tương tự</span>
                         </h6>
                         
                         <c:choose>
@@ -1171,27 +1171,27 @@ function updateTotal() {
     const buyBtn = document.getElementById('buyBtn');
     const agreeTerms = document.getElementById('agreeTerms');
     
-    if (totalTicketsEl) totalTicketsEl.textContent = totalQty + ' vé';
+    if (totalTicketsEl) totalTicketsEl.innerHTML = totalQty + ' ' + i18n.t('eventdetail.tickets_unit');
     if (totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
     
     if (buyBtn) {
         const termsOk = agreeTerms ? agreeTerms.checked : false;
         if (totalQty > MAX_TICKETS_PER_BUYER) {
             buyBtn.disabled = true;
-            buyBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Giới hạn tối đa ' + MAX_TICKETS_PER_BUYER + ' vé/mỗi khách';
+            buyBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + i18n.t('eventdetail.max_limit_pre') + ' ' + MAX_TICKETS_PER_BUYER + ' ' + i18n.t('eventdetail.max_limit_suf');
             buyBtn.style.opacity = '0.6';
         } else if (totalQty > 0 && termsOk) {
             buyBtn.disabled = false;
-            buyBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Mua ' + totalQty + ' vé — ' + totalPrice.toLocaleString('vi-VN') + 'đ';
+            buyBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>' + i18n.t('eventdetail.buy_x_tickets_pre') + ' ' + totalQty + ' ' + i18n.t('eventdetail.tickets_unit') + ' \u2014 ' + totalPrice.toLocaleString('vi-VN') + '\u0111';
             buyBtn.style.opacity = '1';
             buyBtn.style.cursor = 'pointer';
         } else if (totalQty > 0) {
             buyBtn.disabled = true;
-            buyBtn.innerHTML = '<i class="fas fa-check-square me-2"></i>Vui lòng chấp nhận điều khoản';
+            buyBtn.innerHTML = '<i class="fas fa-check-square me-2"></i>' + i18n.t('eventdetail.accept_terms');
             buyBtn.style.opacity = '0.6';
         } else {
             buyBtn.disabled = true;
-            buyBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Chọn vé để tiếp tục';
+            buyBtn.innerHTML = '<i class="fas fa-lock me-2"></i>' + i18n.t('eventdetail.select_to_continue');
             buyBtn.style.opacity = '0.6';
         }
     }
@@ -1214,7 +1214,7 @@ function proceedToCheckout() {
     }
     
     if (itemParts.length === 0) {
-        if (typeof showToast === 'function') showToast('Vui lòng chọn ít nhất 1 vé', 'error');
+        if (typeof showToast === 'function') showToast(i18n.t('eventdetail.select_at_least_one'), 'error');
         return;
     }
     
@@ -1261,35 +1261,35 @@ document.addEventListener('DOMContentLoaded', function() {
     <div style="display:flex; align-items:center; justify-content:center; height:100%; padding:1rem;">
         <div style="background:white; border-radius:24px; max-width:600px; width:100%; max-height:80vh; overflow-y:auto; box-shadow:0 25px 60px rgba(0,0,0,0.2);">
             <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0"><i class="fas fa-file-contract me-2" style="color:#9333ea;"></i>Điều khoản & Điều kiện</h5>
+                <h5 class="fw-bold mb-0"><i class="fas fa-file-contract me-2" style="color:#9333ea;"></i><span data-i18n="eventdetail.terms_title">Điều khoản & Điều kiện</span></h5>
                 <button type="button" class="btn-close" onclick="document.getElementById('termsModal').style.display='none';"></button>
             </div>
             <div class="p-4">
-                <h6 class="fw-bold">1. Điều khoản mua vé</h6>
+                <h6 class="fw-bold" data-i18n="eventdetail.terms_s1_title">1. Điều khoản mua vé</h6>
                 <ul class="small text-muted mb-3">
-                    <li>Vé đã mua <strong>không được hoàn lại</strong> trừ khi sự kiện bị hủy bởi ban tổ chức.</li>
-                    <li>Mỗi khách được mua tối đa <strong>${event.maxTicketsPerOrder > 0 ? event.maxTicketsPerOrder : 4} vé</strong> cho sự kiện này.</li>
-                    <li>Vé chỉ hợp lệ khi xuất trình mã QR tại cổng check-in.</li>
-                    <li>Mỗi vé chỉ sử dụng <strong>một lần duy nhất</strong>. Không chuyển nhượng, sao chép.</li>
+                    <li data-i18n="eventdetail.terms_s1_1">Vé đã mua <strong>không được hoàn lại</strong> trừ khi sự kiện bị hủy bởi ban tổ chức.</li>
+                    <li><span data-i18n="eventdetail.terms_s1_2_pre">Mỗi khách được mua tối đa</span> <strong>${event.maxTicketsPerOrder > 0 ? event.maxTicketsPerOrder : 4} <span data-i18n="eventdetail.terms_s1_2_unit">vé</span></strong> <span data-i18n="eventdetail.terms_s1_2_suf">cho sự kiện này.</span></li>
+                    <li data-i18n="eventdetail.terms_s1_3">Vé chỉ hợp lệ khi xuất trình mã QR tại cổng check-in.</li>
+                    <li data-i18n="eventdetail.terms_s1_4">Mỗi vé chỉ sử dụng <strong>một lần duy nhất</strong>. Không chuyển nhượng, sao chép.</li>
                 </ul>
-                <h6 class="fw-bold">2. Chính sách bảo mật</h6>
+                <h6 class="fw-bold" data-i18n="eventdetail.terms_s2_title">2. Chính sách bảo mật</h6>
                 <ul class="small text-muted mb-3">
-                    <li>Thông tin cá nhân chỉ dùng để xử lý đơn hàng và liên hệ khi cần.</li>
-                    <li>Dữ liệu được mã hóa và bảo vệ theo tiêu chuẩn SSL/TLS.</li>
-                    <li>Chúng tôi không chia sẻ thông tin với bên thứ ba không liên quan.</li>
+                    <li data-i18n="eventdetail.terms_s2_1">Thông tin cá nhân chỉ dùng để xử lý đơn hàng và liên hệ khi cần.</li>
+                    <li data-i18n="eventdetail.terms_s2_2">Dữ liệu được mã hóa và bảo vệ theo tiêu chuẩn SSL/TLS.</li>
+                    <li data-i18n="eventdetail.terms_s2_3">Chúng tôi không chia sẻ thông tin với bên thứ ba không liên quan.</li>
                 </ul>
-                <h6 class="fw-bold">3. Quy định tham dự</h6>
+                <h6 class="fw-bold" data-i18n="eventdetail.terms_s3_title">3. Quy định tham dự</h6>
                 <ul class="small text-muted mb-3">
-                    <li>Khách tham dự cần tuân thủ nội quy của địa điểm tổ chức.</li>
-                    <li>Ban tổ chức có quyền từ chối khách vi phạm nội quy.</li>
-                    <li>Chương trình có thể thay đổi không báo trước.</li>
+                    <li data-i18n="eventdetail.terms_s3_1">Khách tham dự cần tuân thủ nội quy của địa điểm tổ chức.</li>
+                    <li data-i18n="eventdetail.terms_s3_2">Ban tổ chức có quyền từ chối khách vi phạm nội quy.</li>
+                    <li data-i18n="eventdetail.terms_s3_3">Chương trình có thể thay đổi không báo trước.</li>
                 </ul>
             </div>
             <div class="p-4 border-top text-end">
                 <button type="button" class="btn rounded-pill px-4 py-2 fw-bold" 
                         style="background:linear-gradient(135deg,#9333ea,#db2777);color:white;"
                         onclick="document.getElementById('termsModal').style.display='none'; document.getElementById('agreeTerms').checked=true; updateTotal();">
-                    <i class="fas fa-check me-2"></i>Tôi đồng ý
+                    <i class="fas fa-check me-2"></i><span data-i18n="eventdetail.i_agree">Tôi đồng ý</span>
                 </button>
             </div>
         </div>

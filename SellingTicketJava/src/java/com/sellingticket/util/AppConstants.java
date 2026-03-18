@@ -1,10 +1,16 @@
 package com.sellingticket.util;
 
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Centralized constants for the application.
  * Replaces scattered magic strings with type-safe enums.
  */
 public final class AppConstants {
+
+    private static final Logger LOGGER = Logger.getLogger(AppConstants.class.getName());
 
     private AppConstants() {}
 
@@ -109,24 +115,38 @@ public final class AppConstants {
     // ========================
     public static final String ADMIN_PRIVATE_KEY = loadAdminKey();
 
+    /**
+     * Load JWT secret from env var. Falls back to a random key if missing
+     * (app stays alive but tokens won't survive restarts).
+     */
     private static String loadSecret() {
         String env = System.getenv("TICKETBOX_JWT_SECRET");
-        if (env == null || env.isEmpty()) {
-            throw new RuntimeException(
-                    "TICKETBOX_JWT_SECRET env variable is required. "
-                    + "Set it before starting the server.");
+        if (env != null && !env.isEmpty()) {
+            return env;
         }
-        return env;
+        String fallback = UUID.randomUUID().toString() + UUID.randomUUID().toString();
+        LOGGER.log(Level.SEVERE,
+                "TICKETBOX_JWT_SECRET env variable is NOT set! "
+                + "Using a random fallback — tokens will NOT survive server restarts. "
+                + "Set this env var for production use.");
+        return fallback;
     }
 
+    /**
+     * Load admin key from env var. Falls back to a random key if missing
+     * (admin upgrade feature will be non-functional until set).
+     */
     private static String loadAdminKey() {
         String env = System.getenv("TICKETBOX_ADMIN_KEY");
-        if (env == null || env.isEmpty()) {
-            throw new RuntimeException(
-                    "TICKETBOX_ADMIN_KEY env variable is required. "
-                    + "Set it before starting the server.");
+        if (env != null && !env.isEmpty()) {
+            return env;
         }
-        return env;
+        String fallback = UUID.randomUUID().toString();
+        LOGGER.log(Level.SEVERE,
+                "TICKETBOX_ADMIN_KEY env variable is NOT set! "
+                + "Admin role upgrade is disabled until this is configured. "
+                + "Set this env var for production use.");
+        return fallback;
     }
 
     // ========================

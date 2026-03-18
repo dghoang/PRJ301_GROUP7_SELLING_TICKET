@@ -157,7 +157,7 @@
                 // Keep safe fallback when URL parsing fails.
             }
 
-            showWarning('Vui lòng đăng nhập để tiếp tục');
+            showWarning(i18n.t('auth.login_required'));
             setTimeout(() => {
                 window.location.href = '${pageContext.request.contextPath}/login?returnUrl=' + encodeURIComponent(returnPath);
             }, 1500);
@@ -290,7 +290,7 @@
 
     function startChat(){
         const btn=document.querySelector('#chatStartArea button');
-        btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Đang kết nối...';
+        btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>'+i18n.t('chat.connecting');
         let body='';
         if(chatEventId) body='eventId='+chatEventId;
         postFormJson(CTX+'/api/chat/start', withChatCsrf(body)).then(d=>{
@@ -298,10 +298,10 @@
                 document.getElementById('chatStartArea').style.display='none';
                 document.getElementById('chatBlockedArea').style.display='block';
                 const msg=d.reason==='cooldown'
-                    ?'Vui lòng chờ '+d.retryAfter+' phút trước khi chat lại'
-                    : d.reason==='active_session_exists'?'Bạn đang có phiên chat khác đang mở'
-                    : d.reason==='chat_disabled'?'Chat hỗ trợ hiện đang tạm đóng'
-                    :'Không thể tạo phiên chat';
+                    ?i18n.t('chat.cooldown', d.retryAfter)
+                    : d.reason==='active_session_exists'?i18n.t('chat.active_exists')
+                    : d.reason==='chat_disabled'?i18n.t('chat.disabled')
+                    :i18n.t('chat.cannot_create');
                 document.getElementById('chatBlockedMsg').textContent=msg;
                 return;
             }
@@ -316,31 +316,31 @@
             }
         }).catch(()=>{
             btn.disabled=false;
-            btn.innerHTML='<i class="fas fa-play me-1"></i>Bắt đầu chat';
-            appendMsg('⚠ Không thể kết nối chat','system');
+            btn.innerHTML='<i class="fas fa-play me-1"></i>'+i18n.t('chat.start');
+            appendMsg('⚠ '+i18n.t('chat.connect_error'),'system');
         });
     }
 
     function updateChatUI(){
         const inp=document.getElementById('chatInput'), btn=document.getElementById('chatSendBtn'), st=document.getElementById('chatStatus');
         if(chatSessionStatus==='active'){
-            inp.disabled=false; btn.disabled=false; inp.placeholder='Nhập tin nhắn...';
+            inp.disabled=false; btn.disabled=false; inp.placeholder=i18n.t('chat.placeholder_active');
             if(chatOtherTyping){
-                st.textContent='Đang nhập...';
+                st.textContent=i18n.t('chat.typing');
                 st.style.background='rgba(245,158,11,0.75)';
             } else if(chatOtherOnline){
-                st.textContent='Tư vấn viên online';
+                st.textContent=i18n.t('chat.advisor_online');
                 st.style.background='rgba(16,185,129,0.75)';
             } else {
-                st.textContent='Tư vấn viên tạm offline';
+                st.textContent=i18n.t('chat.advisor_offline');
                 st.style.background='rgba(107,114,128,0.75)';
             }
         } else if(chatSessionStatus==='waiting'){
-            inp.disabled=false; btn.disabled=false; inp.placeholder='Nhập tin nhắn... (chờ tư vấn viên)';
-            st.textContent='Đang chờ'; st.style.background='rgba(245,158,11,0.7)';
+            inp.disabled=false; btn.disabled=false; inp.placeholder=i18n.t('chat.placeholder_waiting');
+            st.textContent=i18n.t('chat.waiting'); st.style.background='rgba(245,158,11,0.7)';
         } else {
-            inp.disabled=true; btn.disabled=true; inp.placeholder='Phiên chat đã đóng';
-            st.textContent='Đã đóng'; st.style.background='rgba(107,114,128,0.7)';
+            inp.disabled=true; btn.disabled=true; inp.placeholder=i18n.t('chat.placeholder_closed');
+            st.textContent=i18n.t('chat.closed'); st.style.background='rgba(107,114,128,0.7)';
         }
     }
 
@@ -390,20 +390,20 @@
         lastSendTime=now;
         inp.value='';
         updateCharCount();
-        lastOwnStatusEl = appendMsg(msg,'me',null,null,'Đang gửi...');
+        lastOwnStatusEl = appendMsg(msg,'me',null,null,i18n.t('chat.sending'));
 
         postFormJson(CTX+'/api/chat/send', withChatCsrf('sessionId='+chatSessionId+'&content='+encodeURIComponent(msg)))
         .then(d=>{
             if(d && d.error){
-                if(lastOwnStatusEl) lastOwnStatusEl.textContent='Lỗi gửi';
+                if(lastOwnStatusEl) lastOwnStatusEl.textContent=i18n.t('chat.send_error');
                 appendMsg('⚠ '+d.error,'system');
                 return;
             }
-            if(lastOwnStatusEl) lastOwnStatusEl.textContent='Đã gửi';
+            if(lastOwnStatusEl) lastOwnStatusEl.textContent=i18n.t('chat.sent');
             sendTypingState(false);
         }).catch(()=>{
-            if(lastOwnStatusEl) lastOwnStatusEl.textContent='Lỗi gửi';
-            appendMsg('⚠ Gửi tin nhắn thất bại','system');
+            if(lastOwnStatusEl) lastOwnStatusEl.textContent=i18n.t('chat.send_error');
+            appendMsg('⚠ '+i18n.t('chat.send_fail'),'system');
         });
     }
 
@@ -421,9 +421,9 @@
                 });
             } else {
                 document.getElementById('chatMessages').innerHTML=
-                    '<div class="text-center text-muted py-2 small"><i class="fas fa-clock me-1"></i>Đang chờ tư vấn viên...</div>';
+                    '<div class="text-center text-muted py-2 small"><i class="fas fa-clock me-1"></i>'+i18n.t('chat.wait_advisor')+'</div>';
             }
-        }).catch(()=>appendMsg('⚠ Không tải được tin nhắn','system'));
+        }).catch(()=>appendMsg('⚠ '+i18n.t('chat.load_error'),'system'));
     }
 
     function pollMessages(){
@@ -436,7 +436,7 @@
                 if(m.senderId!==MY_ID){
                     appendMsg(m.content,'agent',m.senderName,m.time);
                     if(isChatWindowHidden()) incrementUnreadBadge();
-                    if(lastOwnStatusEl) lastOwnStatusEl.textContent='Đã xem';
+                    if(lastOwnStatusEl) lastOwnStatusEl.textContent=i18n.t('chat.seen');
                 }
                 chatLastMsgId=Math.max(chatLastMsgId,m.id);
                 if(chatSessionStatus!=='active'&&m.senderRole!=='customer'){

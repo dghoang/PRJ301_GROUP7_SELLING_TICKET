@@ -64,6 +64,12 @@ public final class JwtUtil {
             return null;
         }
 
+        // Defense-in-depth: reject tokens with unexpected algorithm
+        if (!isExpectedAlgorithm(parts[0])) {
+            LOGGER.log(Level.WARNING, "JWT rejected: unexpected algorithm in header");
+            return null;
+        }
+
         // Verify signature
         String expectedSig = sign(parts[0] + "." + parts[1]);
         if (!constantTimeEquals(expectedSig, parts[2])) {
@@ -156,6 +162,12 @@ public final class JwtUtil {
         String[] parts = token.split("\\.");
         if (parts.length != 3) return null;
 
+        // Defense-in-depth: reject tokens with unexpected algorithm
+        if (!isExpectedAlgorithm(parts[0])) {
+            LOGGER.log(Level.WARNING, "Auth JWT rejected: unexpected algorithm in header");
+            return null;
+        }
+
         String expectedSig = sign(parts[0] + "." + parts[1]);
         if (!constantTimeEquals(expectedSig, parts[2])) {
             LOGGER.log(Level.WARNING, "Auth JWT signature mismatch");
@@ -187,6 +199,20 @@ public final class JwtUtil {
     private static String base64Url(String input) {
         return Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Defense-in-depth: verify the JWT header contains the expected HS256 algorithm.
+     * Rejects tokens with alg:none, alg:HS384, or any unexpected algorithm.
+     */
+    private static boolean isExpectedAlgorithm(String headerBase64) {
+        try {
+            String headerJson = new String(Base64.getUrlDecoder().decode(headerBase64), StandardCharsets.UTF_8);
+            // Quick check: the header must contain "HS256"
+            return headerJson.contains("\"HS256\"");
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static String sign(String data) {

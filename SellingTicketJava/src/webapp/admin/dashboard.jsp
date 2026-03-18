@@ -20,9 +20,17 @@
             <div class="glass-gradient rounded-4 p-4 mb-4 position-relative overflow-hidden animate-fadeInDown">
                 <div class="row align-items-center">
                     <div class="col-md-8">
-                        <h2 class="fw-bold mb-1">Xin chào, Admin <i class="fas fa-hand-peace text-warning"></i></h2>
+                        <h2 class="fw-bold mb-1" id="dashGreeting">Xin chào, Admin <i class="fas fa-hand-peace text-warning"></i></h2>
                         <p class="text-muted mb-0">Đây là tổng quan hệ thống của bạn hôm nay.</p>
                     </div>
+                    <script>
+                    (function(){
+                        var h = new Date().getHours();
+                        var g = h < 12 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+                        var icon = h < 12 ? 'fa-sun text-warning' : h < 18 ? 'fa-cloud-sun text-info' : 'fa-moon text-primary';
+                        document.getElementById('dashGreeting').innerHTML = g + ', Admin <i class="fas ' + icon + '"></i>';
+                    })();
+                    </script>
                     <div class="col-md-4 text-end d-none d-md-block">
                         <span class="badge glass rounded-pill px-3 py-2">
                             <i class="far fa-calendar me-1"></i>
@@ -117,6 +125,56 @@
                 </div>
             </div>
 
+            <!-- Dashboard 2.0: Quick Metrics Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                        <div class="card-body d-flex align-items-center gap-3 p-4">
+                            <div class="dash-icon-box" style="background: linear-gradient(135deg, #06b6d4, #22d3ee);">
+                                <i class="fas fa-user-clock fa-lg text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-0 counter" data-target="${activeUsersToday}">0</h3>
+                                <small class="text-muted">Active Users Today</small>
+                                <div class="mt-1"><small class="text-info fw-medium"><i class="fas fa-signal"></i> Đăng nhập hôm nay</small></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 animate-on-scroll stagger-1">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                        <div class="card-body d-flex align-items-center gap-3 p-4">
+                            <div class="dash-icon-box" style="background: linear-gradient(135deg, #10b981, #34d399);">
+                                <i class="fas fa-funnel-dollar fa-lg text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-0">${conversionRate}%</h3>
+                                <small class="text-muted">Conversion Rate</small>
+                                <div class="mt-1"><small class="text-success fw-medium"><i class="fas fa-percentage"></i> Tỷ lệ thanh toán</small></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 animate-on-scroll stagger-2">
+                    <div class="card glass-strong border-0 rounded-4 h-100 hover-lift">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-bolt text-warning me-2"></i>Quick Actions</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="${pageContext.request.contextPath}/admin/events?status=pending" class="btn btn-sm rounded-pill" style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;">
+                                    <i class="fas fa-check-circle me-1"></i>Duyệt sự kiện <span class="badge bg-white text-dark ms-1">${pendingCount}</span>
+                                </a>
+                                <a href="${pageContext.request.contextPath}/admin/orders?status=pending" class="btn btn-sm rounded-pill" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;">
+                                    <i class="fas fa-receipt me-1"></i>Xử lý đơn
+                                </a>
+                                <a href="${pageContext.request.contextPath}/admin/support" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                    <i class="fas fa-headset me-1"></i>Support
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Charts Row -->
             <div class="row g-4 mb-4">
                 <!-- Revenue Chart -->
@@ -143,6 +201,30 @@
                         </div>
                         <div class="card-body d-flex align-items-center justify-content-center px-4 pb-4">
                             <canvas id="categoryChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard 2.0: Event Status + Hourly Orders Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4 animate-on-scroll">
+                    <div class="card glass-strong border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 px-4">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-signal text-info me-2"></i>Trạng thái sự kiện</h5>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center px-4 pb-4">
+                            <canvas id="eventStatusChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8 animate-on-scroll stagger-1">
+                    <div class="card glass-strong border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 px-4">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-chart-bar text-success me-2"></i>Đơn hàng theo giờ (Hôm nay)</h5>
+                        </div>
+                        <div class="card-body px-4 pb-4">
+                            <canvas id="hourlyOrdersChart" height="250"></canvas>
                         </div>
                     </div>
                 </div>
@@ -216,7 +298,7 @@
 
                 <!-- Recent Orders Feed -->
                 <div class="col-lg-4 animate-on-scroll stagger-1">
-                    <div class="card glass-strong border-0 rounded-4 h-100">
+                    <div class="card glass-strong border-0 rounded-4 mb-4">
                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
                             <h5 class="fw-bold mb-0"><i class="fas fa-shopping-cart text-primary me-2"></i>Đơn hàng gần đây</h5>
                             <a href="${pageContext.request.contextPath}/admin/orders" class="btn btn-sm btn-outline-primary rounded-pill">Xem tất cả</a>
@@ -242,6 +324,36 @@
                             <div class="text-center text-muted py-3">
                                 <i class="fas fa-box-open fa-2x mb-2 opacity-25"></i>
                                 <p class="mb-0 small">Chưa có đơn hàng nào</p>
+                            </div>
+                            </c:if>
+                        </div>
+                    </div>
+
+                    <!-- Activity Feed -->
+                    <div class="card glass-strong border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 pt-4 px-4">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-stream text-info me-2"></i>Hoạt động gần đây</h5>
+                        </div>
+                        <div class="card-body px-4 pb-4">
+                            <c:forEach var="log" items="${activityFeed}">
+                            <div class="d-flex align-items-start gap-2 mb-3 pb-2" style="border-bottom: 1px solid rgba(0,0,0,0.04);">
+                                <div class="mt-1">
+                                    <i class="fas fa-circle text-info" style="font-size: 6px;"></i>
+                                </div>
+                                <div class="flex-grow-1" style="min-width:0;">
+                                    <p class="mb-0 small fw-medium text-truncate">${log.details}</p>
+                                    <small class="text-muted">
+                                        <i class="far fa-clock me-1"></i>
+                                        <fmt:formatDate value="${log.createdAt}" pattern="dd/MM HH:mm"/>
+                                        <span class="badge bg-light text-dark ms-1" style="font-size:0.65rem;">${log.action}</span>
+                                    </small>
+                                </div>
+                            </div>
+                            </c:forEach>
+                            <c:if test="${empty activityFeed}">
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-history fa-2x mb-2 opacity-25"></i>
+                                <p class="mb-0 small">Chưa có hoạt động nào</p>
                             </div>
                             </c:if>
                         </div>
@@ -364,6 +476,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load real data
     loadRevenueChart(7);
     loadCategoryChart();
+    loadEventStatusChart();
+    loadHourlyOrdersChart();
 });
 
 function loadRevenueChart(days) {
@@ -401,6 +515,77 @@ function updateChart(period) {
 
     document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
+}
+
+// Dashboard 2.0: Event Status Doughnut
+function loadEventStatusChart() {
+    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    fetch(basePath + '/admin/dashboard/chart-data?type=event-status')
+        .then(r => r.json())
+        .then(data => {
+            const ctx = document.getElementById('eventStatusChart').getContext('2d');
+            const statusColors = {
+                'approved': '#10b981', 'pending': '#f59e0b', 'rejected': '#ef4444',
+                'cancelled': '#94a3b8', 'completed': '#3b82f6'
+            };
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.status),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: data.map(d => statusColors[d.status] || '#8b5cf6'),
+                        borderWidth: 0, hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { family: 'Inter', size: 11, weight: '500' } } }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Failed to load event status chart:', err));
+}
+
+// Dashboard 2.0: Hourly Orders Bar Chart
+function loadHourlyOrdersChart() {
+    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    fetch(basePath + '/admin/dashboard/chart-data?type=hourly-orders')
+        .then(r => r.json())
+        .then(data => {
+            const ctx = document.getElementById('hourlyOrdersChart').getContext('2d');
+            const hours = Array.from({length: 24}, (_, i) => i + 'h');
+            const counts = new Array(24).fill(0);
+            data.forEach(d => { counts[d.hour] = d.count; });
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.7)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Đơn hàng',
+                        data: counts,
+                        backgroundColor: gradient,
+                        borderRadius: 4, borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } },
+                        y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Inter' } } }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Failed to load hourly orders chart:', err));
 }
 </script>
 

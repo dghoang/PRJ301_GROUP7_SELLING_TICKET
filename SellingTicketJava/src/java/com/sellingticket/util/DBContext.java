@@ -104,9 +104,14 @@ public class DBContext {
             }
         }
 
-        // 2. Create a new connection if under limit
-        if (activeCount.get() < MAX_POOL_SIZE) {
-            activeCount.incrementAndGet();
+        // 2. Create a new connection if under limit (atomic slot reservation)
+        int current;
+        do {
+            current = activeCount.get();
+            if (current >= MAX_POOL_SIZE) break;
+        } while (!activeCount.compareAndSet(current, current + 1));
+
+        if (current < MAX_POOL_SIZE) {
             try {
                 Connection newConn = DriverManager.getConnection(URL, USER, PASS);
                 return wrapConnection(newConn);

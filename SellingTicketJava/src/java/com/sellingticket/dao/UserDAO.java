@@ -52,7 +52,7 @@ public class UserDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return mapResultSetToUser(rs);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO.getUserByEmail", e);
+            LOGGER.log(Level.WARNING, "Database error in UserDAO.getUserByEmail", e);
         }
         return null;
     }
@@ -70,7 +70,7 @@ public class UserDAO extends DBContext {
                 }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO.login", e);
+            LOGGER.log(Level.WARNING, "Database error in UserDAO.login", e);
         }
         return null;
     }
@@ -84,7 +84,7 @@ public class UserDAO extends DBContext {
             ps.setInt(2, userId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to update last login for userId: " + userId, e);
+            LOGGER.log(Level.WARNING, "Failed to update last login for userId: " + userId, e);
         }
         return false;
     }
@@ -99,7 +99,7 @@ public class UserDAO extends DBContext {
             ps.setString(4, phone);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in UserDAO.register", e);
         }
         return false;
     }
@@ -116,7 +116,7 @@ public class UserDAO extends DBContext {
             ps.setDate(6, dob != null ? new java.sql.Date(dob.getTime()) : null);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in UserDAO.registerFull", e);
         }
         return false;
     }
@@ -149,7 +149,7 @@ public class UserDAO extends DBContext {
                 return rs.next();
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in UserDAO.isEmailExists", e);
         }
         return false;
     }
@@ -176,7 +176,7 @@ public class UserDAO extends DBContext {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return mapResultSetToUser(rs);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in UserDAO.getUserById", e);
         }
         return null;
     }
@@ -195,6 +195,25 @@ public class UserDAO extends DBContext {
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to get all users", e);
+        }
+        return users;
+    }
+
+    /**
+     * Get all active users with a specific role.
+     */
+    public List<User> getUsersByRole(String role) {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM Users WHERE role = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL) ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, role);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                users.add(mapResultSetToUser(rs));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to get users by role: " + role, e);
         }
         return users;
     }

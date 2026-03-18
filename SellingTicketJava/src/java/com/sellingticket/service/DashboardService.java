@@ -120,6 +120,46 @@ public class DashboardService {
     }
 
     // ========================
+    // DASHBOARD 2.0 — NEW METRICS
+    // ========================
+
+    public List<Map<String, Object>> getEventStatusDistribution() {
+        try {
+            return dashboardDAO.getEventStatusDistribution();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getEventStatusDistribution", e);
+            return new java.util.ArrayList<>();
+        }
+    }
+
+    public List<Map<String, Object>> getHourlyOrdersToday() {
+        try {
+            return dashboardDAO.getHourlyOrdersToday();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getHourlyOrdersToday", e);
+            return new java.util.ArrayList<>();
+        }
+    }
+
+    public int getActiveUsersToday() {
+        try {
+            return dashboardDAO.getActiveUsersToday();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getActiveUsersToday", e);
+            return 0;
+        }
+    }
+
+    public double getConversionRate() {
+        try {
+            return dashboardDAO.getConversionRate();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getConversionRate", e);
+            return 0.0;
+        }
+    }
+
+    // ========================
     // EVENT-SPECIFIC STATS
     // ========================
 

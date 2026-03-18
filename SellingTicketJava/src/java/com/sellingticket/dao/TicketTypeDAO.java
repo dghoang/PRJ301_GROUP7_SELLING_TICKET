@@ -35,7 +35,7 @@ public class TicketTypeDAO extends DBContext {
                 ticketTypes.add(tt);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.getTicketTypesByEventId", e);
         }
         return ticketTypes;
     }
@@ -102,7 +102,7 @@ public class TicketTypeDAO extends DBContext {
                 return tt;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.getTicketTypeById", e);
         }
         return null;
     }
@@ -121,13 +121,13 @@ public class TicketTypeDAO extends DBContext {
             ps.setTimestamp(7, ticketType.getSaleEnd() != null ? new Timestamp(ticketType.getSaleEnd().getTime()) : null);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.createTicketType", e);
         }
         return false;
     }
 
     public boolean updateSoldQuantity(int ticketTypeId, int quantity) {
-        String sql = "UPDATE TicketTypes SET sold_quantity = sold_quantity + ? WHERE ticket_type_id = ? " +
+        String sql = "UPDATE TicketTypes WITH (UPDLOCK, HOLDLOCK) SET sold_quantity = sold_quantity + ? WHERE ticket_type_id = ? " +
                      "AND (quantity - sold_quantity) >= ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -136,7 +136,7 @@ public class TicketTypeDAO extends DBContext {
             ps.setInt(3, quantity);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.updateSoldQuantity", e);
         }
         return false;
     }
@@ -151,7 +151,7 @@ public class TicketTypeDAO extends DBContext {
                 return rs.getDouble("min_price");
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.getMinPriceByEventId", e);
         }
         return 0;
     }
@@ -178,7 +178,7 @@ public class TicketTypeDAO extends DBContext {
             ps.setInt(8, ticketType.getTicketTypeId());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.updateTicketType", e);
         }
         return false;
     }
@@ -193,7 +193,7 @@ public class TicketTypeDAO extends DBContext {
             ps.setInt(1, ticketTypeId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.deleteTicketType", e);
         }
         return false;
     }
@@ -214,7 +214,7 @@ public class TicketTypeDAO extends DBContext {
                 return rs.getInt("available") >= requestedQuantity;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO", e);
+            LOGGER.log(Level.SEVERE, "Database error in TicketTypeDAO.checkAvailability", e);
         }
         return false;
     }

@@ -1,7 +1,9 @@
 package com.sellingticket.controller.admin;
 
+import com.sellingticket.model.ActivityLog;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.Order;
+import com.sellingticket.service.ActivityLogService;
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
@@ -37,6 +39,7 @@ public class AdminDashboardController extends HttpServlet {
     private final DashboardService dashboardService = new DashboardService();
     private final EventService eventService = new EventService();
     private final OrderService orderService = new OrderService();
+    private final ActivityLogService activityLogService = new ActivityLogService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -65,6 +68,14 @@ public class AdminDashboardController extends HttpServlet {
             // Recent orders for dashboard feed
             List<Order> recentOrders = orderService.getAllOrders(null, 1, 5);
             request.setAttribute("recentOrders", recentOrders);
+
+            // Dashboard 2.0 — new metrics
+            request.setAttribute("activeUsersToday", dashboardService.getActiveUsersToday());
+            request.setAttribute("conversionRate", dashboardService.getConversionRate());
+
+            // Activity feed — recent admin/system actions
+            List<ActivityLog> activityFeed = activityLogService.getRecent(10);
+            request.setAttribute("activityFeed", activityFeed);
 
             request.getRequestDispatcher("/admin/dashboard.jsp").forward(request, response);
         } catch (Exception e) {
@@ -95,6 +106,26 @@ public class AdminDashboardController extends HttpServlet {
                 }
                 case "category": {
                     List<Map<String, Object>> data = dashboardService.getCategoryDistribution();
+                    sendJson(response, buildJsonArray(data));
+                    break;
+                }
+                case "event-status": {
+                    List<Map<String, Object>> data = dashboardService.getEventStatusDistribution();
+                    sendJson(response, buildJsonArray(data));
+                    break;
+                }
+                case "hourly-orders": {
+                    List<Map<String, Object>> data = dashboardService.getHourlyOrdersToday();
+                    sendJson(response, buildJsonArray(data));
+                    break;
+                }
+                case "top-events": {
+                    int limit = 10;
+                    String limitParam = request.getParameter("limit");
+                    if (limitParam != null) {
+                        try { limit = Integer.parseInt(limitParam); } catch (NumberFormatException ignored) {}
+                    }
+                    List<Map<String, Object>> data = dashboardService.getTopEventsByRevenue(limit);
                     sendJson(response, buildJsonArray(data));
                     break;
                 }

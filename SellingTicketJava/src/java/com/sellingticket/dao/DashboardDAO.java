@@ -389,6 +389,87 @@ public class DashboardDAO extends DBContext {
     }
 
     // ================================================================
+    // ADMIN DASHBOARD 2.0 — NEW METRICS
+    // ================================================================
+
+    /**
+     * Get event status distribution (approved, pending, rejected, cancelled, completed).
+     */
+    public List<Map<String, Object>> getEventStatusDistribution() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        String sql = "SELECT status, COUNT(*) as cnt FROM Events GROUP BY status ORDER BY cnt DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("status", rs.getString("status"));
+                row.put("count", rs.getInt("cnt"));
+                result.add(row);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load event status distribution", e);
+        }
+        return result;
+    }
+
+    /**
+     * Get hourly order count for today (for 24h bar chart).
+     */
+    public List<Map<String, Object>> getHourlyOrdersToday() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        String sql = "SELECT DATEPART(hour, created_at) as order_hour, COUNT(*) as order_count " +
+                "FROM Orders WHERE CONVERT(date, created_at) = CONVERT(date, GETDATE()) " +
+                "GROUP BY DATEPART(hour, created_at) ORDER BY order_hour";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("hour", rs.getInt("order_hour"));
+                row.put("count", rs.getInt("order_count"));
+                result.add(row);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load hourly orders today", e);
+        }
+        return result;
+    }
+
+    /**
+     * Get count of users who logged in today.
+     */
+    public int getActiveUsersToday() {
+        String sql = "SELECT COUNT(*) FROM Users WHERE CONVERT(date, last_login_at) = CONVERT(date, GETDATE())";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to count active users today", e);
+        }
+        return 0;
+    }
+
+    /**
+     * Get conversion rate: paid orders / total orders (as percentage).
+     */
+    public double getConversionRate() {
+        String sql = "SELECT " +
+                "CASE WHEN COUNT(*) > 0 THEN " +
+                "  CAST(COUNT(CASE WHEN status = 'paid' THEN 1 END) AS FLOAT) / COUNT(*) * 100 " +
+                "ELSE 0 END as rate FROM Orders";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return Math.round(rs.getDouble("rate") * 100.0) / 100.0;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to calculate conversion rate", e);
+        }
+        return 0.0;
+    }
+
+    // ================================================================
     // VOUCHER SETTLEMENT REPORTS
     // ================================================================
 

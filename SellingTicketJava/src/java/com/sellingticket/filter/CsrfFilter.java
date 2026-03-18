@@ -71,6 +71,7 @@ public class CsrfFilter implements Filter {
             // API transition mode:
             // - If request uses a valid Bearer access token, CSRF is not required.
             // - Otherwise (session/cookie auth), CSRF token is required.
+            // - Defense-in-depth: validate Origin/Referer for session-based API access.
             if (isApiEndpoint) {
                 String bearerToken = extractBearerToken(request);
                 if (bearerToken != null) {
@@ -89,6 +90,13 @@ public class CsrfFilter implements Filter {
                     }
 
                     LOGGER.fine("Invalid bearer token with active session; falling back to CSRF validation");
+                }
+
+                // Defense-in-depth: validate Origin header for session-authenticated API calls
+                if (!isOriginTrusted(request)) {
+                    LOGGER.warning("API CSRF: untrusted Origin/Referer for " + uri);
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Cross-origin API request blocked");
+                    return;
                 }
             }
 
@@ -177,5 +185,35 @@ public class CsrfFilter implements Filter {
     private boolean isValidAccessToken(String token) {
         Map<String, Object> claims = JwtUtil.verifyAuthToken(token);
         return claims != null && "access".equals(claims.get("type"));
+    }
+
+    /**
+     * Defense-in-depth: validate that Origin or Referer header matches this server.
+     * Blocks cross-origin POST requests using session auth (e.g. CSRF via XHR from attacker site).
+     */
+    private boolean isOriginTrusted(HttpServletRequest request) {
+        String origin = request.getHeader("Origin");
+        if (origin == null || origin.isEmpty()) {
+            // Fallback to Referer if Origin is missing (some browsers omit it)
+            String referer = request.getHeader("Referer");
+            if (referer == null || referer.isEmpty()) {
+                // No Origin or Referer — likely non-browser client; allow if has CSRF token
+                String csrf = request.getHeader("X-CSRF-Token");
+                return csrf != null && !csrf.isEmpty();
+            }
+            try {
+                origin = new java.net.URL(referer).getHost();
+            } catch (java.net.MalformedURLException e) {
+                return false;
+            }
+        } else {
+            try {
+                origin = new java.net.URI(origin).getHost();
+            } catch (java.net.URISyntaxException e) {
+                return false;
+            }
+        }
+        String serverHost = request.getServerName();
+        return serverHost != null && serverHost.equalsIgnoreCase(origin);
     }
 }

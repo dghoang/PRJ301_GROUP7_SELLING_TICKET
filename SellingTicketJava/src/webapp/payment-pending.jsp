@@ -173,7 +173,11 @@ function manualConfirm() {
 
     fetch('${pageContext.request.contextPath}/api/payment/status?orderId=' + orderId, {
         method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': '${sessionScope.csrf_token}'
+        },
         body: 'orderId=' + orderId
     })
     .then(function(res) {

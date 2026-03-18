@@ -38,6 +38,7 @@ public class AuthFilter implements Filter {
             "/checkout.jsp",
             "/my-support-tickets.jsp",
             "/my-tickets.jsp",
+            "/notifications.jsp",
             "/order-confirmation.jsp",
             "/payment-pending.jsp",
             "/profile.jsp",
@@ -187,7 +188,8 @@ public class AuthFilter implements Filter {
                 String adminPath = uri.substring((contextPath + "/admin").length());
                 if (adminPath.equals("/support") || adminPath.startsWith("/support/") ||
                     adminPath.equals("/support-detail") || adminPath.startsWith("/support-detail/") ||
-                    adminPath.equals("/chat-dashboard") || adminPath.startsWith("/chat-dashboard/")) {
+                    adminPath.equals("/chat-dashboard") || adminPath.startsWith("/chat-dashboard/") ||
+                    adminPath.equals("/notifications") || adminPath.startsWith("/notifications/")) {
                     chain.doFilter(request, response);
                     return;
                 }

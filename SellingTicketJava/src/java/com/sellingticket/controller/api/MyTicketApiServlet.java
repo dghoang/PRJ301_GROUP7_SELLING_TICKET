@@ -80,6 +80,9 @@ public class MyTicketApiServlet extends HttpServlet {
                 item.append("\"orderStatus\":\"").append(esc(t.getOrderStatus() != null ? t.getOrderStatus() : "paid")).append("\",");
                 item.append("\"orderId\":").append(t.getOrderId()).append(",");
                 item.append("\"checkedInAt\":\"").append(t.getCheckedInAt() != null ? sdf.format(t.getCheckedInAt()) : "").append("\",");
+                item.append("\"eventStartDate\":\"").append(t.getEventStartDate() != null ? sdf.format(t.getEventStartDate()) : "").append("\",");
+                item.append("\"eventEndDate\":\"").append(t.getEventEndDate() != null ? sdf.format(t.getEventEndDate()) : "").append("\",");
+                item.append("\"venue\":\"").append(esc(t.getVenue())).append("\",");
                 item.append("\"createdAt\":\"").append(t.getCreatedAt() != null ? sdf.format(t.getCreatedAt()) : "").append("\"");
                 item.append("}");
                 json.arrayElement(item.toString());

@@ -28,20 +28,19 @@
                 <!-- Animated Badge -->
                 <div class="d-inline-flex align-items-center gap-2 glass px-4 py-2 rounded-pill mb-4 animate-fadeInDown">
                     <i class="fas fa-fire text-danger animate-pulse"></i>
-                    <span class="fw-medium small">Nền tảng vé sự kiện số 1 Việt Nam</span>
+                    <span class="fw-medium small" data-i18n="home.badge">Nền tảng vé sự kiện số 1 Việt Nam</span>
                     <span class="badge badge-hot">HOT</span>
                 </div>
 
                 <!-- Animated Heading -->
                 <h1 class="display-3 fw-bold mb-4 animate-fadeInUp">
-                    Khám phá & Đặt vé <br>
-                    <span class="gradient-text-animate">Sự kiện đỉnh cao</span>
+                    <span data-i18n="home.title_line1">Khám phá & Đặt vé</span> <br>
+                    <span class="gradient-text-animate" data-i18n="home.title_line2">Sự kiện đỉnh cao</span>
                 </h1>
 
                 <!-- Subheading -->
                 <p class="lead text-muted mb-5 animate-fadeInUp stagger-2">
-                    Trải nghiệm những khoảnh khắc đáng nhớ với hàng ngàn sự kiện 
-                    âm nhạc, thể thao, workshop và nhiều hơn nữa.
+                    <span data-i18n="home.subtitle">Trải nghiệm những khoảnh khắc đáng nhớ với hàng ngàn sự kiện âm nhạc, thể thao, workshop và nhiều hơn nữa.</span>
                 </p>
 
                 <!-- Enhanced Search Bar -->
@@ -50,10 +49,10 @@
                         <div class="flex-grow-1 d-flex align-items-center bg-white rounded-3 px-3 py-2 shadow-sm">
                             <i class="fas fa-search text-muted me-2"></i>
                             <input type="text" name="search" class="form-control border-0 shadow-none" 
-                                   placeholder="Tìm sự kiện, nghệ sĩ, địa điểm...">
+                                   placeholder="Tìm sự kiện, nghệ sĩ, địa điểm..." data-i18n-placeholder="home.search_placeholder">
                         </div>
                         <button type="submit" class="btn btn-gradient rounded-3 px-4 py-2 hover-glow">
-                            <i class="fas fa-search me-2"></i>Tìm kiếm
+                            <i class="fas fa-search me-2"></i><span data-i18n="home.search_btn">Tìm kiếm</span>
                         </button>
                     </form>
                 </div>
@@ -62,15 +61,15 @@
                 <div class="d-flex justify-content-center gap-4 gap-md-5 flex-wrap">
                     <div class="stat-card animate-on-scroll stagger-1">
                         <div class="stat-number" data-counter="${totalEvents}">0</div>
-                        <div class="stat-label">Sự kiện</div>
+                        <div class="stat-label" data-i18n="home.stat_events">Sự kiện</div>
                     </div>
                     <div class="stat-card animate-on-scroll stagger-2">
                         <div class="stat-number" data-counter="${totalUsers}">0</div>
-                        <div class="stat-label">Người dùng</div>
+                        <div class="stat-label" data-i18n="home.stat_users">Người dùng</div>
                     </div>
                     <div class="stat-card animate-on-scroll stagger-3">
                         <div class="stat-number" data-counter="${totalTicketsSold}">0</div>
-                        <div class="stat-label">Vé đã bán</div>
+                        <div class="stat-label" data-i18n="home.stat_tickets">Vé đã bán</div>
                     </div>
                 </div>
             </div>
@@ -84,12 +83,12 @@
         <div class="d-flex justify-content-between align-items-center mb-4 animate-on-scroll">
             <div>
                 <h2 class="fw-bold mb-1">
-                    <i class="fas fa-compass text-primary me-2"></i>Khám phá theo danh mục
+                    <i class="fas fa-compass text-primary me-2"></i><span data-i18n="home.categories">Khám phá theo danh mục</span>
                 </h2>
-                <p class="text-muted mb-0">Tìm kiếm sự kiện phù hợp với sở thích của bạn</p>
+                <p class="text-muted mb-0" data-i18n="home.categories_desc">Tìm kiếm sự kiện phù hợp với sở thích của bạn</p>
             </div>
             <a href="categories" class="text-decoration-none fw-bold text-primary hover-scale d-inline-flex align-items-center gap-2">
-                Xem tất cả <i class="fas fa-arrow-right"></i>
+                <span data-i18n="home.view_all">Xem tất cả</span> <i class="fas fa-arrow-right"></i>
             </a>
         </div>
 
@@ -160,12 +159,12 @@
         <div class="d-flex justify-content-between align-items-center mb-4 animate-on-scroll">
             <div>
                 <h2 class="fw-bold mb-1">
-                    <i class="fas fa-fire text-danger me-2"></i>Sự kiện nổi bật
+                    <i class="fas fa-fire text-danger me-2"></i><span data-i18n="home.trending">Sự kiện nổi bật</span>
                 </h2>
-                <p class="text-muted mb-0">Đừng bỏ lỡ những sự kiện hot nhất tuần này</p>
+                <p class="text-muted mb-0" data-i18n="home.trending_desc">Đừng bỏ lỡ những sự kiện hot nhất tuần này</p>
             </div>
             <a href="events?type=featured" class="text-decoration-none fw-bold text-primary hover-scale d-inline-flex align-items-center gap-2">
-                Xem tất cả <i class="fas fa-arrow-right"></i>
+                <span data-i18n="home.view_all">Xem tất cả</span> <i class="fas fa-arrow-right"></i>
             </a>
         </div>
 
@@ -215,9 +214,9 @@
     <div class="container">
         <div class="text-center mb-5 animate-on-scroll">
             <h2 class="fw-bold mb-2">
-                <i class="fas fa-calendar-check text-primary me-2"></i>Sắp diễn ra
+                <i class="fas fa-calendar-check text-primary me-2"></i><span data-i18n="home.upcoming">Sắp diễn ra</span>
             </h2>
-            <p class="text-muted">Những sự kiện đang được mong chờ nhất</p>
+            <p class="text-muted" data-i18n="home.upcoming_desc">Những sự kiện đang được mong chờ nhất</p>
         </div>
 
         <div class="row g-4">
@@ -345,8 +344,8 @@
             
             <div class="position-relative" style="z-index: 2;">
                 <span class="badge badge-new mb-3">DÀNH CHO NHÀ TỔ CHỨC</span>
-                <h2 class="fw-bold mb-3">Bạn là Nhà tổ chức sự kiện?</h2>
-                <p class="text-muted mb-4 mx-auto" style="max-width: 600px;">
+                <h2 class="fw-bold mb-3" data-i18n="home.cta_title">Bạn là Nhà tổ chức sự kiện?</h2>
+                <p class="text-muted mb-4 mx-auto" style="max-width: 600px;" data-i18n="home.cta_desc">
                     Đăng tải sự kiện, quản lý vé và tiếp cận hàng ngàn khán giả tiềm năng ngay hôm nay với Ticketbox.
                 </p>
                 <div class="d-flex justify-content-center gap-3 flex-wrap">

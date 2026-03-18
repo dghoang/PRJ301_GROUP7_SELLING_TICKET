@@ -274,8 +274,8 @@ public class GoogleOAuthServlet extends HttpServlet {
     }
 
     /**
-     * Simple JSON value extractor (no external library needed).
-     * Extracts value for "key":"value" pattern.
+     * Escape-aware JSON value extractor (no external library needed).
+     * Extracts value for "key":"value" pattern, correctly skipping escaped quotes.
      */
     private String extractJsonValue(String json, String key) {
         String search = "\"" + key + "\"";
@@ -288,8 +288,13 @@ public class GoogleOAuthServlet extends HttpServlet {
         int startQuote = json.indexOf('"', colonIdx + 1);
         if (startQuote < 0) return null;
 
-        int endQuote = json.indexOf('"', startQuote + 1);
-        if (endQuote < 0) return null;
+        // Skip escaped quotes (same pattern as JwtUtil.parseSimpleJson)
+        int endQuote = startQuote + 1;
+        while (endQuote < json.length()) {
+            if (json.charAt(endQuote) == '"' && json.charAt(endQuote - 1) != '\\') break;
+            endQuote++;
+        }
+        if (endQuote >= json.length()) return null;
 
         return json.substring(startQuote + 1, endQuote);
     }

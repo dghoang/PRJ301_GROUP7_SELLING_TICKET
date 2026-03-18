@@ -118,4 +118,39 @@ public class EventStaffDAO extends DBContext {
         }
         return false;
     }
+
+    /**
+     * Returns assigned events with full details for staff dashboard.
+     * Each row: event_id, event_name, start_date, end_date, venue, status, role, tickets_sold, tickets_checked
+     */
+    public List<java.util.Map<String, Object>> getAssignedEventsWithDetails(int userId) {
+        List<java.util.Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT e.event_id, e.event_name, e.start_date, e.end_date, e.venue, e.status, " +
+                     "es.role AS staff_role, " +
+                     "(SELECT COUNT(*) FROM OrderDetails od JOIN TicketTypes tt ON od.ticket_type_id = tt.ticket_type_id WHERE tt.event_id = e.event_id) AS tickets_sold, " +
+                     "(SELECT COUNT(*) FROM OrderDetails od JOIN TicketTypes tt ON od.ticket_type_id = tt.ticket_type_id WHERE tt.event_id = e.event_id AND od.checked_in = 1) AS tickets_checked " +
+                     "FROM EventStaff es JOIN Events e ON es.event_id = e.event_id " +
+                     "WHERE es.user_id = ? ORDER BY e.start_date DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("eventId", rs.getInt("event_id"));
+                row.put("eventName", rs.getString("event_name"));
+                row.put("startDate", rs.getTimestamp("start_date"));
+                row.put("endDate", rs.getTimestamp("end_date"));
+                row.put("venue", rs.getString("venue"));
+                row.put("status", rs.getString("status"));
+                row.put("staffRole", rs.getString("staff_role"));
+                row.put("ticketsSold", rs.getInt("tickets_sold"));
+                row.put("ticketsChecked", rs.getInt("tickets_checked"));
+                list.add(row);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error loading assigned events with details", e);
+        }
+        return list;
+    }
 }

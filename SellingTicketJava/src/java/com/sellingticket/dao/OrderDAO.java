@@ -26,7 +26,7 @@ public class OrderDAO extends DBContext {
      */
     public int createOrderAtomic(Order order) {
         String reserveTicketSQL =
-                "UPDATE TicketTypes SET sold_quantity = sold_quantity + ? " +
+                "UPDATE TicketTypes WITH (UPDLOCK, HOLDLOCK) SET sold_quantity = sold_quantity + ? " +
                 "WHERE ticket_type_id = ? AND (quantity - sold_quantity) >= ? AND is_active = 1";
         String insertOrderSQL =
                 "INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, " +

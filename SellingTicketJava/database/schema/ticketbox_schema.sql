@@ -31,7 +31,7 @@ BEGIN
         phone NVARCHAR(20),
         gender NVARCHAR(10),
         date_of_birth DATE,
-        role NVARCHAR(20) DEFAULT 'customer' CHECK (role IN ('customer', 'organizer', 'admin')),
+        role NVARCHAR(20) DEFAULT 'customer' CHECK (role IN ('customer', 'organizer', 'admin', 'support_agent')),
         avatar NVARCHAR(500),
         is_active BIT DEFAULT 1,
 
@@ -304,11 +304,15 @@ BEGIN
         discount_type NVARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed')),
         discount_value DECIMAL(18,2) NOT NULL,
         min_order_amount DECIMAL(18,2) DEFAULT 0,
-        max_uses INT,
+        max_discount DECIMAL(18,2) DEFAULT 0,
+        usage_limit INT DEFAULT 0,
         used_count INT DEFAULT 0,
         start_date DATETIME,
         end_date DATETIME,
         is_active BIT DEFAULT 1,
+        is_deleted BIT DEFAULT 0,
+        voucher_scope NVARCHAR(10) DEFAULT 'EVENT',
+        fund_source NVARCHAR(10) DEFAULT 'ORGANIZER',
         created_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (organizer_id) REFERENCES Users(user_id),
         FOREIGN KEY (event_id) REFERENCES Events(event_id)
@@ -398,7 +402,7 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('RolePermis
 BEGIN
     CREATE TABLE RolePermissions (
         role_permission_id INT IDENTITY(1,1) PRIMARY KEY,
-        role NVARCHAR(20) NOT NULL CHECK (role IN ('customer', 'organizer', 'admin')),
+        role NVARCHAR(20) NOT NULL CHECK (role IN ('customer', 'organizer', 'admin', 'support_agent')),
         permission_id INT NOT NULL,
         FOREIGN KEY (permission_id) REFERENCES Permissions(permission_id) ON DELETE CASCADE,
         UNIQUE (role, permission_id)

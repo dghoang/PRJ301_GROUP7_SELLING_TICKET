@@ -1,7 +1,7 @@
-﻿-- =============================================
+-- =============================================
 -- TICKETBOX — FULL RESET & SEED DATA
 -- SQL Server | PRJ301 Group 4
--- Version: 2026-03-16
+-- Version: 2026-03-18 (+ ActivityLog, Notifications)
 -- =============================================
 -- CHỈ CẦN CHẠY FILE NÀY 1 LẦN ĐỂ SETUP TOÀN BỘ
 -- An toàn khi chuyển máy — DROP & CREATE lại tất cả
@@ -18,6 +18,8 @@ GO
 -- =============================================
 -- DROP TẤT CẢ TABLES (theo thứ tự FK)
 -- =============================================
+IF OBJECT_ID('Notifications', 'U') IS NOT NULL DROP TABLE Notifications;
+IF OBJECT_ID('ActivityLog',   'U') IS NOT NULL DROP TABLE ActivityLog;
 IF OBJECT_ID('SiteSettings',  'U') IS NOT NULL DROP TABLE SiteSettings;
 IF OBJECT_ID('ChatMessages',  'U') IS NOT NULL DROP TABLE ChatMessages;
 IF OBJECT_ID('ChatSessions',  'U') IS NOT NULL DROP TABLE ChatSessions;
@@ -1727,6 +1729,132 @@ PRINT '=== Site settings seeded ===';
 GO
 
 -- =============================================
+-- TABLE: ACTIVITY LOG (audit trail for admin actions)
+-- =============================================
+CREATE TABLE ActivityLog (
+    log_id       INT IDENTITY(1,1) PRIMARY KEY,
+    user_id      INT NOT NULL,
+    action       VARCHAR(100) NOT NULL,
+    entity_type  VARCHAR(50),
+    entity_id    INT,
+    details      NVARCHAR(500),
+    ip_address   VARCHAR(45),
+    created_at   DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_ActivityLog_User FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+CREATE INDEX IX_ActivityLog_CreatedAt ON ActivityLog(created_at DESC);
+CREATE INDEX IX_ActivityLog_UserId    ON ActivityLog(user_id);
+CREATE INDEX IX_ActivityLog_Action    ON ActivityLog(action);
+GO
+
+-- =============================================
+-- TABLE: NOTIFICATIONS (in-app notification center)
+-- =============================================
+CREATE TABLE Notifications (
+    notification_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id         INT NOT NULL,
+    type            VARCHAR(50) NOT NULL,
+    title           NVARCHAR(200) NOT NULL,
+    message         NVARCHAR(500),
+    link            VARCHAR(300),
+    is_read         BIT DEFAULT 0,
+    created_at      DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_Notifications_User FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+CREATE INDEX IX_Notifications_UserRead ON Notifications(user_id, is_read);
+CREATE INDEX IX_Notifications_CreatedAt ON Notifications(created_at DESC);
+GO
+
+PRINT '=== ActivityLog + Notifications tables created ===';
+GO
+
+-- =============================================
+-- SEED DATA — ACTIVITY LOG (30 entries — diverse admin/system actions)
+-- =============================================
+INSERT INTO ActivityLog (user_id, action, entity_type, entity_id, details, ip_address, created_at) VALUES
+-- Admin (user 1) event management actions
+(1, 'APPROVE_EVENT', 'Event', 1, N'Approved event: Hà Anh Tuấn Concert 2026', '192.168.1.100', DATEADD(DAY,-40,GETDATE())),
+(1, 'APPROVE_EVENT', 'Event', 2, N'Approved event: Mỹ Tâm Liveshow My Soul 1981', '192.168.1.100', DATEADD(DAY,-39,GETDATE())),
+(1, 'APPROVE_EVENT', 'Event', 3, N'Approved event: Sơn Tùng M-TP Sky Tour Encore', '192.168.1.100', DATEADD(DAY,-38,GETDATE())),
+(1, 'REJECT_EVENT', 'Event', 7, N'Rejected event: Karaoke Đại Hội Test — Nội dung không đủ thông tin', '192.168.1.100', DATEADD(DAY,-35,GETDATE())),
+(1, 'REJECT_EVENT', 'Event', 22, N'Rejected event: Triển lãm Ảnh Không Phép — Chưa có giấy phép', '192.168.1.100', DATEADD(DAY,-34,GETDATE())),
+(1, 'REJECT_EVENT', 'Event', 25, N'Rejected event: Crypto Investment Night — Thiếu thông tin pháp lý', '192.168.1.100', DATEADD(DAY,-33,GETDATE())),
+(1, 'APPROVE_EVENT', 'Event', 26, N'Approved event: Vietnam AI Summit 2026 (featured)', '192.168.1.100', DATEADD(DAY,-30,GETDATE())),
+(1, 'FEATURE_EVENT', 'Event', 26, N'Marked event as featured', '192.168.1.100', DATEADD(DAY,-30,GETDATE())),
+(1, 'PIN_EVENT', 'Event', 26, N'Pinned event: Vietnam AI Summit 2026', '192.168.1.100', DATEADD(DAY,-30,GETDATE())),
+-- Admin user management actions
+(1, 'LOCK_USER', 'User', 22, N'Locked user: Nguyễn Bị Khóa (banned.user@test.com) — vi phạm chính sách', '192.168.1.100', DATEADD(DAY,-28,GETDATE())),
+(1, 'DELETE_USER', 'User', 23, N'Soft-deleted user: Trần Đã Xóa (deleted.user@test.com)', '192.168.1.100', DATEADD(DAY,-27,GETDATE())),
+(1, 'CHANGE_ROLE', 'User', 4, N'Changed role: organizer@ticketbox.vn → organizer (verified organizer)', '192.168.1.100', DATEADD(DAY,-45,GETDATE())),
+-- Support agent actions
+(2, 'RESOLVE_TICKET', 'SupportTicket', 1, N'Resolved support ticket SPT-001: Payment email issue', '10.0.0.50', DATEADD(DAY,-29,GETDATE())),
+(2, 'PROCESS_REFUND', 'Order', 26, N'Processed refund for ORD-2026-0026 (80% = 1,600,000đ)', '10.0.0.50', DATEADD(DAY,-18,GETDATE())),
+(2, 'RESOLVE_TICKET', 'SupportTicket', 6, N'Resolved support ticket SPT-006: Refund completed', '10.0.0.50', DATEADD(DAY,-18,GETDATE())),
+(3, 'ASSIGN_TICKET',  'SupportTicket', 7, N'Self-assigned support ticket SPT-007', '10.0.0.51', DATEADD(DAY,-2,GETDATE())),
+-- Admin order and voucher management
+(1, 'CREATE_VOUCHER', 'Voucher', 9, N'Created system voucher SYSLAUNCH50 (50K fixed)', '192.168.1.100', DATEADD(DAY,-50,GETDATE())),
+(1, 'CREATE_VOUCHER', 'Voucher', 10, N'Created system voucher SYSVIP10 (10% up to 500K)', '192.168.1.100', DATEADD(DAY,-48,GETDATE())),
+(1, 'CANCEL_ORDER', 'Order', 48, N'Admin cancelled ORD-2026-0048 — customer request', '192.168.1.100', DATEADD(DAY,-7,GETDATE())),
+-- System-generated actions
+(1, 'UPDATE_SETTINGS', 'SiteSettings', NULL, N'Updated chat_enabled=true, require_event_approval=true', '192.168.1.100', DATEADD(DAY,-55,GETDATE())),
+(1, 'SYSTEM_STARTUP', NULL, NULL, N'System initialized — all services online', '127.0.0.1', DATEADD(DAY,-60,GETDATE())),
+-- Recent admin activity (last few days)
+(1, 'APPROVE_EVENT', 'Event', 8, N'Approved event: Vietnam Marathon Đà Nẵng 2026', '192.168.1.100', DATEADD(DAY,-25,GETDATE())),
+(1, 'APPROVE_EVENT', 'Event', 17, N'Approved event: Lễ hội Ẩm thực Đường phố Sài Gòn 2026', '192.168.1.100', DATEADD(DAY,-22,GETDATE())),
+(1, 'APPROVE_EVENT', 'Event', 13, N'Approved event: Workshop UI/UX Design', '192.168.1.100', DATEADD(DAY,-20,GETDATE())),
+(2, 'CLOSE_TICKET',  'SupportTicket', 2, N'Closed support ticket SPT-002', '10.0.0.50', DATEADD(DAY,-18,GETDATE())),
+(1, 'APPROVE_EVENT', 'Event', 27, N'Approved event: Hackathon Build for Vietnam 2026', '192.168.1.100', DATEADD(DAY,-15,GETDATE())),
+(2, 'ASSIGN_CHAT',   'ChatSession', 3, N'Assigned chat session #3 to self', '10.0.0.50', DATEADD(HOUR,-2,GETDATE())),
+(1, 'VIEW_DASHBOARD', NULL, NULL, N'Admin viewed dashboard overview', '192.168.1.100', DATEADD(HOUR,-1,GETDATE())),
+(1, 'EXPORT_REPORT', 'Order', NULL, N'Exported settlement report (all orders)', '192.168.1.100', DATEADD(MINUTE,-30,GETDATE())),
+(1, 'VIEW_ACTIVITY_LOG', NULL, NULL, N'Admin viewed activity log page', '192.168.1.100', DATEADD(MINUTE,-10,GETDATE()));
+GO
+
+PRINT '=== 30 activity log entries seeded ===';
+GO
+
+-- =============================================
+-- SEED DATA — NOTIFICATIONS (25 entries — diverse types for admin/organizer/support)
+-- =============================================
+INSERT INTO Notifications (user_id, type, title, message, link, is_read, created_at) VALUES
+-- Admin notifications (user 1)
+(1, 'new_event',    N'Sự kiện mới chờ duyệt',        N'EDM Neon Jungle Festival 2026 đang chờ admin duyệt.', '/admin/events/5', 1, DATEADD(DAY,-20,GETDATE())),
+(1, 'new_event',    N'Sự kiện mới chờ duyệt',        N'Giải Bơi Lội TP.HCM Mùa Hè 2026 đang chờ duyệt.',     '/admin/events/11', 0, DATEADD(DAY,-10,GETDATE())),
+(1, 'new_event',    N'Sự kiện mới chờ duyệt',        N'Hội nghị Du lịch & Hospitality 2026 chờ duyệt.',       '/admin/events/24', 0, DATEADD(DAY,-8,GETDATE())),
+(1, 'new_event',    N'Sự kiện mới chờ duyệt',        N'Tech Career Fair 2026 đang chờ admin duyệt.',           '/admin/events/28', 0, DATEADD(DAY,-5,GETDATE())),
+(1, 'support',      N'Support ticket cấp bách',       N'SPT-010: Yêu cầu hoàn tiền urgent từ Lý Minh Châu.',  '/admin/support/10', 0, DATEADD(DAY,-1,GETDATE())),
+(1, 'support',      N'Support ticket mới',            N'SPT-008: Thiếu vé — Bùi Quốc Bảo cần kiểm tra.',      '/admin/support/8', 0, DATEADD(DAY,-1,GETDATE())),
+(1, 'system',       N'Hệ thống khởi động thành công', N'Tất cả services đã online. Version 2026-03-18.',       '/admin/dashboard', 1, DATEADD(DAY,-60,GETDATE())),
+(1, 'order',        N'Đơn hàng bị hủy',              N'ORD-2026-0048 (Lê Hoàng Cường) đã bị hủy.',           '/admin/orders/48', 1, DATEADD(DAY,-7,GETDATE())),
+(1, 'refund',       N'Hoàn tiền xử lý',              N'ORD-2026-0049 (Lý Minh Châu) đã hoàn tiền thành công.','/admin/orders/49', 1, DATEADD(DAY,-8,GETDATE())),
+-- Support agent notifications (user 2)
+(2, 'support',      N'Ticket mới được gán',           N'SPT-001: Thanh toán thành công nhưng chưa nhận vé.',   '/admin/support/1', 1, DATEADD(DAY,-29,GETDATE())),
+(2, 'support',      N'Ticket mới được gán',           N'SPT-003: Yêu cầu hủy đơn ORD-2026-0013.',             '/admin/support/3', 1, DATEADD(DAY,-17,GETDATE())),
+(2, 'support',      N'Ticket mới được gán',           N'SPT-006: Yêu cầu hoàn tiền vé Sơn Tùng.',             '/admin/support/6', 1, DATEADD(DAY,-19,GETDATE())),
+(2, 'chat',         N'Chat mới cần hỗ trợ',           N'Phạm Minh Đức đang hỏi về QR code vé Hackathon.',     '/admin/chat', 0, DATEADD(HOUR,-2,GETDATE())),
+(2, 'chat',         N'Chat mới cần hỗ trợ',           N'Phan Ngọc Diễm hỏi về liveshow Mỹ Tâm.',              '/admin/chat', 0, DATEADD(MINUTE,-45,GETDATE())),
+-- Support agent notifications (user 3)
+(3, 'support',      N'Ticket mới được gán',           N'SPT-007: Email chưa xác minh — cần kiểm tra.',        '/admin/support/7', 0, DATEADD(DAY,-2,GETDATE())),
+-- Organizer notifications (user 4 — Live Nation)
+(4, 'event_approved', N'Sự kiện được duyệt',          N'Hà Anh Tuấn Concert 2026 đã được admin duyệt!',       '/organizer/events/1', 1, DATEADD(DAY,-40,GETDATE())),
+(4, 'event_approved', N'Sự kiện được duyệt',          N'Mỹ Tâm Liveshow My Soul 1981 đã được duyệt!',         '/organizer/events/2', 1, DATEADD(DAY,-39,GETDATE())),
+(4, 'new_order',    N'Đơn hàng mới',                  N'ORD-2026-0001: 7,500,000đ cho Hà Anh Tuấn Concert.',  '/organizer/events/1/orders', 1, DATEADD(DAY,-30,GETDATE())),
+(4, 'event_rejected', N'Sự kiện bị từ chối',          N'Karaoke Đại Hội Test bị từ chối. Lý do: thiếu thông tin.', '/organizer/events/7', 1, DATEADD(DAY,-35,GETDATE())),
+-- Organizer notifications (user 6 — TechViet)
+(6, 'event_approved', N'Sự kiện được duyệt',          N'Vietnam AI Summit 2026 đã được duyệt + featured!',    '/organizer/events/26', 1, DATEADD(DAY,-30,GETDATE())),
+(6, 'new_order',    N'Đơn hàng mới',                  N'ORD-2026-0043: 1,450,000đ cho AI Summit.',             '/organizer/events/26/orders', 0, DATEADD(DAY,-4,GETDATE())),
+-- Organizer notifications (user 7 — Sports org)
+(7, 'event_approved', N'Sự kiện được duyệt',          N'Vietnam Marathon Đà Nẵng 2026 đã được duyệt!',        '/organizer/events/8', 1, DATEADD(DAY,-25,GETDATE())),
+(7, 'new_order',    N'Đơn hàng mới',                  N'ORD-2026-0042: 1,100,000đ cho Marathon Full 42K.',     '/organizer/events/8/orders', 0, DATEADD(DAY,-3,GETDATE())),
+-- Organizer notifications (user 5 — Vietravel)
+(5, 'event_approved', N'Sự kiện được duyệt',          N'Lễ hội Ẩm thực Đường phố Sài Gòn 2026 đã được duyệt!', '/organizer/events/17', 1, DATEADD(DAY,-22,GETDATE())),
+(5, 'support_routed', N'Support ticket chuyển đến bạn', N'SPT-002: Khách hỏi dress code liveshow — chuyển cho BTC.', '/organizer/support/2', 1, DATEADD(DAY,-19,GETDATE()));
+GO
+
+PRINT '=== 25 notifications seeded (9 admin, 5 support, 11 organizer) ===';
+GO
+
+-- =============================================
 -- SETTLEMENT DATA — BACKFILL EXISTING + NEW ORDERS
 -- Covers: NONE, EVENT voucher, SYSTEM voucher cases
 -- =============================================
@@ -2011,7 +2139,9 @@ SELECT 'TicketMessages', COUNT(*) FROM TicketMessages UNION ALL
 SELECT 'ChatSessions', COUNT(*) FROM ChatSessions UNION ALL
 SELECT 'ChatMessages', COUNT(*) FROM ChatMessages UNION ALL
 SELECT 'Media', COUNT(*) FROM Media UNION ALL
-SELECT 'SiteSettings', COUNT(*) FROM SiteSettings
+SELECT 'SiteSettings', COUNT(*) FROM SiteSettings UNION ALL
+SELECT 'ActivityLog', COUNT(*) FROM ActivityLog UNION ALL
+SELECT 'Notifications', COUNT(*) FROM Notifications
 ORDER BY [Table];
 
 PRINT '';
@@ -2100,6 +2230,14 @@ WHERE status = 'paid' AND organizer_payout_amount <> (total_amount - event_disco
 PRINT '';
 PRINT 'SUPPORT TICKET STATUS:';
 SELECT status, COUNT(*) AS total FROM SupportTickets GROUP BY status ORDER BY status;
+
+PRINT '';
+PRINT 'ACTIVITY LOG ACTIONS:';
+SELECT action, COUNT(*) AS total FROM ActivityLog GROUP BY action ORDER BY total DESC;
+
+PRINT '';
+PRINT 'NOTIFICATION STATUS:';
+SELECT type, SUM(CASE WHEN is_read=0 THEN 1 ELSE 0 END) AS unread, SUM(CASE WHEN is_read=1 THEN 1 ELSE 0 END) AS [read], COUNT(*) AS total FROM Notifications GROUP BY type ORDER BY type;
 
 PRINT '';
 PRINT '============================================';

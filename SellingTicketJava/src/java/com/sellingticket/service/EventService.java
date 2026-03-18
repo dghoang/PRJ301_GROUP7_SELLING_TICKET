@@ -227,7 +227,8 @@ public class EventService {
         Event event = eventDAO.getEventById(eventId);
         if (event == null) return false;
         if (event.getOrganizerId() == userId) return true;
-        return eventStaffDAO.hasPermission(eventId, userId);
+        String staffRole = eventStaffDAO.getStaffRole(eventId, userId);
+        return "manager".equals(staffRole);
     }
 
     public boolean hasEditPermission(int eventId, int userId, String userRole) {

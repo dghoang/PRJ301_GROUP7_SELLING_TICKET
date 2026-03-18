@@ -95,6 +95,25 @@
                     
                     <c:choose>
                         <c:when test="${sessionScope.account != null}">
+                            <!-- Notification Bell (all logged-in users) -->
+                            <a href="${pageContext.request.contextPath}/notifications" class="btn btn-link position-relative p-1 me-1 text-dark" title="Thông báo" id="notif-bell">
+                                <i class="fas fa-bell" style="font-size:1.1rem;"></i>
+                                <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill d-none" style="background: linear-gradient(135deg, #ef4444, #f97316); font-size:0.6rem;">0</span>
+                            </a>
+                            <script>
+                            (function(){
+                                var ctx = document.body.dataset.contextPath || '';
+                                fetch(ctx + '/notifications/count')
+                                .then(function(r){return r.json()})
+                                .then(function(d){
+                                    if(d.unread > 0){
+                                        var b = document.getElementById('notif-badge');
+                                        b.textContent = d.unread > 99 ? '99+' : d.unread;
+                                        b.classList.remove('d-none');
+                                    }
+                                }).catch(function(){});
+                            })();
+                            </script>
                             <div class="dropdown">
                                 <button class="btn d-flex align-items-center gap-2 p-0" type="button" data-bs-toggle="dropdown">
                                     <div class="user-avatar">${sessionScope.account.fullName.substring(0,1)}</div>
@@ -108,6 +127,7 @@
                                     <c:if test="${sessionScope.account.role == 'admin'}">
                                     <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/admin/dashboard"><i class="fas fa-shield-alt me-2 text-primary"></i><span data-i18n="nav.admin">Quản trị</span></a></li>
                                     </c:if>
+                                    <li><a class="dropdown-item rounded-3 py-2" href="${pageContext.request.contextPath}/staff/dashboard"><i class="fas fa-id-badge me-2" style="color: #10b981;"></i><span data-i18n="nav.staff_portal">Staff Portal</span></a></li>
                                     <li><hr class="dropdown-divider my-2"></li>
                                     <li><a class="dropdown-item rounded-3 py-2 text-danger" href="${pageContext.request.contextPath}/logout"><i class="fas fa-sign-out-alt me-2"></i><span data-i18n="nav.logout">Đăng xuất</span></a></li>
                                 </ul>

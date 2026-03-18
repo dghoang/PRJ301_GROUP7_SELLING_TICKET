@@ -2,6 +2,8 @@ package com.sellingticket.controller.admin;
 
 import com.sellingticket.dao.DashboardDAO;
 import com.sellingticket.model.Event;
+import com.sellingticket.model.User;
+import com.sellingticket.service.ActivityLogService;
 import com.sellingticket.service.CategoryService;
 import com.sellingticket.service.EventService;
 import static com.sellingticket.util.ServletUtil.*;
@@ -23,6 +25,7 @@ public class AdminEventController extends HttpServlet {
     private final EventService eventService = new EventService();
     private final CategoryService categoryService = new CategoryService();
     private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final ActivityLogService activityLog = new ActivityLogService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -133,6 +136,9 @@ public class AdminEventController extends HttpServlet {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         if (eventId > 0 && eventService.approveEvent(eventId)) {
             FlashUtil.success(request, "Sự kiện đã được duyệt thành công!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "event_approved", "event", eventId,
+                    "Duyệt sự kiện #" + eventId, request);
         } else {
             FlashUtil.error(request, "Duyệt sự kiện thất bại!");
         }
@@ -150,6 +156,9 @@ public class AdminEventController extends HttpServlet {
         boolean ok = eventId > 0 && eventService.rejectEvent(eventId, reason);
         if (ok) {
             FlashUtil.success(request, "Sự kiện đã bị từ chối!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "event_rejected", "event", eventId,
+                    "Từ chối sự kiện #" + eventId + (reason != null ? ": " + reason : ""), request);
         } else {
             FlashUtil.error(request, "Từ chối sự kiện thất bại!");
         }
@@ -160,6 +169,9 @@ public class AdminEventController extends HttpServlet {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         if (eventId > 0 && eventService.deleteEvent(eventId)) {
             FlashUtil.success(request, "Sự kiện đã được xóa!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "event_deleted", "event", eventId,
+                    "Xóa sự kiện #" + eventId, request);
         } else {
             FlashUtil.error(request, "Xóa sự kiện thất bại!");
         }
@@ -230,6 +242,9 @@ public class AdminEventController extends HttpServlet {
         boolean ok = eventService.updateEvent(event);
         if (ok) {
             FlashUtil.success(request, "Cập nhật sự kiện thành công!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "event_updated", "event", eventId,
+                    "Cập nhật sự kiện: " + event.getTitle(), request);
         } else {
             FlashUtil.error(request, "Cập nhật sự kiện thất bại!");
         }

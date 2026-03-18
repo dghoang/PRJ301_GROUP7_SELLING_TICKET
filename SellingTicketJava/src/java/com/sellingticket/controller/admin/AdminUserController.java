@@ -1,6 +1,7 @@
 package com.sellingticket.controller.admin;
 
 import com.sellingticket.model.User;
+import com.sellingticket.service.ActivityLogService;
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.UserService;
 import com.sellingticket.util.AppConstants;
@@ -25,6 +26,7 @@ public class AdminUserController extends HttpServlet {
     private static final Set<String> VALID_ROLES = Set.of("customer", "admin", "support_agent");
     private final UserService userService = new UserService();
     private final DashboardService dashboardService = new DashboardService();
+    private final ActivityLogService activityLog = new ActivityLogService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -167,6 +169,9 @@ public class AdminUserController extends HttpServlet {
         boolean success = userService.updateUserRole(userId, role);
         if (success) {
             FlashUtil.success(request, "Cập nhật vai trò thành công!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "user_role_updated", "user", userId,
+                    "Cập nhật vai trò user #" + userId + " → " + role, request);
         } else {
             FlashUtil.error(request, "Cập nhật vai trò thất bại!");
         }
@@ -177,6 +182,9 @@ public class AdminUserController extends HttpServlet {
         int userId = parseIntOrDefault(request.getParameter("userId"), -1);
         if (userId > 0 && userService.deactivateUser(userId)) {
             FlashUtil.success(request, "Người dùng đã bị khóa!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "user_deactivated", "user", userId,
+                    "Khóa tài khoản user #" + userId, request);
         } else {
             FlashUtil.error(request, "Khóa tài khoản thất bại!");
         }
@@ -187,6 +195,9 @@ public class AdminUserController extends HttpServlet {
         int userId = parseIntOrDefault(request.getParameter("userId"), -1);
         if (userId > 0 && userService.activateUser(userId)) {
             FlashUtil.success(request, "Người dùng đã được mở khóa!");
+            User admin = (User) request.getSession().getAttribute("user");
+            activityLog.logAction(admin, "user_activated", "user", userId,
+                    "Mở khóa tài khoản user #" + userId, request);
         } else {
             FlashUtil.error(request, "Mở khóa tài khoản thất bại!");
         }

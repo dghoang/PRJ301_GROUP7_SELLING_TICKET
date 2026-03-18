@@ -207,6 +207,23 @@ public final class ServletUtil {
         sendJson(response, json);
     }
 
+    /** Write a Map as JSON response (simple key-value only, no nested objects). */
+    public static void sendJson(HttpServletResponse response, java.util.Map<String, Object> data) throws IOException {
+        StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        for (java.util.Map.Entry<String, Object> e : data.entrySet()) {
+            if (!first) sb.append(",");
+            sb.append("\"").append(e.getKey()).append("\":");
+            Object v = e.getValue();
+            if (v == null) sb.append("null");
+            else if (v instanceof Boolean || v instanceof Number) sb.append(v);
+            else sb.append("\"").append(v.toString().replace("\"", "\\\"")).append("\"");
+            first = false;
+        }
+        sb.append("}");
+        sendJson(response, sb.toString());
+    }
+
     // ========================
     // SLUG GENERATION
     // ========================

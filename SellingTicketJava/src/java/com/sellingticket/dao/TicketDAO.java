@@ -296,6 +296,13 @@ public class TicketDAO extends DBContext {
         } catch (SQLException ignored) {
             // Column not present in non-paged queries
         }
+        // Event schedule & venue (only in paged queries)
+        try {
+            t.setEventStartDate(rs.getTimestamp("event_start"));
+            t.setEventEndDate(rs.getTimestamp("event_end"));
+            t.setVenue(rs.getString("venue"));
+        } catch (SQLException ignored) {
+        }
 
         return t;
     }
@@ -331,7 +338,7 @@ public class TicketDAO extends DBContext {
 
         String countSql = "SELECT COUNT(*) " + baseJoin + where.toString();
         String dataSql = "SELECT t.*, tt.name as ticket_type_name, e.title as event_title, "
-                + "e.event_id, o.order_code, o.status as order_status, o.order_id as order_order_id "
+                + "e.event_id, e.event_start, e.event_end, e.venue, o.order_code, o.status as order_status, o.order_id as order_order_id "
                 + baseJoin + where.toString()
                 + "ORDER BY t.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 

@@ -12,6 +12,7 @@
 # Ignore environment-specific files
 config/database.php
 
+
 *.py[cod]
 *$py.class
 *.so

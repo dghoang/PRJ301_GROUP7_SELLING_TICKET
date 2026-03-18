@@ -77,7 +77,7 @@ public class SecurityHeadersFilter implements Filter {
         response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 
         // Permissions policy — camera allowed ONLY on check-in page for QR scanning
-        if (uri.contains("/organizer/check-in")) {
+        if (uri.contains("/organizer/check-in") || uri.contains("/staff/check-in")) {
             response.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
         } else {
             response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
