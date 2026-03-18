@@ -3,6 +3,7 @@ package com.sellingticket.util;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -200,14 +201,11 @@ public final class JwtUtil {
         }
     }
 
-    /** Constant-time comparison to prevent timing attacks. */
+    /** Constant-time comparison to prevent timing attacks (no length leak). */
     private static boolean constantTimeEquals(String a, String b) {
-        if (a.length() != b.length()) return false;
-        int result = 0;
-        for (int i = 0; i < a.length(); i++) {
-            result |= a.charAt(i) ^ b.charAt(i);
-        }
-        return result == 0;
+        byte[] aBytes = a.getBytes(StandardCharsets.UTF_8);
+        byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(aBytes, bBytes);
     }
 
     private static String escapeJson(String value) {
@@ -246,9 +244,21 @@ public final class JwtUtil {
 
             char firstChar = json.charAt(valStart);
             if (firstChar == '"') {
-                // String value
-                int valEnd = json.indexOf('"', valStart + 1);
-                map.put(key, json.substring(valStart + 1, valEnd));
+                // String value — handle escaped quotes
+                int valEnd = valStart + 1;
+                while (valEnd < json.length()) {
+                    char c = json.charAt(valEnd);
+                    if (c == '\\') {
+                        valEnd += 2; // skip escaped character
+                        continue;
+                    }
+                    if (c == '"') break;
+                    valEnd++;
+                }
+                String raw = json.substring(valStart + 1, valEnd);
+                // Unescape basic sequences
+                raw = raw.replace("\\\"", "\"").replace("\\\\", "\\");
+                map.put(key, raw);
                 i = valEnd + 1;
             } else {
                 // Number or boolean

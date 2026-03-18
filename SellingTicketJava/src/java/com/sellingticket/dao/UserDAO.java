@@ -145,7 +145,9 @@ public class UserDAO extends DBContext {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
-            return ps.executeQuery().next();
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Database error in UserDAO", e);
         }

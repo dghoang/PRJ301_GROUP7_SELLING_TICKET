@@ -128,22 +128,29 @@ public class AuthFilter implements Filter {
             }
 
             if (user != null) {
-                // Prevent session fixation: invalidate old session before creating new one
-                HttpSession oldSession = httpRequest.getSession(false);
-                String csrfToken = null;
-                if (oldSession != null) {
-                    csrfToken = (String) oldSession.getAttribute("csrf_token");
-                    oldSession.invalidate();
+                // Block deactivated/deleted users even if JWT is still valid
+                if (!user.isActive()) {
+                    LOGGER.log(Level.WARNING, "Blocked inactive user from JWT restore: {0}", user.getEmail());
+                    authTokenService.clearAuthCookies(httpRequest, httpResponse);
+                    user = null;
+                } else {
+                    // Prevent session fixation: invalidate old session before creating new one
+                    HttpSession oldSession = httpRequest.getSession(false);
+                    String csrfToken = null;
+                    if (oldSession != null) {
+                        csrfToken = (String) oldSession.getAttribute("csrf_token");
+                        oldSession.invalidate();
+                    }
+                    HttpSession session = httpRequest.getSession(true);
+                    session.setAttribute("user", user);
+                    session.setAttribute("account", user);
+                    if (csrfToken != null) {
+                        // Preserve CSRF continuity when CsrfFilter ran before JWT-based session restore.
+                        session.setAttribute("csrf_token", csrfToken);
+                    }
+                    session.setMaxInactiveInterval(3600);
+                    LOGGER.log(Level.FINE, "Session restored from JWT for user: {0}", user.getEmail());
                 }
-                HttpSession session = httpRequest.getSession(true);
-                session.setAttribute("user", user);
-                session.setAttribute("account", user);
-                if (csrfToken != null) {
-                    // Preserve CSRF continuity when CsrfFilter ran before JWT-based session restore.
-                    session.setAttribute("csrf_token", csrfToken);
-                }
-                session.setMaxInactiveInterval(3600);
-                LOGGER.log(Level.FINE, "Session restored from JWT for user: {0}", user.getEmail());
             }
         }
 

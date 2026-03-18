@@ -162,19 +162,32 @@ function copyText(text, btn) {
     setTimeout(function() { btn.className = 'fas fa-copy text-muted copy-btn'; }, 2000);
 }
 
-// TEST MODE: Manual payment confirmation
+// Manual payment confirmation with detailed error handling
 function manualConfirm() {
     var btn = document.getElementById('testConfirmBtn');
+    var smallEl = document.getElementById('testConfirmBox').querySelector('small');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xác nhận...';
+    smallEl.textContent = 'Đang kết nối hệ thống thanh toán...';
+    smallEl.className = 'text-muted';
 
     fetch('${pageContext.request.contextPath}/api/payment/status?orderId=' + orderId, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'orderId=' + orderId
     })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+        if (!res.ok && res.status === 401) {
+            // Session expired — redirect to login
+            window.location.href = '${pageContext.request.contextPath}/login?returnUrl=' +
+                encodeURIComponent('/payment-pending?orderId=' + orderId);
+            return null;
+        }
+        return res.json();
+    })
     .then(function(data) {
+        if (!data) return; // Redirecting to login
+
         if (data.status === 'paid') {
             clearInterval(timer);
             clearInterval(pollInterval);
@@ -184,18 +197,39 @@ function manualConfirm() {
             document.getElementById('stepIcon').style.animation = 'none';
             btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Thành công!';
             btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
-            document.getElementById('testConfirmBox').querySelector('small').textContent = 'Đang chuyển đến trang xác nhận...';
+            smallEl.textContent = data.message || 'Đang chuyển đến trang xác nhận...';
+            smallEl.className = 'text-success';
             setTimeout(function() {
                 window.location.href = '${pageContext.request.contextPath}/order-confirmation?id=' + orderId;
             }, 1500);
         } else {
+            // Show error message from server
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-times-circle me-2"></i>Thử lại';
+            btn.innerHTML = '<i class="fas fa-redo me-2"></i>Thử lại';
+            btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+            smallEl.textContent = data.message || 'Xác nhận thất bại. Vui lòng thử lại.';
+            smallEl.className = 'text-danger';
+            // Reset button style after 3s
+            setTimeout(function() {
+                btn.style.background = 'linear-gradient(135deg,#10b981,#06b6d4)';
+                smallEl.textContent = 'Nhấn nút này sau khi bạn đã chuyển khoản thành công';
+                smallEl.className = 'text-muted';
+            }, 4000);
         }
     })
-    .catch(function() {
+    .catch(function(err) {
+        console.error('Payment confirm error:', err);
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Tôi đã thanh toán';
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Lỗi kết nối';
+        btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+        smallEl.textContent = 'Không thể kết nối máy chủ. Kiểm tra kết nối mạng và thử lại.';
+        smallEl.className = 'text-warning';
+        setTimeout(function() {
+            btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Tôi đã thanh toán';
+            btn.style.background = 'linear-gradient(135deg,#10b981,#06b6d4)';
+            smallEl.textContent = 'Nhấn nút này sau khi bạn đã chuyển khoản thành công';
+            smallEl.className = 'text-muted';
+        }, 4000);
     });
 }
 </script>

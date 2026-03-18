@@ -15,7 +15,7 @@
                         </div>
                         <span class="fw-bold fs-5 text-gradient">Ticketbox</span>
                     </div>
-                    <p class="text-muted small mb-4" style="max-width: 280px;">
+                    <p class="text-muted small mb-4" style="max-width: 280px;" data-i18n="footer.brand_desc">
                         Nền tảng đặt vé sự kiện hàng đầu Việt Nam. Khám phá và đặt vé cho các sự kiện âm nhạc, thể thao, hội thảo và nhiều hơn nữa.
                     </p>
                     <div class="d-flex gap-2">
@@ -36,36 +36,36 @@
                 
                 <!-- Discovery (categories) -->
                 <div class="col-6 col-lg-2">
-                    <h6 class="fw-bold mb-3">Khám phá</h6>
+                    <h6 class="fw-bold mb-3" data-i18n="footer.discover">Khám phá</h6>
                     <ul class="list-unstyled small">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events" class="text-muted text-decoration-none hover-primary">Tất cả sự kiện</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=music" class="text-muted text-decoration-none hover-primary"><i class="fas fa-music me-1" style="font-size:0.7rem;"></i>Âm nhạc</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=sports" class="text-muted text-decoration-none hover-primary"><i class="fas fa-futbol me-1" style="font-size:0.7rem;"></i>Thể thao</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=workshop" class="text-muted text-decoration-none hover-primary"><i class="fas fa-laptop me-1" style="font-size:0.7rem;"></i>Workshop</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=food" class="text-muted text-decoration-none hover-primary"><i class="fas fa-utensils me-1" style="font-size:0.7rem;"></i>Ẩm thực</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=art" class="text-muted text-decoration-none hover-primary"><i class="fas fa-palette me-1" style="font-size:0.7rem;"></i>Nghệ thuật</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=technology" class="text-muted text-decoration-none hover-primary"><i class="fas fa-microchip me-1" style="font-size:0.7rem;"></i>Công nghệ</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events" class="text-muted text-decoration-none hover-primary" data-i18n="footer.all_events">Tất cả sự kiện</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=music" class="text-muted text-decoration-none hover-primary"><i class="fas fa-music me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.music">Âm nhạc</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=sports" class="text-muted text-decoration-none hover-primary"><i class="fas fa-futbol me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.sports">Thể thao</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=workshop" class="text-muted text-decoration-none hover-primary"><i class="fas fa-laptop me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.workshop">Workshop</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=food" class="text-muted text-decoration-none hover-primary"><i class="fas fa-utensils me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.food">Ẩm thực</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=art" class="text-muted text-decoration-none hover-primary"><i class="fas fa-palette me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.art">Nghệ thuật</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/events?category=technology" class="text-muted text-decoration-none hover-primary"><i class="fas fa-microchip me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.technology">Công nghệ</span></a></li>
                     </ul>
                 </div>
                 
                 <!-- Tài khoản - role-based -->
                 <div class="col-6 col-lg-2">
-                    <h6 class="fw-bold mb-3">Tài khoản</h6>
+                    <h6 class="fw-bold mb-3" data-i18n="footer.account">Tài khoản</h6>
                     <ul class="list-unstyled small">
                         <c:choose>
                             <c:when test="${not empty sessionScope.account}">
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/profile" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user me-1" style="font-size:0.7rem;"></i>Hồ sơ</a></li>
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/my-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-ticket-alt me-1" style="font-size:0.7rem;"></i>Vé của tôi</a></li>
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/create-event" class="text-muted text-decoration-none hover-primary"><i class="fas fa-plus-circle me-1" style="font-size:0.7rem;"></i>Tạo sự kiện</a></li>
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/events" class="text-muted text-decoration-none hover-primary"><i class="fas fa-calendar-check me-1" style="font-size:0.7rem;"></i>Sự kiện của tôi</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/profile" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.profile">Hồ sơ</span></a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/my-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-ticket-alt me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.my_tickets">Vé của tôi</span></a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/create-event" class="text-muted text-decoration-none hover-primary"><i class="fas fa-plus-circle me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.create_event">Tạo sự kiện</span></a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/organizer/events" class="text-muted text-decoration-none hover-primary"><i class="fas fa-calendar-check me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.my_events">Sự kiện của tôi</span></a></li>
                                 <c:if test="${sessionScope.account.role == 'admin'}">
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/admin/dashboard" class="text-muted text-decoration-none hover-primary"><i class="fas fa-shield-alt me-1" style="font-size:0.7rem;"></i>Quản trị</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/admin/dashboard" class="text-muted text-decoration-none hover-primary"><i class="fas fa-shield-alt me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.admin">Quản trị</span></a></li>
                                 </c:if>
                             </c:when>
                             <c:otherwise>
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/login" class="text-muted text-decoration-none hover-primary"><i class="fas fa-sign-in-alt me-1" style="font-size:0.7rem;"></i>Đăng nhập</a></li>
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/register" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-plus me-1" style="font-size:0.7rem;"></i>Đăng ký</a></li>
-                                <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-info-circle me-1" style="font-size:0.7rem;"></i>Giới thiệu</a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/login" class="text-muted text-decoration-none hover-primary"><i class="fas fa-sign-in-alt me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.login">Đăng nhập</span></a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/register" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-plus me-1" style="font-size:0.7rem;"></i><span data-i18n="nav.register">Đăng ký</span></a></li>
+                                <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-info-circle me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.about_us">Giới thiệu</span></a></li>
                             </c:otherwise>
                         </c:choose>
                     </ul>
@@ -73,21 +73,21 @@
                 
                 <!-- Hỗ trợ -->
                 <div class="col-6 col-lg-2">
-                    <h6 class="fw-bold mb-3">Hỗ trợ</h6>
+                    <h6 class="fw-bold mb-3" data-i18n="footer.support">Hỗ trợ</h6>
                     <ul class="list-unstyled small">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary"><i class="fas fa-question-circle me-1" style="font-size:0.7rem;"></i>Trung tâm trợ giúp</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary"><i class="fas fa-file-contract me-1" style="font-size:0.7rem;"></i>Điều khoản sử dụng</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms#privacy" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-shield me-1" style="font-size:0.7rem;"></i>Chính sách bảo mật</a></li>
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-building me-1" style="font-size:0.7rem;"></i>Về chúng tôi</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none hover-primary"><i class="fas fa-question-circle me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.help_center">Trung tâm trợ giúp</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms" class="text-muted text-decoration-none hover-primary"><i class="fas fa-file-contract me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.terms">Điều khoản sử dụng</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/terms#privacy" class="text-muted text-decoration-none hover-primary"><i class="fas fa-user-shield me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.privacy">Chính sách bảo mật</span></a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/about" class="text-muted text-decoration-none hover-primary"><i class="fas fa-building me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.about_us">Về chúng tôi</span></a></li>
                         <c:if test="${not empty sessionScope.account}">
-                        <li class="mb-2"><a href="${pageContext.request.contextPath}/support/my-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-headset me-1" style="font-size:0.7rem;"></i>Yêu cầu hỗ trợ</a></li>
+                        <li class="mb-2"><a href="${pageContext.request.contextPath}/support/my-tickets" class="text-muted text-decoration-none hover-primary"><i class="fas fa-headset me-1" style="font-size:0.7rem;"></i><span data-i18n="footer.support_request">Yêu cầu hỗ trợ</span></a></li>
                         </c:if>
                     </ul>
                 </div>
                 
                 <!-- Liên hệ -->
                 <div class="col-6 col-lg-2">
-                    <h6 class="fw-bold mb-3">Liên hệ</h6>
+                    <h6 class="fw-bold mb-3" data-i18n="footer.contact">Liên hệ</h6>
                     <ul class="list-unstyled small">
                         <li class="mb-3">
                             <a href="mailto:support@ticketbox.vn" class="text-muted text-decoration-none d-flex align-items-center gap-2 hover-primary">
@@ -102,13 +102,13 @@
                         <li class="mb-3">
                             <span class="text-muted d-flex align-items-start gap-2">
                                 <i class="fas fa-map-marker-alt text-primary mt-1"></i>
-                                <span>Hà Nội, Việt Nam</span>
+                                <span data-i18n="footer.address">Hà Nội, Việt Nam</span>
                             </span>
                         </li>
                         <li>
                             <span class="text-muted d-flex align-items-center gap-2">
                                 <i class="fas fa-clock text-primary"></i>
-                                <span>8:00 - 22:00 hàng ngày</span>
+                                <span data-i18n="footer.hours">8:00 - 22:00 hàng ngày</span>
                             </span>
                         </li>
                     </ul>
@@ -120,9 +120,9 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <p class="small text-muted mb-0">&copy; <%= java.time.Year.now().getValue() %> Ticketbox. All rights reserved.</p>
                 <div class="d-flex gap-3">
-                    <a href="${pageContext.request.contextPath}/terms#privacy" class="small text-muted text-decoration-none hover-primary">Bảo mật</a>
-                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary">Điều khoản</a>
-                    <a href="javascript:void(0)" onclick="showInfo('Trang web sử dụng cookies để cải thiện trải nghiệm.')" class="small text-muted text-decoration-none hover-primary">Cookies</a>
+                    <a href="${pageContext.request.contextPath}/terms#privacy" class="small text-muted text-decoration-none hover-primary" data-i18n="footer.privacy_link">Bảo mật</a>
+                    <a href="${pageContext.request.contextPath}/terms" class="small text-muted text-decoration-none hover-primary" data-i18n="footer.terms_link">Điều khoản</a>
+                    <a href="javascript:void(0)" onclick="showInfo(i18n.t('common.cookies_info'))" class="small text-muted text-decoration-none hover-primary" data-i18n="footer.cookies">Cookies</a>
                 </div>
             </div>
         </div>

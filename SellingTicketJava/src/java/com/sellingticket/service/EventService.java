@@ -288,11 +288,14 @@ public class EventService {
         java.util.Set<Integer> ownIds = new java.util.HashSet<>();
         for (Event e : ownEvents) ownIds.add(e.getEventId());
 
+        // Batch-fetch missing staff events (avoids N+1 queries)
+        List<Integer> missingIds = new java.util.ArrayList<>();
         for (int staffEventId : staffEventIds) {
-            if (!ownIds.contains(staffEventId)) {
-                Event staffEvent = eventDAO.getEventById(staffEventId);
-                if (staffEvent != null) ownEvents.add(staffEvent);
-            }
+            if (!ownIds.contains(staffEventId)) missingIds.add(staffEventId);
+        }
+        if (!missingIds.isEmpty()) {
+            List<Event> staffEvents = eventDAO.getEventsByIds(missingIds);
+            ownEvents.addAll(staffEvents);
         }
         return ownEvents;
     }

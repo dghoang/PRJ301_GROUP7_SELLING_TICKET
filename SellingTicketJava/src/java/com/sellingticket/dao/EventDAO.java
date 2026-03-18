@@ -156,6 +156,28 @@ public class EventDAO extends BaseDAO {
         return querySingle(sql, ps -> ps.setInt(1, eventId), this::mapEventWithJoins);
     }
 
+    /**
+     * Batch-fetch events by a list of IDs (single query with IN clause).
+     * Eliminates N+1 queries when merging staff events.
+     */
+    public List<Event> getEventsByIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+
+        // Build parameterized IN clause: WHERE e.event_id IN (?,?,?)
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0) placeholders.append(',');
+            placeholders.append('?');
+        }
+        String sql = BASE_SELECT_WITH_JOINS + "WHERE e.event_id IN (" + placeholders + ")";
+
+        return queryList(sql, ps -> {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 1, ids.get(i));
+            }
+        }, this::mapEventWithJoins);
+    }
+
     public Event getEventBySlug(String slug) {
         String sql = BASE_SELECT_WITH_JOINS + "WHERE e.slug = ?";
         return querySingle(sql, ps -> ps.setString(1, slug), this::mapEventWithJoins);

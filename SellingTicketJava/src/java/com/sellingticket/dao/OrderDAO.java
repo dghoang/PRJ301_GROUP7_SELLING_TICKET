@@ -360,16 +360,22 @@ public class OrderDAO extends DBContext {
         return false;
     }
 
-    /** Store bank transaction reference from payment gateway webhook. */
+    /**
+     * Store bank transaction reference from payment gateway webhook.
+     * Records into PaymentTransactions table (Orders table has no transaction_id column).
+     */
     public boolean updateTransactionId(int orderId, String transactionId) {
-        String sql = "UPDATE Orders SET transaction_id = ?, updated_at = GETDATE() WHERE order_id = ?";
+        String sql = "INSERT INTO PaymentTransactions (order_id, payment_method, seepay_transaction_id, " +
+                     "amount, status, initiated_at, completed_at) " +
+                     "SELECT order_id, payment_method, ?, final_amount, 'completed', GETDATE(), GETDATE() " +
+                     "FROM Orders WHERE order_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, transactionId);
             ps.setInt(2, orderId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to update transaction_id: id=" + orderId, e);
+            LOGGER.log(Level.SEVERE, "Failed to record transaction: orderId=" + orderId, e);
         }
         return false;
     }
@@ -384,17 +390,9 @@ public class OrderDAO extends DBContext {
             conn = getConnection();
             conn.setAutoCommit(false);
 
-            // Restore ticket quantities
-            String restoreSql = "UPDATE TicketTypes SET sold_quantity = sold_quantity - oi.quantity " +
-                               "FROM TicketTypes tt " +
-                               "JOIN OrderItems oi ON tt.ticket_type_id = oi.ticket_type_id " +
-                               "WHERE oi.order_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(restoreSql)) {
-                ps.setInt(1, orderId);
-                ps.executeUpdate();
-            }
-
-            // Update order status — only if currently cancellable
+            // Step 1: FIRST check + update status atomically.
+            // This prevents a race condition where concurrent cancels could
+            // restore ticket quantities multiple times.
             String updateSql = "UPDATE Orders SET status = 'cancelled', updated_at = GETDATE() " +
                               "WHERE order_id = ? AND status IN ('pending', 'paid', 'refund_requested')";
             int rows;
@@ -409,10 +407,20 @@ public class OrderDAO extends DBContext {
                 return false;
             }
 
+            // Step 2: THEN restore ticket quantities (safe: status was confirmed first)
+            String restoreSql = "UPDATE TicketTypes SET sold_quantity = sold_quantity - oi.quantity " +
+                               "FROM TicketTypes tt " +
+                               "JOIN OrderItems oi ON tt.ticket_type_id = oi.ticket_type_id " +
+                               "WHERE oi.order_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(restoreSql)) {
+                ps.setInt(1, orderId);
+                ps.executeUpdate();
+            }
+
             conn.commit();
             LOGGER.log(Level.INFO, "Order cancelled: id={0}", orderId);
             return true;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Failed to cancel order id=" + orderId, e);
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ex) {

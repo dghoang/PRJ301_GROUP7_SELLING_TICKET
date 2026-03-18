@@ -49,6 +49,7 @@ public final class AppConstants {
     // ========================
     public enum UserRole {
         CUSTOMER("customer"),
+        ORGANIZER("organizer"),
         SUPPORT_AGENT("support_agent"),
         ADMIN("admin");
 
@@ -110,14 +111,22 @@ public final class AppConstants {
 
     private static String loadSecret() {
         String env = System.getenv("TICKETBOX_JWT_SECRET");
-        if (env != null && !env.isEmpty()) return env;
-        return "TkB0x_S3cR3t_K3y_2026!@#HMAC256_AntiF0rg3ry";
+        if (env == null || env.isEmpty()) {
+            throw new RuntimeException(
+                    "TICKETBOX_JWT_SECRET env variable is required. "
+                    + "Set it before starting the server.");
+        }
+        return env;
     }
 
     private static String loadAdminKey() {
         String env = System.getenv("TICKETBOX_ADMIN_KEY");
-        if (env != null && !env.isEmpty()) return env;
-        return "AdminMasterKey@2026!Prv";
+        if (env == null || env.isEmpty()) {
+            throw new RuntimeException(
+                    "TICKETBOX_ADMIN_KEY env variable is required. "
+                    + "Set it before starting the server.");
+        }
+        return env;
     }
 
     // ========================

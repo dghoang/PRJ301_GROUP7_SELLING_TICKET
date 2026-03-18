@@ -152,6 +152,14 @@ public class AuthTokenService {
         revokeTokens(request, response);
     }
 
+    /**
+     * Clear all auth cookies (access + refresh) using request context.
+     * Used by AuthFilter to wipe cookies for deactivated users.
+     */
+    public void clearAuthCookies(HttpServletRequest request, HttpServletResponse response) {
+        clearAuthCookies(response, request.isSecure(), resolveCookiePath(request));
+    }
+
     /** Remove legacy access-cookie copies when the browser still sends them. */
     public void cleanupLegacyAccessCookie(HttpServletRequest request, HttpServletResponse response) {
         if (CookieUtil.getCookieValue(request, CookieUtil.ACCESS_TOKEN_COOKIE) == null) {

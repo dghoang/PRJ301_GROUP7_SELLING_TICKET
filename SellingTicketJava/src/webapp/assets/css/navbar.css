@@ -67,15 +67,4 @@
     display: none;
 }
 
-/* Keep Google Translate container mounted but invisible: language is controlled by custom switcher. */
-.google-translate-mount {
-    width: 0;
-    height: 0;
-    overflow: hidden;
-}
-.goog-te-banner-frame.skiptranslate {
-    display: none !important;
-}
-body {
-    top: 0 !important;
-}
+/* Language switcher is handled by i18n.js — no external widget required. */
