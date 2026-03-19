@@ -1,0 +1,120 @@
+@startuml DEPLOY_Infrastructure
+' ============================================================
+' DEPLOYMENT DIAGRAM — Infrastructure Layout
+' Browser → Tomcat 9 → SQL Server + External APIs
+' ============================================================
+
+title **Deployment Diagram — Infrastructure\n(Production Environment)**
+
+skinparam dpi 150
+skinparam node {
+    BackgroundColor #FEFEFE
+    BorderColor #283593
+}
+
+' ══════════════════════════════════════════════════
+' CLIENT TIER
+' ══════════════════════════════════════════════════
+
+node "Client Device" as Client #E3F2FD {
+    artifact "Web Browser\n(Chrome / Firefox / Safari)" as Browser
+    artifact "HTML5 Camera API\n(QR Scanner)" as Camera
+}
+
+' ══════════════════════════════════════════════════
+' APPLICATION SERVER TIER
+' ══════════════════════════════════════════════════
+
+node "Application Server" as AppServer #E8EAF6 {
+    node "Apache Tomcat 9.0" as Tomcat {
+        artifact "SellingTicket.war" as WAR {
+            component "Filter Chain\n(7 Security Filters)" as Filters
+            component "Servlets\n(58 Controllers)" as Servlets
+            component "Services\n(15 + Payment)" as Services
+            component "DAOs\n(18 + BaseDAO)" as DAOs
+        }
+        artifact "web.xml\n(Servlet Mappings\n& Filter Config)" as WebXml
+        artifact "lib/\n(JDBC Driver\n+ JWT + BCrypt)" as Libs
+    }
+    artifact "JDK 17 Runtime" as JDK
+}
+
+' ══════════════════════════════════════════════════
+' DATABASE TIER
+' ══════════════════════════════════════════════════
+
+database "Database Server" as DBServer #F3E5F5 {
+    artifact "Microsoft SQL Server\n2019+" as MSSQL
+    artifact "SellingTicketDB\n(21 Tables)" as SellingDB
+    artifact "Indexes\n(8 performance indexes)" as Indexes
+}
+
+' ══════════════════════════════════════════════════
+' EXTERNAL SERVICES
+' ══════════════════════════════════════════════════
+
+cloud "SePay Payment Gateway" as SePay #FCE4EC {
+    artifact "QR Code Generation API" as SePayQR
+    artifact "Webhook Callback\n(POST /api/webhook/seepay)" as SePayHook
+}
+
+cloud "Google Cloud" as GCloud #E8F5E9 {
+    artifact "Google OAuth 2.0\nAuthorization Server" as OAuth
+    artifact "Google People API\n(Profile Info)" as People
+}
+
+cloud "Cloudinary CDN" as Cloudinary #FFF3E0 {
+    artifact "Image Upload API\n(Banners, Avatars)" as CloudUpload
+    artifact "Image Delivery CDN\n(Optimized URLs)" as CloudCDN
+}
+
+' ══════════════════════════════════════════════════
+' CONNECTIONS
+' ══════════════════════════════════════════════════
+
+Client -[#283593]-> Tomcat : "HTTPS (443)\nHTTP Requests"
+Camera -[#283593]-> Servlets : "QR Data\n(JWT Token)"
+
+Tomcat -[#283593]-> MSSQL : "JDBC\n(TCP 1433)\nConnection Pool"
+SellingDB -[#283593]- Indexes
+
+WAR -[#283593]-> SePay : "HTTPS\nPayment Initiation"
+SePay -[#1565C0,dashed]-> Servlets : "Webhook Callback\n(Async)"
+
+WAR -[#283593]-> OAuth : "OAuth 2.0 Flow\n(Authorization Code)"
+OAuth -[#1565C0,dashed]-> Servlets : "Redirect + Auth Code"
+
+WAR -[#283593]-> CloudUpload : "REST API\n(Multipart Upload)"
+Browser -[#1565C0,dashed]-> CloudCDN : "Image URLs\n(res.cloudinary.com)"
+
+' ══════════════════════════════════════════════════
+' NOTES
+' ══════════════════════════════════════════════════
+
+note bottom of Tomcat
+  **Runtime Configuration:**
+  • Java 17 (LTS)
+  • Tomcat 9.0.x
+  • JDBC Driver: mssql-jdbc
+  • JWT: io.jsonwebtoken (JJWT)
+  • Password: BCrypt (jBCrypt)
+  • File Upload: Apache Commons
+end note
+
+note bottom of MSSQL
+  **Database Features:**
+  • Atomic transactions (SERIALIZABLE)
+  • Idempotency via UNIQUE index
+  • Soft delete pattern
+  • Price snapshot at purchase time
+end note
+
+note right of SePay
+  **Payment Flow:**
+  1. Server generates QR content
+  2. Customer scans & pays
+  3. SePay sends webhook
+  4. Server confirms atomically
+end note
+
+@enduml

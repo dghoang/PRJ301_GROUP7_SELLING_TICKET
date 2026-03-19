@@ -1,0 +1,148 @@
+@startuml AD_01_CheckoutPayment
+' ============================================================
+' ACTIVITY DIAGRAM — Checkout & Payment Flow
+' Full purchase lifecycle: Cart → Checkout → SePay → Tickets
+' ============================================================
+
+title **Activity Diagram — Checkout & Payment Flow\n(Đặt vé & Thanh toán)**
+
+skinparam dpi 150
+skinparam activity {
+    BackgroundColor #E8EAF6
+    BorderColor #283593
+    ArrowColor #283593
+    DiamondBackgroundColor #FFF3E0
+}
+
+|#E8EAF6|Customer|
+|#FFF3E0|System (Server)|
+|#E0F7FA|SePay Gateway|
+
+|Customer|
+start
+:Chọn sự kiện;
+:Xem chi tiết & chọn loại vé;
+:Nhập số lượng vé;
+:Nhập thông tin người mua\n(Tên, Email, SĐT);
+
+|System (Server)|
+:Validate dữ liệu đầu vào;
+
+if (Dữ liệu hợp lệ?) then (Không)
+    |Customer|
+    :Hiển thị lỗi validation;
+    stop
+else (Có)
+endif
+
+:Kiểm tra **số lượng vé còn lại**\n(quantity - sold_quantity);
+
+if (Đủ vé?) then (Không - Oversold)
+    |Customer|
+    :Hết vé hoặc không đủ số lượng;
+    stop
+else (Có)
+endif
+
+|Customer|
+:Nhập mã Voucher (tùy chọn);
+
+|System (Server)|
+if (Có voucher?) then (Có)
+    :validateVoucher(code, eventId, amount);
+    if (Voucher hợp lệ?) then (Không)
+        |Customer|
+        :Hiển thị lỗi voucher\n(hết hạn / đã dùng hết / không đủ điều kiện);
+        stop
+    else (Có)
+        :Tính discount_amount\n(percentage hoặc fixed);
+        :final_amount = total - discount;
+    endif
+else (Không)
+    :final_amount = total_amount;
+endif
+
+|Customer|
+:Xác nhận đặt hàng;
+
+|System (Server)|
+:===== BEGIN TRANSACTION =====;
+
+partition "**Atomic Transaction**" {
+    :Tạo Order (status = 'pending')\nGenerate order_code = "ORD-{timestamp}-{UUID}";
+    :Tạo OrderItems\n(snapshot unit_price tại thời điểm mua);
+    :UPDATE TicketTypes\nSET sold_quantity += quantity\nWHERE sold_quantity + quantity <= quantity;
+    
+    if (Update thành công?) then (Không - Race condition)
+        :ROLLBACK;
+        |Customer|
+        :Vé vừa hết trong lúc đặt;
+        stop
+    else (Có)
+        if (Có voucher?) then (Có)
+            :UPDATE Vouchers\nSET used_count += 1;
+        else (Không)
+        endif
+        :COMMIT;
+    endif
+}
+
+:===== END TRANSACTION =====;
+
+:PaymentFactory.getProvider("seepay");
+
+|SePay Gateway|
+:SeepayProvider.initiate(order);
+:Generate QR Code content\n(Bank: MB, Amount: final_amount,\nDescription: order_code);
+
+|Customer|
+:Hiển thị QR Code thanh toán\n+ Countdown 30 phút;
+:Quét QR & chuyển khoản;
+
+|SePay Gateway|
+:Nhận giao dịch ngân hàng;
+:POST /api/webhook/seepay\n(callback đến server);
+
+|System (Server)|
+:SeepayWebhookServlet nhận callback;
+
+:Kiểm tra idempotency\n(SeepayWebhookDedup);
+
+if (Đã xử lý reference_code?) then (Đã xử lý)
+    :Return 200 OK (skip);
+    stop
+else (Chưa)
+    :Insert vào SeepayWebhookDedup;
+endif
+
+:Parse webhook data\n(amount, description, reference);
+:Tìm Order theo description\n(chứa order_code);
+
+if (Tìm thấy order & amount khớp?) then (Không)
+    :Log lỗi - Payment mismatch;
+    stop
+else (Có)
+endif
+
+:UPDATE Order SET status = 'paid',\npayment_date = NOW(),\ntransaction_id = reference;
+
+:Tạo PaymentTransaction record;
+
+:TicketService.generateTickets();
+
+partition "**Tạo vé**" {
+    :Foreach OrderItem (qty = N):;
+    :Tạo N Ticket records;
+    :ticket_code = "TK-{UUID}";
+    :qr_code = JWT.sign({ticketId, eventId})\n(HMAC-SHA256);
+}
+
+:NotificationService.create()\n"Thanh toán thành công!";
+
+|Customer|
+:Nhận thông báo thanh toán thành công;
+:Xem vé trong "Vé Của Tôi"\n(QR Code + thông tin sự kiện);
+
+stop
+
+@enduml

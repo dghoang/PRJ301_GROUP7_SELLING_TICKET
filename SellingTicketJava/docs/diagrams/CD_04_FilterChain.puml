@@ -1,0 +1,153 @@
+@startuml CD_04_FilterChain
+' ============================================================
+' CLASS DIAGRAM — Security Filter Chain (7 Filters)
+' com.sellingticket.filter.*
+' Execution order: top → bottom
+' ============================================================
+
+title **Class Diagram — Security Filter Chain\n(7 Servlet Filters — Execution Order)**
+
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #FEFEFE
+    ArrowColor #283593
+    BorderColor #283593
+}
+
+' ── Servlet API Interface ──────────────────────────
+
+interface "javax.servlet.Filter" as Filter #F5F5F5 {
+    + init(config : FilterConfig) : void
+    + doFilter(req, res, chain) : void
+    + destroy() : void
+}
+
+' ── Filter #1: Security Headers ────────────────────
+
+class SecurityHeadersFilter <<Filter #1>> #E8EAF6 {
+    -- HTTP Security Headers --
+    + X-Frame-Options: DENY
+    + X-Content-Type-Options: nosniff
+    + X-XSS-Protection: 1; mode=block
+    + Content-Security-Policy: ...
+    + Strict-Transport-Security: ...
+    + Referrer-Policy: strict-origin
+    --
+    + doFilter(req, res, chain) : void
+}
+
+' ── Filter #2: CSRF Protection ─────────────────────
+
+class CsrfFilter <<Filter #2>> #FFCDD2 {
+    -- CSRF Double-Submit Token --
+    - TOKEN_HEADER : String = "X-CSRF-TOKEN"
+    - TOKEN_COOKIE : String = "csrf_token"
+    - SAFE_METHODS : Set<String>
+    - EXEMPT_PATHS : Set<String>
+    --
+    + doFilter(req, res, chain) : void
+    - generateToken() : String
+    - validateToken(req) : boolean
+    - isExempt(path) : boolean
+    - isSafeMethod(method) : boolean
+}
+
+' ── Filter #3: Authentication ──────────────────────
+
+class AuthFilter <<Filter #3>> #FFF3E0 {
+    -- Session + JWT Auth --
+    - PUBLIC_PATHS : Set<String>
+    - LOGIN_PATH : String
+    - authTokenService : AuthTokenService
+    --
+    + doFilter(req, res, chain) : void
+    - isPublicPath(path) : boolean
+    - trySessionAuth(req) : User
+    - tryJwtAuth(req) : User
+    - tryRefreshToken(req, res) : User
+    - setUserInSession(req, user) : void
+    - redirectToLogin(req, res) : void
+}
+
+' ── Filter #4: Cache Control ───────────────────────
+
+class CacheFilter <<Filter #4>> #E8F5E9 {
+    -- Response Caching --
+    - STATIC_EXTENSIONS : Set<String>
+    - CACHE_DURATION : int = 86400
+    --
+    + doFilter(req, res, chain) : void
+    - isStaticResource(path) : boolean
+    - setNoCacheHeaders(res) : void
+    - setCacheHeaders(res, duration) : void
+}
+
+' ── Filter #5: Organizer Access ────────────────────
+
+class OrganizerAccessFilter <<Filter #5>> #FCE4EC {
+    -- Role-based: Organizer Only --
+    - ORGANIZER_PATHS : String = "/organizer/*"
+    --
+    + doFilter(req, res, chain) : void
+    - hasOrganizerAccess(user) : boolean
+    - isOrganizerOfEvent(user, eventId) : boolean
+}
+
+' ── Filter #6: Staff Access ────────────────────────
+
+class StaffAccessFilter <<Filter #6>> #F3E5F5 {
+    -- Role-based: Staff Only --
+    - STAFF_PATHS : String = "/staff/*"
+    - eventStaffDAO : EventStaffDAO
+    --
+    + doFilter(req, res, chain) : void
+    - hasStaffAccess(user, eventId) : boolean
+}
+
+' ── Filter #7: Protected JSP ──────────────────────
+
+class ProtectedJspAccessFilter <<Filter #7>> #ECEFF1 {
+    -- Blocks direct JSP access --
+    - PROTECTED_DIRS : Set<String>
+    --
+    + doFilter(req, res, chain) : void
+    - isDirectJspAccess(req) : boolean
+    - send403(res) : void
+}
+
+' ══════════════════════════════════════════════════
+' IMPLEMENTATION
+' ══════════════════════════════════════════════════
+
+Filter <|.. SecurityHeadersFilter
+Filter <|.. CsrfFilter
+Filter <|.. AuthFilter
+Filter <|.. CacheFilter
+Filter <|.. OrganizerAccessFilter
+Filter <|.. StaffAccessFilter
+Filter <|.. ProtectedJspAccessFilter
+
+' ══════════════════════════════════════════════════
+' EXECUTION CHAIN (top → bottom)
+' ══════════════════════════════════════════════════
+
+SecurityHeadersFilter -[#1565C0,bold]-> CsrfFilter : "① → ②"
+CsrfFilter -[#1565C0,bold]-> AuthFilter : "② → ③"
+AuthFilter -[#1565C0,bold]-> CacheFilter : "③ → ④"
+CacheFilter -[#1565C0,bold]-> OrganizerAccessFilter : "④ → ⑤"
+OrganizerAccessFilter -[#1565C0,bold]-> StaffAccessFilter : "⑤ → ⑥"
+StaffAccessFilter -[#1565C0,bold]-> ProtectedJspAccessFilter : "⑥ → ⑦"
+
+note right of SecurityHeadersFilter
+  **Filter Execution Order:**
+  ① SecurityHeaders → All responses
+  ② CSRF → POST/PUT/DELETE (except API webhooks)
+  ③ Auth → Session/JWT/RefreshToken
+  ④ Cache → Static assets vs dynamic
+  ⑤ OrganizerAccess → /organizer/*
+  ⑥ StaffAccess → /staff/*
+  ⑦ ProtectedJSP → Block direct .jsp
+end note
+
+@enduml

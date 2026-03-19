@@ -1,0 +1,304 @@
+@startuml CD_01_Model
+' ============================================================
+' CLASS DIAGRAM — Model Package (17 Entity Classes)
+' com.sellingticket.model.*
+' ============================================================
+
+title **Class Diagram — Model Layer\n(17 Entity Classes)**
+
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #FEFEFE
+    ArrowColor #283593
+    BorderColor #283593
+}
+
+' ── Core User ──────────────────────────────────────
+
+class User #E8EAF6 {
+    - userId : int
+    - email : String
+    - passwordHash : String
+    - fullName : String
+    - phone : String
+    - gender : String
+    - dateOfBirth : Date
+    - role : String
+    - avatar : String
+    - isActive : boolean
+    - isDeleted : boolean
+    - bio : String
+    - website : String
+    - socialFacebook : String
+    - socialInstagram : String
+    - oauthUser : boolean
+    - emailVerified : boolean
+    - lastLoginAt : Date
+    - lastLoginIp : String
+    - createdAt : Date
+    - updatedAt : Date
+    + getters/setters()
+}
+
+' ── Event System ───────────────────────────────────
+
+class Event #FFF3E0 {
+    - eventId : int
+    - organizerId : int
+    - categoryId : int
+    - title : String
+    - slug : String
+    - shortDescription : String
+    - description : String
+    - bannerImage : String
+    - location : String
+    - address : String
+    - startDate : Date
+    - endDate : Date
+    - status : String
+    - isFeatured : boolean
+    - isPrivate : boolean
+    - views : int
+    - maxTicketsPerOrder : int
+    - maxTotalTickets : int
+    - preOrderEnabled : boolean
+    - rejectionReason : String
+    - rejectedAt : Date
+    -- Joined fields --
+    - categoryName : String
+    - organizerName : String
+    - minPrice : double
+    - totalTickets : int
+    - soldTickets : int
+    - revenue : double
+    - ticketTypes : List<TicketType>
+}
+
+class Category #E8F5E9 {
+    - categoryId : int
+    - name : String
+    - slug : String
+    - icon : String
+    - description : String
+    - eventCount : int
+}
+
+class TicketType #FFECB3 {
+    - ticketTypeId : int
+    - eventId : int
+    - name : String
+    - description : String
+    - price : double
+    - quantity : int
+    - soldQuantity : int
+    - saleStart : Date
+    - saleEnd : Date
+    - isActive : boolean
+}
+
+' ── Order & Ticket ─────────────────────────────────
+
+class Order #FCE4EC {
+    - orderId : int
+    - orderCode : String
+    - userId : int
+    - eventId : int
+    - totalAmount : double
+    - discountAmount : double
+    - finalAmount : double
+    - status : String
+    - paymentMethod : String
+    - paymentDate : Date
+    - buyerName : String
+    - buyerEmail : String
+    - buyerPhone : String
+    - voucherCode : String
+    - transactionId : String
+    - notes : String
+    -- Joined fields --
+    - eventTitle : String
+    - userName : String
+    - items : List<OrderItem>
+}
+
+class OrderItem #F3E5F5 {
+    - orderItemId : int
+    - orderId : int
+    - ticketTypeId : int
+    - quantity : int
+    - unitPrice : double
+    - subtotal : double
+    - ticketTypeName : String
+}
+
+class Ticket #E0F7FA {
+    - ticketId : int
+    - ticketCode : String
+    - orderItemId : int
+    - attendeeName : String
+    - attendeeEmail : String
+    - qrCode : String
+    - isCheckedIn : boolean
+    - checkedInAt : Date
+    - checkedInBy : int
+    -- Joined fields --
+    - eventTitle : String
+    - eventDate : Date
+    - eventLocation : String
+    - ticketTypeName : String
+    - orderCode : String
+}
+
+class Voucher #F1F8E9 {
+    - voucherId : int
+    - organizerId : int
+    - eventId : int
+    - code : String
+    - discountType : String
+    - discountValue : double
+    - minOrderAmount : double
+    - maxDiscount : double
+    - usageLimit : int
+    - usedCount : int
+    - startDate : Date
+    - endDate : Date
+    - isActive : boolean
+}
+
+' ── Communication ──────────────────────────────────
+
+class ChatSession #E3F2FD {
+    - sessionId : int
+    - customerId : int
+    - agentId : int
+    - eventId : int
+    - status : String
+    - customerName : String
+    - agentName : String
+    - lastMessage : String
+    - unreadCount : int
+    - createdAt : Date
+    - startedAt : Date
+    - closedAt : Date
+}
+
+class ChatMessage #E3F2FD {
+    - messageId : int
+    - sessionId : int
+    - senderId : int
+    - content : String
+    - sentAt : Date
+    - isRead : boolean
+    - senderName : String
+}
+
+class SupportTicket #FFF9C4 {
+    - ticketId : int
+    - userId : int
+    - assignedTo : int
+    - subject : String
+    - category : String
+    - priority : String
+    - status : String
+    - eventId : int
+    - description : String
+    - userName : String
+    - agentName : String
+    - eventTitle : String
+    - messageCount : int
+    - createdAt : Date
+    - updatedAt : Date
+}
+
+class TicketMessage #FFF9C4 {
+    - messageId : int
+    - ticketId : int
+    - senderId : int
+    - content : String
+    - isStaffReply : boolean
+    - senderName : String
+    - senderAvatar : String
+    - createdAt : Date
+}
+
+' ── Supporting Entities ────────────────────────────
+
+class Media #E0F2F1 {
+    - mediaId : int
+    - uploaderId : int
+    - cloudinaryUrl : String
+    - cloudinaryPublicId : String
+    - fileSize : int
+    - mediaType : String
+    - entityType : String
+    - entityId : int
+    - mediaPurpose : String
+    - createdAt : Date
+}
+
+class Notification #ECEFF1 {
+    - notificationId : int
+    - userId : int
+    - title : String
+    - message : String
+    - type : String
+    - isRead : boolean
+    - link : String
+    - createdAt : Date
+}
+
+class ActivityLog #ECEFF1 {
+    - logId : int
+    - userId : int
+    - action : String
+    - entityType : String
+    - entityId : int
+    - details : String
+    - ipAddress : String
+    - createdAt : Date
+}
+
+class EventStaff #F3E5F5 {
+    - staffId : int
+    - eventId : int
+    - userId : int
+    - role : String
+    - addedBy : int
+    - userName : String
+    - userEmail : String
+    - addedAt : Date
+}
+
+class "PageResult<T>" as PageResult #F5F5F5 {
+    - items : List<T>
+    - currentPage : int
+    - totalPages : int
+    - totalItems : int
+    - pageSize : int
+    + hasNext() : boolean
+    + hasPrevious() : boolean
+}
+
+' ══════════════════════════════════════════════════
+' RELATIONSHIPS
+' ══════════════════════════════════════════════════
+
+User "1" --> "*" Event : organizes
+User "1" --> "*" Order : places
+Category "1" --> "*" Event : classifies
+Event "1" --> "*" TicketType : offers
+Event "1" --> "*" Voucher : has
+Event "1" --> "*" EventStaff : assigns
+Order "1" --> "*" OrderItem : contains
+OrderItem "1" --> "*" Ticket : generates
+Event "1" *--> "0..*" TicketType : ticketTypes
+Order "1" *--> "0..*" OrderItem : items
+User "1" --> "*" ChatSession : starts
+ChatSession "1" --> "*" ChatMessage : contains
+User "1" --> "*" SupportTicket : creates
+SupportTicket "1" --> "*" TicketMessage : threads
+User "1" --> "*" Media : uploads
+User "1" --> "*" Notification : receives
+
+@enduml

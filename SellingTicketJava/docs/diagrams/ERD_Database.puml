@@ -1,0 +1,338 @@
+@startuml ERD_Database
+' ============================================================
+' ENTITY RELATIONSHIP DIAGRAM — SellingTicketDB
+' 21 Tables — SQL Server
+' ============================================================
+
+title **ERD: SellingTicket Database Schema\n(21 Tables — SQL Server)**
+
+skinparam linetype ortho
+skinparam dpi 150
+skinparam class {
+    BackgroundColor #FEFEFE
+    ArrowColor #283593
+    BorderColor #283593
+}
+
+' ── Core Entities ──────────────────────────────────
+
+entity "Users" as Users #E8EAF6 {
+    * **user_id** : INT <<PK>>
+    --
+    email : NVARCHAR(255) <<UNIQUE>>
+    password_hash : NVARCHAR(255)
+    full_name : NVARCHAR(100)
+    phone : NVARCHAR(20)
+    gender : NVARCHAR(10)
+    date_of_birth : DATE
+    role : NVARCHAR(20) {customer|organizer|admin}
+    avatar : NVARCHAR(500)
+    is_active : BIT
+    is_deleted : BIT
+    bio : NVARCHAR(MAX)
+    website : NVARCHAR(255)
+    social_facebook : NVARCHAR(255)
+    social_instagram : NVARCHAR(255)
+    oauth_user : BIT
+    email_verified : BIT
+    last_login_at : DATETIME
+    last_login_ip : NVARCHAR(45)
+    created_at : DATETIME
+    updated_at : DATETIME
+}
+
+entity "Categories" as Categories #E8F5E9 {
+    * **category_id** : INT <<PK>>
+    --
+    name : NVARCHAR(100)
+    slug : NVARCHAR(100) <<UNIQUE>>
+    icon : NVARCHAR(50)
+    description : NVARCHAR(500)
+}
+
+entity "Events" as Events #FFF3E0 {
+    * **event_id** : INT <<PK>>
+    --
+    * organizer_id : INT <<FK>>
+    * category_id : INT <<FK>>
+    title : NVARCHAR(255)
+    slug : NVARCHAR(255) <<UNIQUE>>
+    short_description : NVARCHAR(500)
+    description : NVARCHAR(MAX)
+    banner_image : NVARCHAR(500)
+    location : NVARCHAR(255)
+    address : NVARCHAR(500)
+    start_date : DATETIME
+    end_date : DATETIME
+    status : NVARCHAR(20) {draft|pending|approved|rejected|cancelled|completed}
+    is_featured : BIT
+    is_private : BIT
+    views : INT
+    max_tickets_per_order : INT
+    max_total_tickets : INT
+    pre_order_enabled : BIT
+    rejection_reason : NVARCHAR(500)
+    rejected_at : DATETIME
+    is_deleted : BIT
+    created_at : DATETIME
+    updated_at : DATETIME
+}
+
+' ── Ticket & Order System ──────────────────────────
+
+entity "TicketTypes" as TicketTypes #FFECB3 {
+    * **ticket_type_id** : INT <<PK>>
+    --
+    * event_id : INT <<FK>>
+    name : NVARCHAR(100)
+    description : NVARCHAR(500)
+    price : DECIMAL(18,2)
+    quantity : INT
+    sold_quantity : INT
+    sale_start : DATETIME
+    sale_end : DATETIME
+    is_active : BIT
+}
+
+entity "Orders" as Orders #FCE4EC {
+    * **order_id** : INT <<PK>>
+    --
+    order_code : NVARCHAR(50) <<UNIQUE>>
+    * user_id : INT <<FK>>
+    * event_id : INT <<FK>>
+    total_amount : DECIMAL(18,2)
+    discount_amount : DECIMAL(18,2)
+    final_amount : DECIMAL(18,2)
+    status : NVARCHAR(20) {pending|paid|cancelled|refunded}
+    payment_method : NVARCHAR(30) {seepay|bank_transfer|cash}
+    payment_date : DATETIME
+    buyer_name : NVARCHAR(100)
+    buyer_email : NVARCHAR(255)
+    buyer_phone : NVARCHAR(20)
+    voucher_code : NVARCHAR(50)
+    transaction_id : NVARCHAR(100)
+    notes : NVARCHAR(500)
+    created_at : DATETIME
+    updated_at : DATETIME
+}
+
+entity "OrderItems" as OrderItems #F3E5F5 {
+    * **order_item_id** : INT <<PK>>
+    --
+    * order_id : INT <<FK>>
+    * ticket_type_id : INT <<FK>>
+    quantity : INT
+    unit_price : DECIMAL(18,2)
+    subtotal : DECIMAL(18,2)
+}
+
+entity "Tickets" as Tickets #E0F7FA {
+    * **ticket_id** : INT <<PK>>
+    --
+    ticket_code : NVARCHAR(50) <<UNIQUE>>
+    * order_item_id : INT <<FK>>
+    attendee_name : NVARCHAR(100)
+    attendee_email : NVARCHAR(255)
+    qr_code : NVARCHAR(500)
+    is_checked_in : BIT
+    checked_in_at : DATETIME
+    * checked_in_by : INT <<FK>>
+}
+
+' ── Voucher ────────────────────────────────────────
+
+entity "Vouchers" as Vouchers #F1F8E9 {
+    * **voucher_id** : INT <<PK>>
+    --
+    * organizer_id : INT <<FK>>
+    * event_id : INT <<FK>>
+    code : NVARCHAR(50) <<UNIQUE>>
+    discount_type : NVARCHAR(20) {percentage|fixed}
+    discount_value : DECIMAL(18,2)
+    min_order_amount : DECIMAL(18,2)
+    max_discount : DECIMAL(18,2)
+    usage_limit : INT
+    used_count : INT
+    start_date : DATETIME
+    end_date : DATETIME
+    is_active : BIT
+}
+
+' ── Session & Security ─────────────────────────────
+
+entity "UserSessions" as UserSessions #EFEBE9 {
+    * **session_id** : INT <<PK>>
+    --
+    * user_id : INT <<FK>>
+    jti : NVARCHAR(100) <<UNIQUE>>
+    device_info : NVARCHAR(255)
+    ip_address : NVARCHAR(45)
+    expires_at : DATETIME
+    is_active : BIT
+    last_activity : DATETIME
+}
+
+entity "SeepayWebhookDedup" as SeepayDedup #FBE9E7 {
+    * **id** : INT <<PK>>
+    --
+    reference_code : NVARCHAR(100) <<UNIQUE>>
+    received_at : DATETIME
+}
+
+' ── Chat & Support ─────────────────────────────────
+
+entity "ChatSessions" as ChatSessions #E3F2FD {
+    * **session_id** : INT <<PK>>
+    --
+    * customer_id : INT <<FK>>
+    * agent_id : INT <<FK>>
+    * event_id : INT <<FK>>
+    status : NVARCHAR(20) {waiting|active|closed}
+    created_at : DATETIME
+    started_at : DATETIME
+    closed_at : DATETIME
+}
+
+entity "ChatMessages" as ChatMessages #E3F2FD {
+    * **message_id** : INT <<PK>>
+    --
+    * session_id : INT <<FK>>
+    * sender_id : INT <<FK>>
+    content : NVARCHAR(MAX)
+    sent_at : DATETIME
+    is_read : BIT
+}
+
+entity "SupportTickets" as SupportTickets #FFF9C4 {
+    * **ticket_id** : INT <<PK>>
+    --
+    * user_id : INT <<FK>>
+    * assigned_to : INT <<FK>>
+    subject : NVARCHAR(255)
+    category : NVARCHAR(50)
+    priority : NVARCHAR(20) {low|medium|high|urgent}
+    status : NVARCHAR(20) {open|in_progress|resolved|closed}
+    * event_id : INT <<FK>>
+    created_at : DATETIME
+    updated_at : DATETIME
+}
+
+entity "TicketMessages" as TicketMessages #FFF9C4 {
+    * **message_id** : INT <<PK>>
+    --
+    * ticket_id : INT <<FK>>
+    * sender_id : INT <<FK>>
+    content : NVARCHAR(MAX)
+    is_staff_reply : BIT
+    created_at : DATETIME
+}
+
+' ── Staff & Media ──────────────────────────────────
+
+entity "EventStaff" as EventStaff #F3E5F5 {
+    * **staff_id** : INT <<PK>>
+    --
+    * event_id : INT <<FK>>
+    * user_id : INT <<FK>>
+    role : NVARCHAR(50) {checker|manager}
+    * added_by : INT <<FK>>
+    added_at : DATETIME
+}
+
+entity "Media" as Media #E0F2F1 {
+    * **media_id** : INT <<PK>>
+    --
+    * uploader_id : INT <<FK>>
+    cloudinary_url : NVARCHAR(500)
+    cloudinary_public_id : NVARCHAR(255)
+    file_size : INT
+    media_type : NVARCHAR(10) {image|video}
+    entity_type : NVARCHAR(20) {user|event|ticket_type}
+    entity_id : INT
+    media_purpose : NVARCHAR(20) {avatar|banner|gallery|inline}
+    created_at : DATETIME
+}
+
+' ── Notifications & Logs ───────────────────────────
+
+entity "Notifications" as Notifications #ECEFF1 {
+    * **notification_id** : INT <<PK>>
+    --
+    * user_id : INT <<FK>>
+    title : NVARCHAR(255)
+    message : NVARCHAR(MAX)
+    type : NVARCHAR(50)
+    is_read : BIT
+    link : NVARCHAR(500)
+    created_at : DATETIME
+}
+
+entity "ActivityLog" as ActivityLog #ECEFF1 {
+    * **log_id** : INT <<PK>>
+    --
+    * user_id : INT <<FK>>
+    action : NVARCHAR(100)
+    entity_type : NVARCHAR(50)
+    entity_id : INT
+    details : NVARCHAR(MAX)
+    ip_address : NVARCHAR(45)
+    created_at : DATETIME
+}
+
+entity "SiteSettings" as SiteSettings #F5F5F5 {
+    * **setting_id** : INT <<PK>>
+    --
+    setting_key : NVARCHAR(100) <<UNIQUE>>
+    value : NVARCHAR(MAX)
+    data_type : NVARCHAR(20)
+}
+
+entity "PaymentTransactions" as PaymentTx #FBE9E7 {
+    * **transaction_id** : INT <<PK>>
+    --
+    * order_id : INT <<FK>>
+    provider : NVARCHAR(30)
+    reference_code : NVARCHAR(100)
+    amount : DECIMAL(18,2)
+    status : NVARCHAR(20)
+    raw_response : NVARCHAR(MAX)
+    created_at : DATETIME
+}
+
+' ══════════════════════════════════════════════════
+' RELATIONSHIPS
+' ══════════════════════════════════════════════════
+
+Users ||--o{ Events : "organizer_id\n(1 organizer → N events)"
+Categories ||--o{ Events : "category_id\n(1 category → N events)"
+
+Events ||--o{ TicketTypes : "event_id\n(1 event → N ticket types)"
+Events ||--o{ Orders : "event_id\n(1 event → N orders)"
+Events ||--o{ Vouchers : "event_id\n(1 event → N vouchers)"
+Events ||--o{ EventStaff : "event_id\n(1 event → N staff)"
+Events ||--o{ ChatSessions : "event_id"
+Events ||--o{ SupportTickets : "event_id"
+
+Users ||--o{ Orders : "user_id\n(1 user → N orders)"
+Users ||--o{ UserSessions : "user_id"
+Users ||--o{ Vouchers : "organizer_id"
+Users ||--o{ ChatSessions : "customer_id"
+Users ||--o{ ChatMessages : "sender_id"
+Users ||--o{ SupportTickets : "user_id"
+Users ||--o{ TicketMessages : "sender_id"
+Users ||--o{ EventStaff : "user_id"
+Users ||--o{ Media : "uploader_id"
+Users ||--o{ Notifications : "user_id"
+Users ||--o{ ActivityLog : "user_id"
+
+Orders ||--o{ OrderItems : "order_id\n(ON DELETE CASCADE)"
+Orders ||--o{ PaymentTx : "order_id"
+
+TicketTypes ||--o{ OrderItems : "ticket_type_id"
+
+OrderItems ||--o{ Tickets : "order_item_id\n(ON DELETE CASCADE)"
+
+ChatSessions ||--o{ ChatMessages : "session_id\n(ON DELETE CASCADE)"
+SupportTickets ||--o{ TicketMessages : "ticket_id\n(ON DELETE CASCADE)"
+
+@enduml

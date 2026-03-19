@@ -1,0 +1,165 @@
+@startuml COMP_SystemComponents
+' ============================================================
+' COMPONENT DIAGRAM — System Architecture
+' 4-Layer MVC + External Services
+' ============================================================
+
+title **Component Diagram — System Architecture\n(4-Layer MVC + External Services)**
+
+skinparam dpi 150
+skinparam component {
+    BackgroundColor #FEFEFE
+    BorderColor #283593
+    ArrowColor #283593
+}
+
+' ══════════════════════════════════════════════════
+' CLIENT LAYER
+' ══════════════════════════════════════════════════
+
+package "Client Layer" as ClientLayer #E3F2FD {
+    [Browser\n(Chrome/Firefox/Safari)] as Browser
+    [JSP Views\n(64+ pages)] as JSP
+    [Static Assets\n(CSS/JS/Images)] as Assets
+
+    Browser --> JSP
+    Browser --> Assets
+}
+
+' ══════════════════════════════════════════════════
+' CONTROLLER LAYER (Servlet)
+' ══════════════════════════════════════════════════
+
+package "Controller Layer\n(HttpServlet)" as ControllerLayer #E8EAF6 {
+    package "Security Filters" as Filters {
+        [SecurityHeaders\nFilter] as F1
+        [CSRF\nFilter] as F2
+        [Auth\nFilter] as F3
+        [Cache\nFilter] as F4
+        [Organizer\nAccessFilter] as F5
+        [Staff\nAccessFilter] as F6
+        [ProtectedJsp\nFilter] as F7
+    }
+
+    package "Public Controllers\n(19 Servlets)" as PubCtrl {
+        [HomeController] as Home
+        [EventController] as EvtCtrl
+        [CheckoutController] as Checkout
+        [AuthController\n(Login/Register\n/OAuth)] as Auth
+        [ProfileController] as Profile
+        [MyTicketController] as MyTicket
+    }
+
+    package "Admin Controllers\n(13 Servlets)" as AdminCtrl {
+        [AdminDashboard\nController] as ADash
+        [AdminEvent\nController] as AEvt
+        [AdminUser\nController] as AUser
+        [AdminOrder\nController] as AOrd
+        [AdminCategory\nController] as ACat
+        [AdminReports\nController] as ARep
+    }
+
+    package "Organizer Controllers\n(11 Servlets)" as OrgCtrl {
+        [OrganizerDashboard\nController] as ODash
+        [OrganizerEvent\nController] as OEvt
+        [OrganizerCheckIn\nController] as OChk
+        [OrganizerStatistics\nController] as OStat
+        [OrganizerVoucher\nController] as OVch
+    }
+
+    package "API Controllers\n(15 Servlets)" as ApiCtrl {
+        [SeepayWebhook\nServlet] as Webhook
+        [PaymentStatus\nServlet] as PayStatus
+        [ChatApi\nServlet] as ChatApi
+        [EventApi\nServlet] as EvtApi
+        [UploadServlet] as Upload
+    }
+}
+
+' ══════════════════════════════════════════════════
+' SERVICE LAYER
+' ══════════════════════════════════════════════════
+
+package "Service Layer\n(Business Logic)" as ServiceLayer #E8F5E9 {
+    [UserService] as US
+    [EventService] as ES
+    [OrderService] as OS
+    [TicketService] as TS
+    [VoucherService] as VS
+    [AuthTokenService] as ATS
+    [DashboardService] as DS
+    [ChatService] as CS
+    [SupportTicketService] as STS
+    [MediaService] as MS
+    [NotificationService] as NS
+
+    package "Payment Subsystem\n(Strategy Pattern)" as PaySub {
+        [PaymentFactory] as PF
+        [SeepayProvider] as SP
+        [BankTransfer\nProvider] as BTP
+    }
+}
+
+' ══════════════════════════════════════════════════
+' DAO LAYER
+' ══════════════════════════════════════════════════
+
+package "DAO Layer\n(Data Access — Template Method)" as DAOLayer #FFF3E0 {
+    [BaseDAO\n(abstract)] as BDAO
+    [UserDAO] as UD
+    [EventDAO] as ED
+    [OrderDAO] as OD
+    [TicketDAO] as TD
+    [TicketTypeDAO] as TTD
+    [VoucherDAO] as VD
+    [ChatDAO] as CD
+    [DashboardDAO] as DD
+    [NotificationDAO] as ND
+    [MediaDAO] as MD
+    [ActivityLogDAO] as ALD
+    [RefreshTokenDAO] as RTD
+    [SiteSettingsDAO] as SSD
+}
+
+' ══════════════════════════════════════════════════
+' EXTERNAL SERVICES
+' ══════════════════════════════════════════════════
+
+cloud "External Services" as External #FCE4EC {
+    [SQL Server\nDatabase] as DB
+    [SePay\nPayment Gateway] as SePay
+    [Google\nOAuth 2.0] as Google
+    [Cloudinary\nCDN (Images)] as Cloud
+}
+
+' ══════════════════════════════════════════════════
+' CONNECTIONS
+' ══════════════════════════════════════════════════
+
+Browser -[#283593]-> F1 : HTTP Request
+F1 --> F2
+F2 --> F3
+F3 --> F4
+F4 --> F5
+F5 --> F6
+F6 --> F7
+F7 --> PubCtrl
+F7 --> AdminCtrl
+F7 --> OrgCtrl
+F7 --> ApiCtrl
+
+PubCtrl --> ServiceLayer
+AdminCtrl --> ServiceLayer
+OrgCtrl --> ServiceLayer
+ApiCtrl --> ServiceLayer
+
+ServiceLayer --> DAOLayer
+PF --> SP
+PF --> BTP
+
+BDAO --> DB : JDBC\n(Connection Pool)
+SP --> SePay : HTTP Webhook
+Auth --> Google : OAuth 2.0
+MS --> Cloud : REST API
+
+@enduml

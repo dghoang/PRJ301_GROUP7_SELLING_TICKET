@@ -1,0 +1,257 @@
+@startuml CD_03_Service
+' ============================================================
+' CLASS DIAGRAM — Service Package (15 Services + Payment)
+' com.sellingticket.service.*
+' ============================================================
+
+title **Class Diagram — Service Layer\n(15 Services + Payment Strategy Pattern)**
+
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #FEFEFE
+    ArrowColor #283593
+    BorderColor #283593
+}
+
+' ── Exception ──────────────────────────────────────
+
+class ServiceException #FFCDD2 {
+    - message : String
+    - errorCode : String
+    + ServiceException(message)
+    + ServiceException(message, code)
+    + getErrorCode() : String
+}
+
+' ── Core Services ──────────────────────────────────
+
+class UserService #E8EAF6 {
+    - userDAO : UserDAO
+    --
+    + register(email, password, fullName, phone) : User
+    + authenticate(email, password) : User
+    + findOrCreateOAuthUser(email, name, avatar) : User
+    + updateProfile(user) : boolean
+    + changePassword(userId, oldPass, newPass) : boolean
+    + findById(id) : User
+    + findByEmail(email) : User
+    + findAllPaged(page, size, search, role) : PageResult
+    + updateRole(id, role) : boolean
+    + toggleActive(id) : boolean
+    + softDelete(id) : boolean
+}
+
+class EventService #FFF3E0 {
+    - eventDAO : EventDAO
+    - ticketTypeDAO : TicketTypeDAO
+    --
+    + createEvent(event) : int
+    + updateEvent(event) : boolean
+    + findById(id) : Event
+    + findBySlug(slug) : Event
+    + findApproved(page, size, categoryId, search, sort) : PageResult
+    + findByOrganizer(orgId, page, size, status) : PageResult
+    + findPendingApproval(page, size) : PageResult
+    + approveEvent(eventId) : boolean
+    + rejectEvent(eventId, reason) : boolean
+    + getFeaturedEvents(limit) : List<Event>
+    + searchEvents(query) : List<Event>
+    + incrementViews(id) : void
+}
+
+class OrderService #FCE4EC {
+    - orderDAO : OrderDAO
+    - ticketService : TicketService
+    - voucherService : VoucherService
+    --
+    + createOrder(userId, eventId, items, buyerInfo, voucherCode) : Order
+    + findById(id) : Order
+    + findByCode(code) : Order
+    + findByUser(userId, page) : PageResult
+    + confirmPayment(orderId, transactionId) : boolean
+    + cancelOrder(orderId) : boolean
+    + cancelExpiredOrders() : int
+}
+
+class TicketService #E0F7FA {
+    - ticketDAO : TicketDAO
+    - jwtUtil : JwtUtil
+    --
+    + generateTickets(orderItemId, qty) : List<Ticket>
+    + findByCode(code) : Ticket
+    + findByUser(userId) : List<Ticket>
+    + checkIn(ticketCode, staffId) : Ticket
+    + verifyQRCode(qrToken) : Ticket
+    + getCheckInStats(eventId) : Map
+}
+
+class VoucherService #F1F8E9 {
+    - voucherDAO : VoucherDAO
+    --
+    + create(voucher) : int
+    + update(voucher) : boolean
+    + delete(id) : boolean
+    + validateAndApply(code, eventId, orderAmount) : VoucherResult
+    + findByEvent(eventId) : List<Voucher>
+    + findByOrganizer(orgId) : List<Voucher>
+}
+
+class CategoryService #E8F5E9 {
+    - categoryDAO : CategoryDAO
+    --
+    + findAll() : List<Category>
+    + findById(id) : Category
+    + create(cat) : int
+    + update(cat) : boolean
+    + delete(id) : boolean
+}
+
+class AuthTokenService #EFEBE9 {
+    - refreshTokenDAO : RefreshTokenDAO
+    - jwtUtil : JwtUtil
+    --
+    + generateAccessToken(user) : String
+    + generateRefreshToken(user, device, ip) : String
+    + refreshAccessToken(refreshJti) : String
+    + revokeRefreshToken(jti) : boolean
+    + revokeAllTokens(userId) : int
+    + validateAccessToken(token) : Claims
+    + extractUserId(token) : int
+    + cleanupExpired() : int
+}
+
+class DashboardService #ECEFF1 {
+    - dashboardDAO : DashboardDAO
+    --
+    + getAdminDashboard() : AdminDashboardData
+    + getOrganizerDashboard(orgId) : OrganizerDashboardData
+    + getMonthlyRevenue(months) : List<Map>
+    + getCategoryDistribution() : List<Map>
+    + getTopOrganizers(limit) : List<Map>
+    + getEventSalesBreakdown(eventId) : List<Map>
+}
+
+class ChatService #E3F2FD {
+    - chatDAO : ChatDAO
+    --
+    + startSession(customerId, eventId) : ChatSession
+    + acceptSession(sessionId, agentId) : boolean
+    + closeSession(sessionId) : boolean
+    + sendMessage(sessionId, senderId, content) : ChatMessage
+    + getMessages(sessionId) : List<ChatMessage>
+    + getSessionsForCustomer(userId) : List<ChatSession>
+    + getSessionsForAgent(agentId) : List<ChatSession>
+    + getWaitingSessions() : List<ChatSession>
+}
+
+class SupportTicketService #FFF9C4 {
+    - supportTicketDAO : SupportTicketDAO
+    --
+    + create(ticket) : int
+    + findById(id) : SupportTicket
+    + findByUser(userId, page) : PageResult
+    + findAll(page, status) : PageResult
+    + updateStatus(id, status) : boolean
+    + assignAgent(id, agentId) : boolean
+    + reply(ticketId, senderId, content, isStaff) : TicketMessage
+}
+
+class MediaService #E0F2F1 {
+    - mediaDAO : MediaDAO
+    - cloudinaryUtil : CloudinaryUtil
+    --
+    + upload(file, entityType, entityId, purpose, userId) : Media
+    + findByEntity(type, id) : List<Media>
+    + delete(mediaId) : boolean
+    + deleteByEntity(type, id) : boolean
+}
+
+class NotificationService #ECEFF1 {
+    - notificationDAO : NotificationDAO
+    --
+    + create(userId, title, message, type, link) : int
+    + findByUser(userId) : List<Notification>
+    + markRead(id) : boolean
+    + markAllRead(userId) : void
+    + getUnreadCount(userId) : int
+}
+
+class ActivityLogService #ECEFF1 {
+    - activityLogDAO : ActivityLogDAO
+    --
+    + log(action, entityType, entityId, details, userId, ip) : void
+    + findAll(page, size) : PageResult
+}
+
+class CustomerTierService #F3E5F5 {
+    - orderDAO : OrderDAO
+    --
+    + calculateTier(userId) : String
+    + getTierBenefits(tier) : Map
+    + getTotalSpending(userId) : double
+}
+
+' ── Payment Subsystem (Strategy Pattern) ──────────
+
+interface PaymentProvider #C8E6C9 {
+    + initiate(order) : PaymentResult
+    + verify(transactionId) : PaymentResult
+    + getProviderName() : String
+}
+
+class PaymentFactory #C8E6C9 {
+    {static} + getProvider(method) : PaymentProvider
+}
+
+class SeepayProvider #C8E6C9 {
+    + initiate(order) : PaymentResult
+    + verify(transactionId) : PaymentResult
+    + generateQRContent(order) : String
+    + getProviderName() : String
+}
+
+class BankTransferProvider #C8E6C9 {
+    + initiate(order) : PaymentResult
+    + verify(transactionId) : PaymentResult
+    + getProviderName() : String
+}
+
+class PaymentResult #C8E6C9 {
+    - success : boolean
+    - transactionId : String
+    - redirectUrl : String
+    - qrContent : String
+    - message : String
+    - errorCode : String
+}
+
+PaymentProvider <|.. SeepayProvider
+PaymentProvider <|.. BankTransferProvider
+PaymentFactory --> PaymentProvider : creates
+OrderService --> PaymentFactory : uses
+SeepayProvider ..> PaymentResult : returns
+BankTransferProvider ..> PaymentResult : returns
+
+' ══════════════════════════════════════════════════
+' DEPENDENCIES
+' ══════════════════════════════════════════════════
+
+UserService --> UserDAO : uses
+EventService --> EventDAO : uses
+EventService --> TicketTypeDAO : uses
+OrderService --> OrderDAO : uses
+OrderService --> TicketService : uses
+OrderService --> VoucherService : uses
+TicketService --> TicketDAO : uses
+VoucherService --> VoucherDAO : uses
+CategoryService --> CategoryDAO : uses
+AuthTokenService --> RefreshTokenDAO : uses
+DashboardService --> DashboardDAO : uses
+ChatService --> ChatDAO : uses
+SupportTicketService --> SupportTicketDAO : uses
+MediaService --> MediaDAO : uses
+NotificationService --> NotificationDAO : uses
+ActivityLogService --> ActivityLogDAO : uses
+
+@enduml
