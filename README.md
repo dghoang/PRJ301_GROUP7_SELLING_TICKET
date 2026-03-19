@@ -21,7 +21,7 @@
 | **Tên dự án** | Ticketbox — Online Ticket Selling Platform |
 | **Môn học** | PRJ301 — Web Application Development with Java |
 | **Nhóm** | **Nhóm 7** |
-| **Giảng viên** | *(ghi tên GV tại đây)* |
+| **Giảng viên** | *Phan Ngọc Hoàngg* |
 | **Trường** | FPT University |
 
 ### 👥 Thành viên Nhóm 7
@@ -31,6 +31,358 @@
 | **HE191087** | **Dương Minh Hoàng** | Team Leader · Full-stack Developer |
 | **HE194923** | **Nguyễn Tấn Dũng** | Backend Developer · Database |
 | **HE191292** | **Doãn Thu Hằng** | Frontend Developer · UI/UX |
+
+---
+
+## 🎯 Bối cảnh Nghiệp vụ & Mô tả Dự án
+
+### Bài toán kinh doanh
+
+**Ticketbox** giải quyết bài toán **số hóa quy trình mua bán vé sự kiện** tại Việt Nam — nơi phần lớn giao dịch vé còn diễn ra thủ công (qua Zalo, Facebook, chuyển khoản trực tiếp). Hệ thống hướng đến:
+
+- **Khách hàng:** Trải nghiệm tìm kiếm, đặt vé, thanh toán trực tuyến liền mạch — tương tự Ticketbox.vn, Eventbrite
+- **Nhà tổ chức (Organizer):** Tự tạo sự kiện, quản lý vé, theo dõi doanh thu, check-in tại cổng
+- **Quản trị viên (Admin):** Kiểm duyệt sự kiện, giám sát toàn hệ thống, quản lý mã giảm giá, báo cáo doanh thu
+
+### Các luồng nghiệp vụ chính
+
+#### 🔄 Luồng 1: Vòng đời Sự kiện (Event Lifecycle)
+
+```
+Organizer tạo sự kiện (status=draft)
+       │
+       ▼ [Submit for Approval]
+  status=pending ──────────────► Admin duyệt
+       │                              │
+       │                    ┌─────────┴──────────┐
+       │                    ▼                    ▼
+       │             status=approved       status=rejected
+       │                    │               (kèm lý do)
+       │                    ▼
+       │            Hiển thị trên trang chủ
+       │            Khách hàng có thể đặt vé
+       │                    │
+       │                    ▼ [Ngày sự kiện]
+       │              Check-in tại cổng
+       │                    │
+       │                    ▼ [Kết thúc]
+       │              status=ended
+       ▼
+  Organizer có thể chỉnh sửa & gửi lại
+```
+
+**Quy tắc nghiệp vụ:**
+- Mỗi Organizer tối đa **3 sự kiện pending** cùng lúc (chống spam)
+- Sự kiện bị reject có thể sửa lại và submit lại
+- Admin có thể **pin** (ghim) sự kiện lên đầu trang chủ
+- Admin có thể **feature** (nổi bật) sự kiện vào carousel
+- Mỗi sự kiện có **view count** tự động tăng khi xem chi tiết
+
+#### 🛒 Luồng 2: Đặt vé & Thanh toán (Order Flow)
+
+```
+Khách chọn sự kiện → Xem chi tiết → Chọn loại vé & số lượng
+       │
+       ▼ [Validate]
+  Kiểm tra: còn vé? Vượt giới hạn mua?
+       │
+       ▼ [Checkout Page]
+  Nhập thông tin → Áp mã giảm giá (optional)
+       │
+       ▼ [Tạo đơn hàng]
+  Order (status=pending) + Lock số vé (atomic transaction)
+       │
+       ▼ [Chọn phương thức thanh toán]
+  ┌─────────────────┬──────────────────┐
+  │   VietQR/SeePay │  Chuyển khoản    │
+  │   (tự động)     │  (thủ công)      │
+  └────────┬────────┴────────┬─────────┘
+           │                 │
+           ▼                 ▼
+  QR Code hiển thị    Hướng dẫn CK
+  KH quét & thanh     KH tự CK → Admin
+  toán qua app NH     confirm thủ công
+           │                 │
+           ▼                 ▼
+  Webhook SeePay ──► Order status=paid
+           │
+           ▼
+  Hệ thống tự động phát hành E-ticket (QR code JWT)
+           │
+           ▼
+  Khách nhận vé điện tử → Xem/Tải trong "Vé của tôi"
+```
+
+**Quy tắc nghiệp vụ:**
+- **Atomic reservation:** Khi tạo đơn, hệ thống kiểm tra + giữ chỗ trong 1 transaction (chống race condition)
+- **Giới hạn mua:** Mỗi event có `max_tickets_per_order` (mặc định 10 vé/đơn)
+- **QR Code vé:** Mã QR chứa JWT token, bao gồm ticketId + orderId + eventId → quét tại cổng
+- **Dedup webhook:** Bảng `SeepayWebhookDedup` chống xử lý trùng callback từ cổng thanh toán
+- **Order code:** Format `ORD-{timestamp}-{UUID8}` đảm bảo unique
+
+#### 🎫 Luồng 3: Check-in tại Sự kiện
+
+```
+Staff/Organizer mở trang Check-in
+       │
+       ▼ [Quét QR]
+  Camera quét mã QR trên vé điện tử
+       │
+       ▼ [Verify JWT]
+  Giải mã JWT → Lấy ticketId → Kiểm tra DB
+       │
+  ┌────┴────────────────────────┐
+  │ Hợp lệ + Chưa check-in    │ Đã check-in / Không hợp lệ
+  │          ▼                  │          ▼
+  │  Đánh dấu checked_in      │  Hiển thị cảnh báo
+  │  Hiển thị ✅ + thông tin vé │  Hiển thị ❌ + lý do
+  └─────────────────────────────┘
+```
+
+#### 🏷️ Luồng 4: Voucher / Mã giảm giá
+
+| Loại | Phạm vi | Người tạo | Nguồn chi phí |
+|------|---------|-----------|---------------|
+| **System Voucher** | Toàn bộ sự kiện | Admin | Nền tảng chịu |
+| **Event Voucher** | 1 sự kiện cụ thể | Organizer | Organizer chịu |
+
+**Quy tắc validate:**
+1. Mã tồn tại? → Mã đang active? → Chưa hết hạn?
+2. Còn lượt sử dụng? (`used_count < usage_limit`)
+3. Event voucher: đúng sự kiện? | System voucher: áp dụng mọi sự kiện
+4. Đơn hàng đạt giá trị tối thiểu? (`min_order_amount`)
+5. Tính giảm giá: **percentage** (có cap `max_discount`) hoặc **fixed amount**
+
+#### 💬 Luồng 5: Chat Hỗ trợ & Support Tickets
+
+| Kênh | Cơ chế | Đối tượng |
+|------|--------|-----------|
+| **Live Chat** | Polling-based (AJAX mỗi 3s) | Customer ↔ Organizer/Admin |
+| **Support Tickets** | Ticket system (tạo → phản hồi → đóng) | Organizer ↔ Admin |
+
+### Hệ thống Phân quyền (Permission Engine)
+
+Ticketbox triển khai **RBAC (Role-Based Access Control)** đa tầng:
+
+#### Tầng 1: System Roles (4 vai trò)
+
+| Role | Quyền tổng quan |
+|------|-----------------|
+| **admin** | Toàn quyền hệ thống: duyệt event, quản lý user, báo cáo, voucher hệ thống |
+| **organizer** | Tạo/quản lý sự kiện riêng, team, vé, voucher event, thống kê |
+| **customer** | Tìm, mua vé, xem vé, chat, quản lý hồ sơ |
+| **staff** | Check-in, xem attendee list (chỉ event được phân công) |
+
+#### Tầng 2: Event-level Roles (Phân quyền theo sự kiện)
+
+| Event Role | Nguồn | Quyền |
+|------------|-------|-------|
+| **owner** | Người tạo event | Toàn quyền event: CRUD, xóa, voucher, team |
+| **manager** | Được Organizer assign | Quản lý vé, đơn hàng, thống kê, voucher |
+| **staff** | Được Organizer assign | Xem thông tin, hỗ trợ |
+| **scanner** | Được Organizer assign | Chỉ check-in tại cổng |
+
+```
+getUserEventRole(eventId, userId, systemRole)
+  → "admin" (nếu system admin)
+  → "owner" (nếu organizer_id = userId)
+  → "manager" / "staff" / "scanner" (từ bảng EventStaff)
+  → null (không có quyền)
+```
+
+## 📡 API & Controller Reference
+
+### Public Controllers (19 Servlets)
+
+| Servlet | URL Pattern | Chức năng |
+|---------|------------|-----------|
+| `HomeServlet` | `/` | Trang chủ: featured events, upcoming events, categories |
+| `EventsServlet` | `/events` | Danh sách sự kiện: search, filter, pagination |
+| `EventDetailServlet` | `/event/*` | Chi tiết sự kiện (SEO slug), ticket types, related events |
+| `LoginServlet` | `/login` | Form đăng nhập + xử lý POST (email/password) |
+| `RegisterServlet` | `/register` | Đăng ký tài khoản mới + validation |
+| `GoogleOAuthServlet` | `/google-oauth` | OAuth 2.0 callback handler |
+| `LogoutServlet` | `/logout` | Revoke tokens + clear cookies |
+| `CheckoutServlet` | `/checkout` | Multi-step checkout: validate → create order → payment |
+| `TicketSelectionServlet` | `/ticket-selection` | Chọn loại vé & số lượng trước checkout |
+| `OrderConfirmationServlet` | `/order-confirmation` | Xác nhận đơn hàng sau thanh toán |
+| `ResumePaymentServlet` | `/resume-payment` | Tiếp tục thanh toán cho đơn pending |
+| `MyTicketsServlet` | `/my-tickets` | Vé điện tử của khách hàng |
+| `ProfileServlet` | `/profile` | Xem/sửa hồ sơ cá nhân |
+| `ChangePasswordServlet` | `/change-password` | Đổi mật khẩu (revoke all sessions) |
+| `SupportTicketServlet` | `/support` | Tạo/xem support tickets |
+| `MediaUploadServlet` | `/upload` | Upload ảnh/video lên Cloudinary |
+| `StaticPagesServlet` | `/about`, `/faq` | Trang tĩnh |
+| `TermsServlet` | `/terms` | Điều khoản sử dụng |
+| `NotificationController` | `/notifications` | Danh sách thông báo |
+
+### Admin Controllers (13 Servlets — `/admin/*`)
+
+| Servlet | Chức năng chính |
+|---------|----------------|
+| `AdminDashboardController` | Dashboard: revenue charts, user stats, order stats, system health |
+| `AdminEventController` | CRUD events, approve/reject, pin/feature, paged search |
+| `AdminEventApprovalController` | Duyệt sự kiện pending (approve/reject + reason) |
+| `AdminOrderController` | Quản lý đơn hàng toàn hệ thống, confirm payment thủ công |
+| `AdminUserController` | CRUD users, activate/deactivate, change roles |
+| `AdminCategoryController` | CRUD categories (Music, Sports, Tech...) |
+| `AdminSystemVoucherController` | Voucher hệ thống (áp dụng toàn sự kiện) |
+| `AdminReportsController` | Báo cáo: revenue by period, top events, export |
+| `AdminNotificationController` | Gửi thông báo hệ thống |
+| `AdminSupportController` | Xử lý support tickets từ organizers |
+| `AdminSettingsController` | Cấu hình site settings |
+| `AdminActivityLogController` | Activity log toàn hệ thống |
+| `AdminChatDashboardController` | Giám sát chat sessions |
+
+### Organizer Controllers (11 Servlets — `/organizer/*`)
+
+| Servlet | Chức năng chính |
+|---------|----------------|
+| `OrganizerEventController` | Tạo/sửa/xóa sự kiện, submit for approval, quản lý settings |
+| `OrganizerDashboardController` | Dashboard riêng: own events stats, recent orders |
+| `OrganizerOrderController` | Xem đơn hàng theo sự kiện, export attendee list |
+| `OrganizerTicketController` | Quản lý ticket types (VIP, Standard...) |
+| `OrganizerVoucherController` | CRUD voucher theo sự kiện |
+| `OrganizerStatisticsController` | Thống kê chi tiết: revenue, attendees, time series |
+| `OrganizerCheckInController` | Check-in dashboard: QR scan, attendee list, donut chart |
+| `OrganizerTeamController` | Quản lý team: add/remove staff, assign roles |
+| `OrganizerSettingsController` | Cài đặt sự kiện: max tickets, pre-order toggle |
+| `OrganizerSupportController` | Tạo/xử lý support tickets |
+| `OrganizerChatController` | Chat dashboard cho organizer |
+
+### REST API Endpoints (15 Servlets — `/api/*`)
+
+| Endpoint | Method | Chức năng |
+|----------|--------|-----------|
+| `/api/events` | GET | Search events (public), filter, paginate |
+| `/api/event-detail` | GET | Chi tiết event + ticket availability |
+| `/api/voucher/validate` | POST | Validate voucher code real-time (AJAX) |
+| `/api/my-orders` | GET | Lấy danh sách đơn hàng (user) |
+| `/api/my-tickets` | GET | Lấy danh sách vé (user) |
+| `/api/payment-status` | GET | Polling trạng thái thanh toán |
+| `/api/seepay-webhook` | POST | IPN webhook nhận callback từ SeePay |
+| `/api/upload` | POST | Upload file lên Cloudinary (multipart) |
+| `/api/chat` | GET/POST | Real-time chat (polling-based) |
+| `/api/email-available` | GET | Kiểm tra email trùng (register form) |
+| `/api/admin/events` | PUT/DELETE | Admin CRUD events |
+| `/api/admin/event-feature` | POST | Toggle featured/pinned |
+| `/api/admin/orders` | PUT | Admin update order status |
+| `/api/admin/confirm-payment` | POST | Admin confirm payment thủ công |
+| `/api/admin/users` | PUT/DELETE | Admin CRUD users |
+| `/api/organizer/events` | PUT/DELETE | Organizer CRUD own events |
+
+---
+
+## 💳 Hệ thống Thanh toán (Payment Integration)
+
+### Payment Factory Pattern (Strategy Pattern)
+
+```java
+// PaymentFactory.getProvider("seepay") → SeepayProvider
+// PaymentFactory.getProvider("bank_transfer") → BankTransferProvider
+
+public interface PaymentProvider {
+    String getMethodName();
+    PaymentResult initiatePayment(Order order);
+}
+```
+
+### Phương thức thanh toán
+
+| Provider | Class | Cơ chế |
+|----------|-------|--------|
+| **SeePay (VietQR)** | `SeepayProvider` | Generate QR code → KH quét → Webhook IPN tự động confirm |
+| **Chuyển khoản** | `BankTransferProvider` | Hiển thị thông tin CK → Admin/Organizer confirm thủ công |
+
+### SeePay Webhook Flow (Idempotent)
+
+```
+SeePay Server gọi POST /api/seepay-webhook
+       │
+       ▼
+  Verify signature (HMAC-SHA256)
+       │
+       ▼
+  Check SeepayWebhookDedup (đã xử lý chưa?)
+       │
+  ┌────┴─────────┐
+  │ Chưa xử lý   │ Đã xử lý (trùng)
+  │      ▼        │       ▼
+  │ Parse order   │  Return 200 OK
+  │  code từ      │  (skip processing)
+  │  description  │
+  │      ▼        │
+  │ confirmPaymentAtomic(orderId, txRef)
+  │  → UPDATE orders SET status='paid'
+  │    WHERE status='pending'  ← Idempotent!
+  │      ▼        │
+  │ createTicketsForOrder()
+  │  → Phát hành e-tickets
+  │      ▼        │
+  │ Insert dedup  │
+  │  record       │
+  └───────────────┘
+```
+
+---
+
+## 🗄️ Service Layer Architecture (15 Services)
+
+| Service | Trách nhiệm | DAO phụ thuộc |
+|---------|-------------|---------------|
+| `EventService` | Event CRUD, lifecycle, permission engine, paged search, staff management | `EventDAO`, `TicketTypeDAO`, `CategoryDAO`, `EventStaffDAO` |
+| `OrderService` | Order CRUD, payment routing (Factory Pattern), ticket issuance, refund flow | `OrderDAO`, `TicketDAO` |
+| `UserService` | User CRUD, authentication, profile, activate/deactivate | `UserDAO` |
+| `AuthTokenService` | JWT token lifecycle: issue → validate → refresh → revoke | `RefreshTokenDAO`, `UserDAO` |
+| `VoucherService` | Voucher CRUD, validate (scope/event/amount), discount calculation | `VoucherDAO` |
+| `TicketService` | Individual ticket management, QR code generation, check-in | `TicketDAO` |
+| `CategoryService` | Category CRUD for event classification | `CategoryDAO` |
+| `DashboardService` | Aggregated stats: revenue, orders, users, time series data | `DashboardDAO` |
+| `ChatService` | Chat session management, message CRUD, polling | `ChatDAO` |
+| `NotificationService` | System notifications, read/unread tracking | `NotificationDAO` |
+| `MediaService` | File upload orchestration, Cloudinary integration | `MediaDAO` |
+| `SupportTicketService` | Support ticket lifecycle (open → in-progress → resolved) | `SupportTicketDAO` |
+| `CustomerTierService` | Customer loyalty tiers based on purchase history | Computed |
+| `ActivityLogService` | Audit trail: who did what, when | `ActivityLogDAO` |
+| `PaymentFactory` | Strategy pattern: routes to correct PaymentProvider | — |
+
+### DAO Layer (18 Data Access Objects)
+
+| DAO | Bảng chính | Notable patterns |
+|-----|-----------|-----------------|
+| `BaseDAO` | — | Abstract base: connection pooling, common CRUD helpers |
+| `EventDAO` (39KB) | `Events` | Complex search with dynamic SQL builder, paged results |
+| `OrderDAO` (32KB) | `Orders` + `OrderItems` | `createOrderAtomic()`: transaction-based reservation |
+| `DashboardDAO` (31KB) | Multiple | Heavy aggregation queries, time-series, cross-table joins |
+| `UserDAO` (19KB) | `Users` | BCrypt password handling, Google merge, role changes |
+| `ChatDAO` (18KB) | `ChatSessions` + `ChatMessages` | Session-based messaging, unread count tracking |
+| `TicketDAO` (17KB) | `Tickets` | JWT QR code generation, check-in status management |
+| `TicketTypeDAO` (10KB) | `TicketTypes` | Quantity/sold tracking, price ranges |
+| `SupportTicketDAO` (15KB) | `SupportTickets` + `TicketMessages` | Thread-based conversation |
+| `VoucherDAO` (9KB) | `Vouchers` | Atomic `incrementUsedCount()`, expiry checks |
+| `CategoryDAO` (11KB) | `Categories` | Hierarchical categories, event count aggregation |
+| `SeepayWebhookDedupDAO` | `SeepayWebhookDedup` | Idempotency check for payment webhooks |
+| `RefreshTokenDAO` | `UserSessions` | Token lifecycle, revocation, cleanup expired |
+| `SiteSettingsDAO` | `SiteSettings` | Key-value configuration store |
+
+---
+
+## 🛠️ Utility Layer (12 Classes)
+
+| Utility Class | Mục đích |
+|---------------|----------|
+| `DBContext` | Connection pooling (Microsoft SQL Server), JDBC URL builder, schema init |
+| `JwtUtil` | JWT creation/verification (HMAC-SHA256), ticket QR tokens, auth tokens |
+| `CloudinaryUtil` | Cloudinary SDK wrapper: upload, transform, delete images/videos |
+| `CookieUtil` | Secure cookie management: HttpOnly, Secure, SameSite flags |
+| `InputValidator` | Regex-based validation: email, phone, URL, Vietnamese names |
+| `ValidationUtil` | Business rule validation: age, date ranges, ticket limits |
+| `FlashUtil` | Flash messages across redirects (success/error/warning) |
+| `JsonResponse` | Standardized JSON response builder for API endpoints |
+| `ServletUtil` | Request parsing helpers: getIntParam, getStringParam, pagination |
+| `AppConstants` | System-wide constants: roles, statuses, limits, messages |
+| `PasswordUtil` | BCrypt wrapper: hash + verify passwords |
+| `PermissionCache` | In-memory cache for frequently-checked permissions |
 
 ---
 
@@ -275,20 +627,103 @@ erDiagram
 
 ---
 
-## 🔐 Bảo mật
+## 🔐 Bảo mật & Xác thực
 
-| Cơ chế | Chi tiết |
-|--------|----------|
-| **Password Hashing** | BCrypt (cost factor 12) |
-| **CSRF Protection** | Token-based CSRF filter trên mọi form POST |
-| **Security Headers** | X-Frame-Options, X-Content-Type-Options, CSP, Referrer-Policy |
-| **Input Validation** | Server-side validation (InputValidator + ValidationUtil) |
-| **SQL Injection** | PreparedStatement 100% — không dùng string concatenation |
-| **XSS Prevention** | JSTL `<c:out>` encoding + CSP headers |
-| **Auth Filter** | Role-based access control trên mọi protected URL |
-| **JWT Tokens** | Refresh token rotation cho remember-me |
-| **Google OAuth 2.0** | Social login an toàn |
-| **Access Filters** | OrganizerAccessFilter, StaffAccessFilter, ProtectedJspAccessFilter |
+### Security Layers (7 Servlet Filters)
+
+| Filter | Thứ tự | Chức năng chi tiết |
+|--------|--------|-------------------|
+| `SecurityHeadersFilter` | 1 | Inject `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `CSP`, `Referrer-Policy`, `Permissions-Policy` |
+| `CsrfFilter` | 2 | Sinh CSRF token per-session, validate trên mọi POST/PUT/DELETE form. API endpoints (`/api/*`) exempt |
+| `AuthFilter` | 3 | Đọc refresh token cookie → Restore session → Inject `currentUser` vào `request.setAttribute`. Auto-cleanup cookie cho user bị deactivate |
+| `CacheFilter` | 4 | Set `Cache-Control: no-cache, no-store` cho dynamic pages, `max-age=86400` cho static assets |
+| `OrganizerAccessFilter` | 5 | Block non-organizer truy cập `/organizer/*`. Verify `organizer_id` match cho event-specific operations |
+| `StaffAccessFilter` | 6 | Block non-staff truy cập `/staff/*`. Verify assignment qua `EventStaff` table |
+| `ProtectedJspAccessFilter` | 7 | Block direct access tới `.jsp` trong `/admin/`, `/organizer/`, `/staff/` — bắt buộc đi qua Servlet |
+
+### Authentication Flow (JWT + Refresh Token)
+
+```
+[Login/Register/Google OAuth]
+       │
+       ▼
+  AuthTokenService.issueTokens()
+       │
+       ├── Generate refresh token ID (UUID)
+       ├── Save to DB: UserSessions(user_id, jti, user_agent, ip, expires_at)
+       └── Set HttpOnly cookie: refresh_token = jti
+              │
+              ▼ [Mỗi request tiếp theo]
+         AuthFilter đọc refresh cookie
+              │
+              ▼
+         refreshTokenDAO.getUserIdByActiveToken(jti)
+              │
+         ┌────┴─────────┐
+         │ Token valid   │ Token invalid/expired
+         │      ▼        │       ▼
+         │ Load User     │  Redirect → Login
+         │ from DB       │
+         │      ▼        │
+         │ Set attribute │
+         │ currentUser   │
+         └───────────────┘
+
+[Logout]
+  → revokeToken(jti) trong DB
+  → Delete refresh cookie
+  → Invalidate session
+
+[Đổi mật khẩu / Security event]
+  → revokeAllTokens(userId)  ← Đăng xuất mọi thiết bị
+```
+
+**Đặc điểm bảo mật:**
+- **Cookie HttpOnly + Secure:** Refresh token không thể đọc từ JavaScript
+- **Cookie Path:** Scoped theo context path, không leak cross-app
+- **Token rotation:** Mỗi login tạo refresh token mới
+- **DB-backed sessions:** Revoke bất kỳ session nào từ server-side
+- **IP + User-Agent tracking:** Ghi lại thông tin thiết bị đăng nhập
+
+### Google OAuth 2.0 Flow
+
+```
+Customer click "Đăng nhập bằng Google"
+       │
+       ▼
+  Redirect → Google Authorization URL
+  (scope: email + profile)
+       │
+       ▼
+  Google callback → /google-oauth?code=xxx
+       │
+       ▼
+  Exchange code → Access Token → Fetch user info
+       │
+       ▼
+  ┌── Email đã tồn tại trong DB? ──┐
+  │         YES                      │ NO
+  │          ▼                       │  ▼
+  │  Login user hiện tại             │ Tạo user mới (role=customer)
+  │  (merge Google info)             │ password = random BCrypt hash
+  │          ▼                       │  ▼
+  └──── issueTokens() ──────────────┘
+              │
+              ▼
+  Redirect → Trang chủ (đã đăng nhập)
+```
+
+### Bảng tổng hợp cơ chế bảo mật
+
+| Cơ chế | Chi tiết kỹ thuật |
+|--------|-------------------|
+| **Password Hashing** | BCrypt (cost factor 12) — ~250ms/hash |
+| **CSRF Protection** | Token per-session, validate trên form POST, exempt API |
+| **SQL Injection** | PreparedStatement 100% — tất cả 18 DAO files |
+| **XSS Prevention** | JSTL `<c:out>` auto-encode + CSP headers |
+| **Input Validation** | `InputValidator` (regex patterns) + `ValidationUtil` (business rules) |
+| **Access Control** | 7 filters + Event-level RBAC permission engine |
+| **Session Security** | Refresh-token-only (no access token cookie) + DB revocation |
 
 ---
 
