@@ -1,7 +1,7 @@
 -- =============================================
--- TICKETBOX DATABASE SCHEMA V3.1 (Idempotent)
+-- TICKETBOX DATABASE SCHEMA V5.0 (Idempotent)
 -- SQL Server | PRJ301 Final Project - Group 4
--- 15 Tables | Cloudinary Media | SeePay Payment
+-- 24 Tables | Cloudinary Media | SeePay Payment
 -- =============================================
 -- SAFE TO RE-RUN: Uses IF NOT EXISTS throughout.
 -- Will NOT drop existing data.
@@ -292,7 +292,23 @@ END
 GO
 
 -- =============================================
--- 10. VOUCHERS
+-- 10. SEEPAY WEBHOOK DEDUP (prevent duplicate webhook processing)
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('SeepayWebhookDedup') AND type = 'U')
+BEGIN
+    CREATE TABLE SeepayWebhookDedup (
+        dedup_id INT IDENTITY(1,1) PRIMARY KEY,
+        sepay_transaction_id NVARCHAR(100) NOT NULL UNIQUE,
+        order_code NVARCHAR(100),
+        process_result NVARCHAR(30) NOT NULL DEFAULT 'processed',
+        created_at DATETIME NOT NULL DEFAULT GETDATE()
+    );
+    PRINT 'Table SeepayWebhookDedup created.';
+END
+GO
+
+-- =============================================
+-- 11. VOUCHERS
 -- =============================================
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('Vouchers') AND type = 'U')
 BEGIN
@@ -411,7 +427,174 @@ BEGIN
 END
 GO
 
-PRINT '--- All 15 tables verified ---';
+-- =============================================
+-- 16. EVENT STAFF (staff assignments per event)
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('EventStaff') AND type = 'U')
+BEGIN
+    CREATE TABLE EventStaff (
+        staff_id     INT IDENTITY(1,1) PRIMARY KEY,
+        event_id     INT NOT NULL,
+        user_id      INT NOT NULL,
+        role         NVARCHAR(20) DEFAULT 'staff' CHECK (role IN ('manager','staff','scanner')),
+        granted_by   INT,
+        created_at   DATETIME DEFAULT GETDATE(),
+        CONSTRAINT FK_EventStaff_Event   FOREIGN KEY (event_id)   REFERENCES Events(event_id) ON DELETE CASCADE,
+        CONSTRAINT FK_EventStaff_User    FOREIGN KEY (user_id)    REFERENCES Users(user_id) ON DELETE CASCADE,
+        CONSTRAINT FK_EventStaff_Granter FOREIGN KEY (granted_by) REFERENCES Users(user_id),
+        CONSTRAINT UQ_EventStaff         UNIQUE (event_id, user_id)
+    );
+    PRINT 'Table EventStaff created.';
+END
+GO
+
+-- =============================================
+-- 17. SUPPORT TICKETS
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('SupportTickets') AND type = 'U')
+BEGIN
+    CREATE TABLE SupportTickets (
+        ticket_id    INT IDENTITY(1,1) PRIMARY KEY,
+        ticket_code  NVARCHAR(20) NOT NULL UNIQUE,
+        user_id      INT NOT NULL,
+        order_id     INT NULL,
+        event_id     INT NULL,
+        category     NVARCHAR(30) NOT NULL DEFAULT 'other'
+            CHECK (category IN ('payment_error','missing_ticket','cancellation','refund','event_issue','account_issue','technical','feedback','other')),
+        subject      NVARCHAR(200) NOT NULL,
+        description  NVARCHAR(MAX) NOT NULL,
+        status       NVARCHAR(20) NOT NULL DEFAULT 'open'
+            CHECK (status IN ('open','in_progress','resolved','closed')),
+        priority     NVARCHAR(10) NOT NULL DEFAULT 'normal'
+            CHECK (priority IN ('low','normal','high','urgent')),
+        routed_to    NVARCHAR(20) NOT NULL DEFAULT 'admin'
+            CHECK (routed_to IN ('admin','organizer')),
+        assigned_to  INT NULL,
+        resolved_at  DATETIME NULL,
+        created_at   DATETIME DEFAULT GETDATE(),
+        updated_at   DATETIME DEFAULT GETDATE(),
+        CONSTRAINT FK_SupportTickets_User     FOREIGN KEY (user_id)     REFERENCES Users(user_id),
+        CONSTRAINT FK_SupportTickets_Order    FOREIGN KEY (order_id)    REFERENCES Orders(order_id),
+        CONSTRAINT FK_SupportTickets_Event    FOREIGN KEY (event_id)    REFERENCES Events(event_id),
+        CONSTRAINT FK_SupportTickets_Assigned FOREIGN KEY (assigned_to) REFERENCES Users(user_id)
+    );
+    PRINT 'Table SupportTickets created.';
+END
+GO
+
+-- =============================================
+-- 18. TICKET MESSAGES (support conversations)
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('TicketMessages') AND type = 'U')
+BEGIN
+    CREATE TABLE TicketMessages (
+        message_id   INT IDENTITY(1,1) PRIMARY KEY,
+        ticket_id    INT NOT NULL,
+        sender_id    INT NOT NULL,
+        content      NVARCHAR(2000) NOT NULL,
+        is_internal  BIT DEFAULT 0,
+        created_at   DATETIME DEFAULT GETDATE(),
+        CONSTRAINT FK_TicketMessages_Ticket FOREIGN KEY (ticket_id) REFERENCES SupportTickets(ticket_id),
+        CONSTRAINT FK_TicketMessages_Sender FOREIGN KEY (sender_id) REFERENCES Users(user_id)
+    );
+    PRINT 'Table TicketMessages created.';
+END
+GO
+
+-- =============================================
+-- 19. CHAT SESSIONS (live chat)
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ChatSessions') AND type = 'U')
+BEGIN
+    CREATE TABLE ChatSessions (
+        session_id   INT IDENTITY(1,1) PRIMARY KEY,
+        customer_id  INT NOT NULL,
+        agent_id     INT,
+        event_id     INT,
+        status       VARCHAR(20) DEFAULT 'waiting' CHECK (status IN ('waiting','active','closed')),
+        created_at   DATETIME DEFAULT GETDATE(),
+        closed_at    DATETIME,
+        CONSTRAINT FK_ChatSessions_Customer FOREIGN KEY (customer_id) REFERENCES Users(user_id),
+        CONSTRAINT FK_ChatSessions_Agent    FOREIGN KEY (agent_id)    REFERENCES Users(user_id),
+        CONSTRAINT FK_ChatSessions_Event    FOREIGN KEY (event_id)    REFERENCES Events(event_id)
+    );
+    PRINT 'Table ChatSessions created.';
+END
+GO
+
+-- =============================================
+-- 20. CHAT MESSAGES
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ChatMessages') AND type = 'U')
+BEGIN
+    CREATE TABLE ChatMessages (
+        message_id   INT IDENTITY(1,1) PRIMARY KEY,
+        session_id   INT NOT NULL,
+        sender_id    INT NOT NULL,
+        content      NVARCHAR(1000) NOT NULL,
+        created_at   DATETIME DEFAULT GETDATE(),
+        CONSTRAINT FK_ChatMessages_Session FOREIGN KEY (session_id) REFERENCES ChatSessions(session_id),
+        CONSTRAINT FK_ChatMessages_Sender  FOREIGN KEY (sender_id)  REFERENCES Users(user_id)
+    );
+    PRINT 'Table ChatMessages created.';
+END
+GO
+
+-- =============================================
+-- 21. SITE SETTINGS (key-value store for admin configuration)
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('SiteSettings') AND type = 'U')
+BEGIN
+    CREATE TABLE SiteSettings (
+        setting_key   NVARCHAR(100) PRIMARY KEY,
+        setting_value NVARCHAR(MAX) NOT NULL,
+        updated_at    DATETIME DEFAULT GETDATE()
+    );
+    PRINT 'Table SiteSettings created.';
+END
+GO
+
+-- =============================================
+-- 22. ACTIVITY LOG (audit trail)
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ActivityLog') AND type = 'U')
+BEGIN
+    CREATE TABLE ActivityLog (
+        log_id       INT IDENTITY(1,1) PRIMARY KEY,
+        user_id      INT NOT NULL,
+        action       VARCHAR(100) NOT NULL,
+        entity_type  VARCHAR(50),
+        entity_id    INT,
+        details      NVARCHAR(500),
+        ip_address   VARCHAR(45),
+        created_at   DATETIME DEFAULT GETDATE(),
+        CONSTRAINT FK_ActivityLog_User FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    );
+    PRINT 'Table ActivityLog created.';
+END
+GO
+
+-- =============================================
+-- 23. NOTIFICATIONS
+-- =============================================
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('Notifications') AND type = 'U')
+BEGIN
+    CREATE TABLE Notifications (
+        notification_id INT IDENTITY(1,1) PRIMARY KEY,
+        user_id         INT NOT NULL,
+        type            VARCHAR(50) NOT NULL,
+        title           NVARCHAR(200) NOT NULL,
+        message         NVARCHAR(500),
+        link            VARCHAR(300),
+        is_read         BIT DEFAULT 0,
+        created_at      DATETIME DEFAULT GETDATE(),
+        CONSTRAINT FK_Notifications_User FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    );
+    PRINT 'Table Notifications created.';
+END
+GO
+
+PRINT '--- All 24 tables verified ---';
 GO
 
 -- =============================================
@@ -509,6 +692,12 @@ IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PaymentTx_SeepayID' AND ob
 CREATE INDEX IX_PaymentTx_SeepayID ON PaymentTransactions(seepay_transaction_id);
 GO
 
+-- SeepayWebhookDedup
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_SeepayWebhookDedup_CreatedAt' AND object_id = OBJECT_ID('SeepayWebhookDedup'))
+    DROP INDEX IX_SeepayWebhookDedup_CreatedAt ON SeepayWebhookDedup;
+CREATE INDEX IX_SeepayWebhookDedup_CreatedAt ON SeepayWebhookDedup(created_at DESC);
+GO
+
 -- Auth
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_UserSessions_Token' AND object_id = OBJECT_ID('UserSessions'))
     DROP INDEX IX_UserSessions_Token ON UserSessions;
@@ -523,6 +712,67 @@ GO
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PasswordResets_Token' AND object_id = OBJECT_ID('PasswordResets'))
     DROP INDEX IX_PasswordResets_Token ON PasswordResets;
 CREATE INDEX IX_PasswordResets_Token ON PasswordResets(reset_token);
+GO
+
+-- SupportTickets
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_SupportTickets_UserStatus' AND object_id = OBJECT_ID('SupportTickets'))
+    DROP INDEX IX_SupportTickets_UserStatus ON SupportTickets;
+CREATE INDEX IX_SupportTickets_UserStatus ON SupportTickets(user_id, status);
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_SupportTickets_AssignedTo' AND object_id = OBJECT_ID('SupportTickets'))
+    DROP INDEX IX_SupportTickets_AssignedTo ON SupportTickets;
+CREATE INDEX IX_SupportTickets_AssignedTo ON SupportTickets(assigned_to);
+GO
+
+-- TicketMessages
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TicketMessages_TicketId' AND object_id = OBJECT_ID('TicketMessages'))
+    DROP INDEX IX_TicketMessages_TicketId ON TicketMessages;
+CREATE INDEX IX_TicketMessages_TicketId ON TicketMessages(ticket_id, created_at);
+GO
+
+-- ChatSessions
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ChatSessions_CustomerStatus' AND object_id = OBJECT_ID('ChatSessions'))
+    DROP INDEX IX_ChatSessions_CustomerStatus ON ChatSessions;
+CREATE INDEX IX_ChatSessions_CustomerStatus ON ChatSessions(customer_id, status);
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ChatSessions_AgentStatus' AND object_id = OBJECT_ID('ChatSessions'))
+    DROP INDEX IX_ChatSessions_AgentStatus ON ChatSessions;
+CREATE INDEX IX_ChatSessions_AgentStatus ON ChatSessions(agent_id, status);
+GO
+
+-- ChatMessages
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ChatMessages_SessionId' AND object_id = OBJECT_ID('ChatMessages'))
+    DROP INDEX IX_ChatMessages_SessionId ON ChatMessages;
+CREATE INDEX IX_ChatMessages_SessionId ON ChatMessages(session_id, created_at);
+GO
+
+-- ActivityLog
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ActivityLog_CreatedAt' AND object_id = OBJECT_ID('ActivityLog'))
+    DROP INDEX IX_ActivityLog_CreatedAt ON ActivityLog;
+CREATE INDEX IX_ActivityLog_CreatedAt ON ActivityLog(created_at DESC);
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ActivityLog_UserId' AND object_id = OBJECT_ID('ActivityLog'))
+    DROP INDEX IX_ActivityLog_UserId ON ActivityLog;
+CREATE INDEX IX_ActivityLog_UserId ON ActivityLog(user_id);
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ActivityLog_Action' AND object_id = OBJECT_ID('ActivityLog'))
+    DROP INDEX IX_ActivityLog_Action ON ActivityLog;
+CREATE INDEX IX_ActivityLog_Action ON ActivityLog(action);
+GO
+
+-- Notifications
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Notifications_UserRead' AND object_id = OBJECT_ID('Notifications'))
+    DROP INDEX IX_Notifications_UserRead ON Notifications;
+CREATE INDEX IX_Notifications_UserRead ON Notifications(user_id, is_read);
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Notifications_CreatedAt' AND object_id = OBJECT_ID('Notifications'))
+    DROP INDEX IX_Notifications_CreatedAt ON Notifications;
+CREATE INDEX IX_Notifications_CreatedAt ON Notifications(created_at DESC);
 GO
 
 PRINT '--- All indexes created ---';
@@ -667,8 +917,8 @@ GO
 -- =============================================
 PRINT '';
 PRINT '============================================';
-PRINT '  TicketBox DB V3.1 - Setup Complete!';
-PRINT '  15 tables | All indexes | Seed data';
+PRINT '  TicketBox DB V4.0 - Setup Complete!';
+PRINT '  24 tables | All indexes | Seed data';
 PRINT '  Safe to re-run anytime.';
 PRINT '============================================';
 GO

@@ -404,7 +404,33 @@ CREATE TABLE SiteSettings (
 );
 GO
 
-PRINT '=== All 21 tables created ===';
+-- 22. ACTIVITY LOG (audit trail)
+CREATE TABLE ActivityLog (
+    log_id       INT IDENTITY(1,1) PRIMARY KEY,
+    user_id      INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+    action       VARCHAR(100) NOT NULL,
+    entity_type  VARCHAR(50),
+    entity_id    INT,
+    details      NVARCHAR(500),
+    ip_address   VARCHAR(45),
+    created_at   DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- 23. NOTIFICATIONS
+CREATE TABLE Notifications (
+    notification_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id         INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+    type            VARCHAR(50) NOT NULL,
+    title           NVARCHAR(200) NOT NULL,
+    message         NVARCHAR(500),
+    link            VARCHAR(300),
+    is_read         BIT DEFAULT 0,
+    created_at      DATETIME DEFAULT GETDATE()
+);
+GO
+
+PRINT '=== All 23 tables created ===';
 GO
 
 -- =============================================
@@ -449,6 +475,13 @@ CREATE INDEX IX_TicketMessages_ticket ON TicketMessages(ticket_id, created_at);
 CREATE INDEX IX_ChatSessions_customer_status ON ChatSessions(customer_id, status);
 CREATE INDEX IX_ChatSessions_status ON ChatSessions(status);
 CREATE INDEX IX_ChatMessages_cursor ON ChatMessages(session_id, message_id) INCLUDE (sender_id, content, created_at);
+
+CREATE INDEX IX_ActivityLog_CreatedAt ON ActivityLog(created_at DESC);
+CREATE INDEX IX_ActivityLog_UserId ON ActivityLog(user_id);
+CREATE INDEX IX_ActivityLog_Action ON ActivityLog(action);
+
+CREATE INDEX IX_Notifications_UserRead ON Notifications(user_id, is_read);
+CREATE INDEX IX_Notifications_CreatedAt ON Notifications(created_at DESC);
 GO
 
 PRINT '=== All indexes created ===';
@@ -2111,6 +2144,122 @@ INSERT INTO VoucherUsages (voucher_id, order_id, discount_applied, used_at) VALU
 GO
 
 PRINT '=== 13 new voucher usages seeded (new orders) ===';
+GO
+
+-- =============================================
+-- SEED DATA — SITE SETTINGS
+-- =============================================
+INSERT INTO SiteSettings (setting_key, setting_value) VALUES
+('site_name',           N'TicketBox'),
+('site_tagline',        N'Nền tảng bán vé sự kiện hàng đầu Việt Nam'),
+('contact_email',       'support@ticketbox.vn'),
+('contact_phone',       '1900-636-123'),
+('contact_address',     N'Tầng 8, Tòa nhà Bitexco, 45 Điện Biên Phủ, Quận 1, TP.HCM'),
+('platform_fee_percent','5'),
+('max_tickets_per_order','10'),
+('order_timeout_minutes','15'),
+('currency',            'VND'),
+('maintenance_mode',    'false'),
+('payment_gateway',     'seepay'),
+('seepay_api_url',      'https://api.seepay.vn/v2'),
+('seepay_bank_code',    'MB'),
+('seepay_account_no',   '0345678901'),
+('refund_policy_days',  '7'),
+('default_language',    'vi'),
+('smtp_host',           'smtp.gmail.com'),
+('smtp_port',           '587'),
+('google_analytics_id', 'G-XXXXXXXXXX'),
+('social_facebook',     'https://facebook.com/ticketbox.vn'),
+('social_instagram',    'https://instagram.com/ticketbox.vn');
+GO
+
+PRINT '=== SiteSettings seeded (21 settings) ===';
+GO
+
+-- =============================================
+-- SEED DATA — ACTIVITY LOG (audit trail)
+-- =============================================
+INSERT INTO ActivityLog (user_id, action, entity_type, entity_id, details, ip_address, created_at) VALUES
+-- Admin actions
+(1, 'login',            'user',    1,  N'Admin đăng nhập',                    '192.168.1.100', DATEADD(DAY,-30,GETDATE())),
+(1, 'approve_event',    'event',   1,  N'Phê duyệt sự kiện: Đêm nhạc Hà Anh Tuấn',  '192.168.1.100', DATEADD(DAY,-28,GETDATE())),
+(1, 'approve_event',    'event',   2,  N'Phê duyệt sự kiện: Rock Storm 2026', '192.168.1.100', DATEADD(DAY,-27,GETDATE())),
+(1, 'approve_event',    'event',   3,  N'Phê duyệt sự kiện: Food Festival',   '192.168.1.100', DATEADD(DAY,-26,GETDATE())),
+(1, 'approve_event',    'event',   4,  N'Phê duyệt sự kiện: AI Summit',       '192.168.1.100', DATEADD(DAY,-25,GETDATE())),
+(1, 'approve_event',    'event',   5,  N'Phê duyệt sự kiện: Run Marathon',    '192.168.1.100', DATEADD(DAY,-24,GETDATE())),
+(1, 'feature_event',    'event',   1,  N'Đánh dấu nổi bật sự kiện #1',       '192.168.1.100', DATEADD(DAY,-28,GETDATE())),
+(1, 'feature_event',    'event',   2,  N'Đánh dấu nổi bật sự kiện #2',       '192.168.1.100', DATEADD(DAY,-27,GETDATE())),
+(1, 'update_settings',  'setting', NULL, N'Cập nhật platform_fee_percent = 5', '192.168.1.100', DATEADD(DAY,-20,GETDATE())),
+(1, 'ban_user',         'user',    22, N'Khóa tài khoản: banned.user@test.com','192.168.1.100', DATEADD(DAY,-15,GETDATE())),
+(1, 'resolve_ticket',   'ticket',  1,  N'Xử lý xong support ticket #1',       '192.168.1.100', DATEADD(DAY,-10,GETDATE())),
+(1, 'refund_order',     'order',   49, N'Hoàn tiền đơn hàng O49',             '192.168.1.100', DATEADD(DAY,-8, GETDATE())),
+
+-- Support agent actions
+(2, 'login',            'user',    2,  N'Support agent đăng nhập',            '10.0.0.50',     DATEADD(DAY,-25,GETDATE())),
+(2, 'assign_ticket',    'ticket',  2,  N'Tiếp nhận xử lý ticket #2',         '10.0.0.50',     DATEADD(DAY,-12,GETDATE())),
+(3, 'login',            'user',    3,  N'Support agent 2 đăng nhập',          '10.0.0.51',     DATEADD(DAY,-20,GETDATE())),
+
+-- Organizer actions
+(4, 'login',            'user',    4,  N'Organizer Live Nation đăng nhập',     '172.16.0.10',   DATEADD(DAY,-29,GETDATE())),
+(4, 'create_event',     'event',   1,  N'Tạo sự kiện: Đêm nhạc Hà Anh Tuấn', '172.16.0.10',   DATEADD(DAY,-29,GETDATE())),
+(4, 'create_event',     'event',   2,  N'Tạo sự kiện: Rock Storm 2026',       '172.16.0.10',   DATEADD(DAY,-28,GETDATE())),
+(4, 'upload_media',     'event',   1,  N'Upload banner sự kiện #1',           '172.16.0.10',   DATEADD(DAY,-29,GETDATE())),
+(4, 'update_event',     'event',   1,  N'Cập nhật chi tiết sự kiện #1',       '172.16.0.10',   DATEADD(DAY,-20,GETDATE())),
+(5, 'login',            'user',    5,  N'VieTravel organizer đăng nhập',       '172.16.0.11',   DATEADD(DAY,-25,GETDATE())),
+(5, 'create_event',     'event',   3,  N'Tạo sự kiện: Food Festival',         '172.16.0.11',   DATEADD(DAY,-25,GETDATE())),
+(6, 'login',            'user',    6,  N'TechViet organizer đăng nhập',        '172.16.0.12',   DATEADD(DAY,-26,GETDATE())),
+(6, 'create_event',     'event',   4,  N'Tạo sự kiện: AI Summit',             '172.16.0.12',   DATEADD(DAY,-26,GETDATE())),
+
+-- Customer actions
+(9, 'login',            'user',    9,  N'Customer An đăng nhập',              '203.162.4.10',  DATEADD(DAY,-20,GETDATE())),
+(9, 'purchase_ticket',  'order',   1,  N'Mua vé sự kiện #1',                 '203.162.4.10',  DATEADD(DAY,-19,GETDATE())),
+(10,'login',            'user',    10, N'Customer Bình đăng nhập',            '203.162.4.11',  DATEADD(DAY,-18,GETDATE())),
+(10,'purchase_ticket',  'order',   2,  N'Mua vé sự kiện #2',                 '203.162.4.11',  DATEADD(DAY,-17,GETDATE())),
+(11,'login',            'user',    11, N'Customer Chi đăng nhập',             '203.162.4.12',  DATEADD(DAY,-16,GETDATE())),
+(11,'purchase_ticket',  'order',   3,  N'Mua vé sự kiện #1',                 '203.162.4.12',  DATEADD(DAY,-15,GETDATE()));
+GO
+
+PRINT '=== ActivityLog seeded (30 entries) ===';
+GO
+
+-- =============================================
+-- SEED DATA — NOTIFICATIONS
+-- =============================================
+INSERT INTO Notifications (user_id, type, title, message, link, is_read, created_at) VALUES
+-- Admin notifications
+(1, 'event_pending',     N'Sự kiện mới chờ phê duyệt',      N'Sự kiện "Summer Beats 2026" cần được phê duyệt',            '/admin/events?status=pending',  1, DATEADD(DAY,-25,GETDATE())),
+(1, 'support_ticket',    N'Support ticket mới',               N'Khách hàng báo cáo lỗi thanh toán — ticket #TK-001',        '/admin/support/1',              1, DATEADD(DAY,-15,GETDATE())),
+(1, 'system_alert',      N'Doanh thu tuần vượt mốc',         N'Tổng doanh thu tuần đạt 50,000,000 VND',                     '/admin/dashboard',              0, DATEADD(DAY,-5, GETDATE())),
+(1, 'refund_request',    N'Yêu cầu hoàn tiền',               N'Đơn hàng O49 yêu cầu hoàn tiền 600,000 VND',                '/admin/orders/49',              1, DATEADD(DAY,-8, GETDATE())),
+
+-- Support agent notifications
+(2, 'ticket_assigned',   N'Ticket được giao cho bạn',         N'Ticket #TK-002 đã được giao cho bạn xử lý',                '/support/tickets/2',            1, DATEADD(DAY,-12,GETDATE())),
+(2, 'ticket_reply',      N'Khách hàng phản hồi',             N'Có phản hồi mới trong ticket #TK-002',                      '/support/tickets/2',            0, DATEADD(DAY,-10,GETDATE())),
+(3, 'ticket_assigned',   N'Ticket được giao cho bạn',         N'Ticket #TK-003 đã được giao cho bạn xử lý',                '/support/tickets/3',            0, DATEADD(DAY,-8, GETDATE())),
+
+-- Organizer notifications
+(4, 'event_approved',    N'Sự kiện được phê duyệt',          N'Sự kiện "Đêm nhạc Hà Anh Tuấn" đã được phê duyệt',         '/organizer/events/1',           1, DATEADD(DAY,-28,GETDATE())),
+(4, 'ticket_sold',       N'Có vé được bán',                  N'2 vé VIP sự kiện "Đêm nhạc Hà Anh Tuấn" vừa được bán',     '/organizer/events/1/orders',    1, DATEADD(DAY,-19,GETDATE())),
+(4, 'ticket_sold',       N'Có vé được bán',                  N'3 vé Rock Storm 2026 vừa được bán',                         '/organizer/events/2/orders',    0, DATEADD(DAY,-17,GETDATE())),
+(4, 'payout_ready',      N'Thanh toán sẵn sàng',             N'Tổng 4,500,000 VND sẵn sàng thanh toán cho tháng 2',        '/organizer/payouts',            0, DATEADD(DAY,-3, GETDATE())),
+(5, 'event_approved',    N'Sự kiện được phê duyệt',          N'Sự kiện "Food Festival Sài Gòn" đã được phê duyệt',        '/organizer/events/3',           1, DATEADD(DAY,-26,GETDATE())),
+(6, 'event_approved',    N'Sự kiện được phê duyệt',          N'Sự kiện "AI Summit 2026" đã được phê duyệt',               '/organizer/events/4',           1, DATEADD(DAY,-25,GETDATE())),
+
+-- Customer notifications (user_id 9-20)
+(9,  'order_confirmed',  N'Đặt vé thành công',               N'Bạn đã đặt thành công 2 vé VIP — Đêm nhạc Hà Anh Tuấn',   '/my-tickets',                   1, DATEADD(DAY,-19,GETDATE())),
+(9,  'event_reminder',   N'Sự kiện sắp diễn ra',             N'Đêm nhạc Hà Anh Tuấn diễn ra sau 3 ngày nữa!',            '/events/1',                     0, DATEADD(DAY,-4, GETDATE())),
+(10, 'order_confirmed',  N'Đặt vé thành công',               N'Bạn đã đặt thành công 1 vé — Rock Storm 2026',             '/my-tickets',                   1, DATEADD(DAY,-17,GETDATE())),
+(11, 'order_confirmed',  N'Đặt vé thành công',               N'Bạn đã đặt thành công 3 vé — Đêm nhạc Hà Anh Tuấn',       '/my-tickets',                   1, DATEADD(DAY,-15,GETDATE())),
+(12, 'order_confirmed',  N'Đặt vé thành công',               N'Đặt vé Food Festival thành công',                          '/my-tickets',                   1, DATEADD(DAY,-14,GETDATE())),
+(13, 'order_confirmed',  N'Đặt vé thành công',               N'Đặt vé AI Summit 2026 thành công',                         '/my-tickets',                   0, DATEADD(DAY,-12,GETDATE())),
+(14, 'order_confirmed',  N'Đặt vé thành công',               N'Đặt vé Run Marathon thành công',                           '/my-tickets',                   1, DATEADD(DAY,-11,GETDATE())),
+(15, 'order_cancelled',  N'Đơn hàng bị hủy',                 N'Đơn hàng O48 đã bị hủy — liên hệ support',                '/support',                      1, DATEADD(DAY,-7, GETDATE())),
+(16, 'refund_completed', N'Hoàn tiền thành công',             N'Đơn hàng O49 đã được hoàn tiền 600,000 VND',              '/my-orders',                    0, DATEADD(DAY,-6, GETDATE())),
+(17, 'promotion',        N'Khuyến mãi đặc biệt',             N'Giảm 50% cho sự kiện tiếp theo! Dùng mã SYSLAUNCH50',     '/events',                       0, DATEADD(DAY,-10,GETDATE())),
+(18, 'promotion',        N'Khuyến mãi đặc biệt',             N'Flash sale vé Rock Storm — chỉ hôm nay!',                 '/events/2',                     0, DATEADD(DAY,-9, GETDATE()));
+GO
+
+PRINT '=== Notifications seeded (24 entries) ===';
 GO
 
 -- =============================================

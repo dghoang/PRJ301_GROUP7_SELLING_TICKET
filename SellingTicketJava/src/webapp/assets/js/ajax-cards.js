@@ -290,8 +290,15 @@ class AjaxCards {
         if (params.has('page')) {
             this.currentPage = parseInt(params.get('page')) || 1;
         }
-        if (params.has('q') && this.searchInput) {
-            this.searchInput.value = params.get('q');
+        if ((params.has('q') || params.has('search')) && this.searchInput) {
+            this.searchInput.value = params.get('q') || params.get('search');
+            // Show the clear button if search value is pre-filled
+            const clearBtn = this.searchInput.parentElement
+                ? this.searchInput.parentElement.querySelector('.search-clear')
+                : null;
+            if (clearBtn && this.searchInput.value) {
+                clearBtn.style.display = 'block';
+            }
         }
 
         // Restore pill filters

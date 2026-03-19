@@ -108,7 +108,7 @@ Ticketbox là nền tảng bán vé sự kiện toàn diện được xây dựn
 └─────────────────┬───────────────────────────────────────────┘
                   │ JDBC (mssql-jdbc)
 ┌─────────────────▼───────────────────────────────────────────┐
-│              SQL SERVER (15 Tables + Indexes)               │
+│              SQL SERVER (24 Tables + Indexes)               │
 │  Users · Events · TicketTypes · Orders · Tickets · ...      │
 └─────────────────────────────────────────────────────────────┘
                   │
@@ -152,8 +152,8 @@ SellingTicketJava/
 │
 ├── database/
 │   ├── schema/
-│   │   ├── ticketbox_schema.sql    # Schema đầy đủ (15 tables)
-│   │   └── full_reset_seed.sql     # Reset + seed data
+│   │   ├── ticketbox_schema.sql    # Schema đầy đủ (24 tables, V5.0)
+│   │   └── full_reset_seed.sql     # Reset + seed data (460+ rows)
 │   ├── migrations/                 # Migration files
 │   └── seeds/                      # Seed data
 │
@@ -304,43 +304,63 @@ SellingTicketJava/
 
 ## 🗄 Cơ sở dữ liệu
 
-### 15 Bảng chính
+### 24 Bảng (V5.0)
 
 ```mermaid
 erDiagram
-    Users ||--o{ Events : creates
-    Users ||--o{ Orders : places
-    Users ||--o{ Media : uploads
-    Categories ||--o{ Events : has
-    Events ||--o{ TicketTypes : offers
-    Events ||--o{ Orders : for
-    Orders ||--o{ OrderItems : contains
-    OrderItems ||--o{ Tickets : generates
-    Orders ||--o{ PaymentTransactions : pays
-    Users ||--o{ Vouchers : creates
-    Vouchers ||--o{ VoucherUsages : tracks
-    Users ||--o{ UserSessions : has
-    Users ||--o{ PasswordResets : requests
-    Permissions ||--o{ RolePermissions : grants
+    Users ||--o{ Events : "organizer_id"
+    Users ||--o{ Orders : "user_id"
+    Users ||--o{ Media : "uploaded_by"
+    Users ||--o{ SupportTickets : "user_id"
+    Users ||--o{ ActivityLog : "user_id"
+    Users ||--o{ Notifications : "user_id"
+    Users ||--o{ UserSessions : "has"
+    Users ||--o{ PasswordResets : "requests"
+    Categories ||--o{ Events : "category_id"
+    Events ||--o{ TicketTypes : "event_id"
+    Events ||--o{ Orders : "event_id"
+    Events ||--o{ EventStaff : "event_id"
+    Events ||--o{ Media : "event_id"
+    TicketTypes ||--o{ OrderItems : "ticket_type_id"
+    TicketTypes ||--o{ Tickets : "ticket_type_id"
+    Orders ||--o{ OrderItems : "order_id"
+    Orders ||--o{ Tickets : "order_id"
+    Orders ||--o{ PaymentTransactions : "order_id"
+    Orders ||--o{ VoucherUsages : "order_id"
+    Vouchers ||--o{ VoucherUsages : "voucher_id"
+    SupportTickets ||--o{ TicketMessages : "ticket_id"
+    ChatSessions ||--o{ ChatMessages : "session_id"
+    Permissions ||--o{ RolePermissions : "permission_id"
 ```
 
-| # | Bảng | Mô tả |
-|---|------|-------|
-| 1 | **Users** | Người dùng (customer, organizer, admin, support_agent) |
-| 2 | **Categories** | Danh mục sự kiện (Âm nhạc, Thể thao, Workshop, ...) |
-| 3 | **Media** | Cloudinary media (polymorphic: user/event/ticket_type) |
-| 4 | **Events** | Sự kiện (draft → pending → approved → completed) |
-| 5 | **TicketTypes** | Loại vé (VIP, Standard, Early Bird, ...) |
-| 6 | **Orders** | Đơn hàng (pending → paid → checked_in / refunded) |
-| 7 | **OrderItems** | Chi tiết đơn hàng (loại vé × số lượng) |
-| 8 | **Tickets** | Vé phát hành (QR code, check-in tracking) |
-| 9 | **PaymentTransactions** | Giao dịch thanh toán SeePay |
-| 10 | **Vouchers** | Mã giảm giá (percentage/fixed, event/system scope) |
-| 11 | **VoucherUsages** | Lịch sử sử dụng voucher |
-| 12 | **UserSessions** | Phiên đăng nhập (token, device, IP) |
-| 13 | **PasswordResets** | Token đặt lại mật khẩu |
-| 14 | **Permissions** | Quyền hạn (17 permissions, 5 modules) |
-| 15 | **RolePermissions** | Phân quyền theo vai trò (RBAC) |
+| # | Bảng | Mô tả | Seed Data |
+|---|------|-------|----------|
+| 1 | **Users** | Người dùng (customer, organizer, admin, support_agent) | 25 users |
+| 2 | **Categories** | Danh mục sự kiện (Âm nhạc, Thể thao, Workshop...) | 8 danh mục |
+| 3 | **Media** | Cloudinary media (ảnh/video sự kiện) | ~10 files |
+| 4 | **Events** | Sự kiện (draft → pending → approved → completed) | 12 sự kiện |
+| 5 | **TicketTypes** | Loại vé (VIP, Standard, Early Bird) | ~25 loại |
+| 6 | **Orders** | Đơn hàng (pending → paid → cancelled → refunded) | 50 đơn |
+| 7 | **OrderItems** | Chi tiết đơn hàng (loại vé × số lượng) | ~60 dòng |
+| 8 | **Tickets** | Vé phát hành (QR code, check-in tracking) | ~80 vé |
+| 9 | **PaymentTransactions** | Giao dịch thanh toán SeePay | ~35 giao dịch |
+| 10 | **SeepayWebhookDedup** | Chống trùng webhook (idempotency) | — |
+| 11 | **Vouchers** | Mã giảm giá (percentage/fixed, event/system) | 12 vouchers |
+| 12 | **VoucherUsages** | Lịch sử sử dụng voucher | 13 records |
+| 13 | **UserSessions** | Phiên đăng nhập (token, device, IP) | — |
+| 14 | **PasswordResets** | Token đặt lại mật khẩu | — |
+| 15 | **Permissions** | Quyền hạn (18 permissions, 4 modules) | 18 quyền |
+| 16 | **RolePermissions** | Phân quyền theo vai trò (RBAC) | ~35 mappings |
+| 17 | **EventStaff** | Nhân viên sự kiện (check-in, manager) | ~8 staff |
+| 18 | **SupportTickets** | Phiếu hỗ trợ khách hàng | 8 tickets |
+| 19 | **TicketMessages** | Tin nhắn trong support ticket | ~15 messages |
+| 20 | **ChatSessions** | Phiên chat live (bot/agent) | 5 sessions |
+| 21 | **ChatMessages** | Tin nhắn trong chat | ~10 messages |
+| 22 | **SiteSettings** | Cấu hình hệ thống (key-value) | 21 settings |
+| 23 | **ActivityLog** | Nhật ký hoạt động (audit trail) | 30 entries |
+| 24 | **Notifications** | Thông báo người dùng | 24 thông báo |
+
+> **Tổng cộng: ~460+ dòng seed data** phục vụ demo đầy đủ chức năng.
 
 ---
 
@@ -368,18 +388,24 @@ cd PRJ301_GROUP4_SELLING_TICKET/SellingTicketJava
 Mở **SQL Server Management Studio (SSMS)** và chạy:
 
 ```sql
--- Tạo database + bảng + indexes + seed data (an toàn chạy lại nhiều lần)
--- File này tự tạo DB "SellingTicketDB" nếu chưa có
+-- Option 1: Schema only (idempotent, safe to re-run)
 :r database/schema/ticketbox_schema.sql
+
+-- Option 2: Full reset + seed data (DROP + CREATE + INSERT 460+ rows)
+:r database/schema/full_reset_seed.sql
 ```
 
 Hoặc chạy từ command line:
 
 ```bash
+# Schema only
 sqlcmd -S localhost -i database/schema/ticketbox_schema.sql
+
+# Full reset + seed data (recommended for first setup)
+sqlcmd -S localhost -i database/schema/full_reset_seed.sql
 ```
 
-> **Seed data bao gồm:** 6 danh mục, 17 quyền hạn, 3 tài khoản mẫu, 3 sự kiện mẫu, 6 loại vé mẫu.
+> **Seed data bao gồm:** 25 users (4 roles), 8 danh mục, 12 sự kiện, 50 đơn hàng, ~80 vé, 12 vouchers, 18 quyền, 21 site settings, 30 activity logs, 24 notifications — tổng **460+ dòng** realistic data.
 
 ### Bước 3: Cấu hình kết nối database
 
