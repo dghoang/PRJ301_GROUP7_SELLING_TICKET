@@ -1,751 +1,605 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-Jakarta%20EE%2010-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java"/>
+  <img src="https://img.shields.io/badge/Java-Jakarta%20EE%206.0-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java"/>
   <img src="https://img.shields.io/badge/SQL%20Server-2019+-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white" alt="SQL Server"/>
-  <img src="https://img.shields.io/badge/Tomcat-10.1+-F8DC75?style=for-the-badge&logo=apachetomcat&logoColor=black" alt="Tomcat"/>
   <img src="https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" alt="Bootstrap"/>
+  <img src="https://img.shields.io/badge/Tomcat-10.x-F8DC75?style=for-the-badge&logo=apachetomcat&logoColor=black" alt="Tomcat"/>
 </p>
 
-# 🎫 Ticketbox — Nền tảng bán vé sự kiện trực tuyến
+<h1 align="center">🎫 Ticketbox — Nền tảng Mua Bán Vé Sự kiện</h1>
 
-> **PRJ301 — Group 4** | Java Web Application (Servlet + JSP + MVC)
-
-Ticketbox là nền tảng bán vé sự kiện toàn diện được xây dựng bằng **Java Servlet/JSP** theo kiến trúc **MVC 3-layer**. Hệ thống hỗ trợ **4 vai trò người dùng**, tích hợp **thanh toán SeePay**, **Google OAuth**, **Cloudinary media**, và **hệ thống bảo mật đa tầng**.
-
----
-
-## 📑 Mục lục
-
-- [Tính năng chính](#-tính-năng-chính)
-- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
-- [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
-- [Cấu trúc thư mục](#-cấu-trúc-thư-mục)
-- [Cơ sở dữ liệu](#-cơ-sở-dữ-liệu)
-- [Cài đặt & Chạy dự án](#-cài-đặt--chạy-dự-án)
-- [Cấu hình](#-cấu-hình)
-- [Tài khoản mặc định](#-tài-khoản-mặc-định)
-- [Trang & Chức năng theo vai trò](#-trang--chức-năng-theo-vai-trò)
-- [API Endpoints](#-api-endpoints)
-- [Bảo mật](#-bảo-mật)
-- [Tài liệu bổ sung](#-tài-liệu-bổ-sung)
-- [Đóng góp](#-đóng-góp)
+<p align="center">
+  <b>Đồ án môn PRJ301 — Web Application Development with Java</b><br/>
+  Học kỳ Spring 2026 · FPT University
+</p>
 
 ---
 
-## ✨ Tính năng chính
+## 📋 Thông tin dự án
 
-### 🛒 Khách hàng (Customer)
-- Duyệt & tìm kiếm sự kiện theo danh mục, từ khóa, ngày
-- Xem chi tiết sự kiện (mô tả rich-text, gallery ảnh, bản đồ)
-- Chọn loại vé & số lượng → Thanh toán qua SeePay / Chuyển khoản
-- Quản lý vé đã mua (mã QR, tải vé)
-- Áp mã giảm giá (voucher) khi checkout
-- Hỗ trợ khách hàng (support ticket system)
-- Thông báo real-time
-- Đăng nhập bằng Google OAuth / Email-Password
+| Mục | Chi tiết |
+|-----|----------|
+| **Tên dự án** | Ticketbox — Online Ticket Selling Platform |
+| **Môn học** | PRJ301 — Web Application Development with Java |
+| **Nhóm** | **Nhóm 7** |
+| **Giảng viên** | *(ghi tên GV tại đây)* |
+| **Trường** | FPT University |
 
-### 🎤 Ban tổ chức (Organizer)
-- Dashboard thống kê doanh thu, vé bán, lượt xem
-- Tạo & quản lý sự kiện (CRUD, rich-text editor, upload ảnh/video)
-- Quản lý loại vé (giá, số lượng, thời gian bán)
-- Tạo & quản lý mã giảm giá (voucher)
-- Quản lý đơn hàng & hoàn tiền
-- Soát vé QR Code tại sự kiện (check-in)
-- Quản lý nhân viên sự kiện (event staff)
-- Thống kê doanh thu chi tiết (biểu đồ, xuất báo cáo)
-- Chat hỗ trợ khách hàng
+### 👥 Thành viên Nhóm 7
 
-### 🛡️ Quản trị viên (Admin)
-- Dashboard tổng quan toàn hệ thống
-- Duyệt / từ chối sự kiện (approval workflow)
-- Quản lý người dùng (active/ban, phân quyền)
-- Quản lý danh mục sự kiện
-- Hệ thống voucher toàn hệ thống (system vouchers)
-- Quản lý đơn hàng & xác nhận thanh toán thủ công
-- Báo cáo doanh thu & thống kê nâng cao
-- Nhật ký hoạt động (activity log)
-- Cài đặt hệ thống (site settings)
-- Chat dashboard & hỗ trợ
-
-### 👷 Nhân viên sự kiện (Staff)
-- Dashboard sự kiện được phân công
-- Soát vé QR Code tại cổng vào
+| MSSV | Họ và tên | Vai trò |
+|------|-----------|---------|
+| **HE191087** | **Dương Minh Hoàng** | Team Leader · Full-stack Developer |
+| **HE194923** | **Nguyễn Tấn Dũng** | Backend Developer · Database |
+| **HE191292** | **Doãn Thu Hằng** | Frontend Developer · UI/UX |
 
 ---
 
-## 🏗 Kiến trúc hệ thống
+## 🏗️ Kiến trúc hệ thống
+
+### Tổng quan MVC Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      CLIENT (Browser)                       │
-│              JSP + Bootstrap 5 + Chart.js                   │
-└─────────────────┬───────────────────────────────────────────┘
-                  │ HTTP Request
-┌─────────────────▼───────────────────────────────────────────┐
-│                   FILTER CHAIN (7 Filters)                  │
-│  CacheFilter → SecurityHeaders → CSRF → Auth → Access      │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│               CONTROLLER LAYER (Servlets)                   │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ Public   │ │ Admin    │ │Organizer │ │   API    │       │
-│  │(19 files)│ │(13 files)│ │(11 files)│ │(15 files)│       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│                  SERVICE LAYER (15 Services)                │
-│  Auth · Event · Order · Ticket · Voucher · Dashboard · ...  │
-│  ┌─────────────────────────────────────┐                    │
-│  │  Payment Provider (Factory Pattern) │                    │
-│  │  SeePay · BankTransfer · Cash       │                    │
-│  └─────────────────────────────────────┘                    │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│                    DAO LAYER (18 DAOs)                      │
-│  BaseDAO (abstract) → UserDAO · EventDAO · OrderDAO · ...   │
-└─────────────────┬───────────────────────────────────────────┘
-                  │ JDBC (mssql-jdbc)
-┌─────────────────▼───────────────────────────────────────────┐
-│              SQL SERVER (24 Tables + Indexes)               │
-│  Users · Events · TicketTypes · Orders · Tickets · ...      │
-└─────────────────────────────────────────────────────────────┘
-                  │
-            External Services
-    ┌─────────────┼─────────────┐
-    │             │             │
- Cloudinary    SeePay      Google OAuth
- (Media CDN)  (Payment)   (Social Login)
+┌─────────────────────────────────────────────────────────┐
+│                    CLIENT (Browser)                      │
+│  JSP Views + Bootstrap 5 + AJAX + i18n (VI/EN/JA)      │
+└────────────────────────┬────────────────────────────────┘
+                         │ HTTP Request/Response
+┌────────────────────────▼────────────────────────────────┐
+│              FILTER CHAIN (7 Filters)                    │
+│  SecurityHeaders → CSRF → Auth → Cache → Access Control │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│              CONTROLLER LAYER (60 Servlets)              │
+│  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌───────────┐ │
+│  │  Public   │ │   Admin   │ │Organizer │ │   Staff   │ │
+│  │(19 servs) │ │(13 ctrls) │ │(10 ctrls)│ │ (3 ctrls) │ │
+│  └─────┬────┘ └─────┬─────┘ └────┬─────┘ └─────┬─────┘ │
+│        │             │            │              │       │
+│  ┌─────▼─────────────▼────────────▼──────────────▼─────┐│
+│  │           API LAYER (15 REST Endpoints)              ││
+│  └─────────────────────┬───────────────────────────────┘│
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│              SERVICE LAYER (20 Services)                  │
+│  Auth · Event · Order · Ticket · Chat · Payment · ...    │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │          Payment Subsystem (Factory Pattern)         ││
+│  │    PaymentFactory → BankTransfer / SeepayProvider    ││
+│  └─────────────────────────────────────────────────────┘│
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│               DAO LAYER (18 Data Access Objects)         │
+│  BaseDAO (abstract) → UserDAO, EventDAO, OrderDAO, ...   │
+└────────────────────────┬────────────────────────────────┘
+                         │ JDBC
+┌────────────────────────▼────────────────────────────────┐
+│         SQL SERVER DATABASE (24 Tables)                   │
+│  Users · Events · Orders · Tickets · Chat · Vouchers ... │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Package Structure
+
+```
+src/java/com/sellingticket/
+├── controller/               # 60 Servlet controllers
+│   ├── (19 public servlets)  # Home, Events, Login, Register, Checkout...
+│   ├── admin/                # 13 admin controllers
+│   ├── organizer/            # 10 organizer controllers
+│   ├── staff/                # 3 staff controllers
+│   └── api/                  # 15 REST API endpoints
+├── service/                  # 20 Business logic services
+│   └── payment/              # Payment subsystem (Factory Pattern)
+├── dao/                      # 18 Data Access Objects (JDBC)
+├── model/                    # 17 Entity models (POJO)
+├── filter/                   # 7 Servlet filters
+└── util/                     # 12 Utility classes
+
+src/webapp/
+├── assets/
+│   ├── css/                  # main.css, navbar.css
+│   ├── js/                   # 6 JS modules (AJAX, i18n, animations...)
+│   └── i18n/                 # 3 locales: vi.json, en.json, ja.json
+├── admin/                    # 17 admin JSP pages
+├── organizer/                # 12 organizer JSP pages
+├── staff/                    # 5 staff JSP pages
+├── WEB-INF/web.xml           # Jakarta EE 6.0 config
+└── (30+ public JSP pages)    # home, events, checkout, profile...
 ```
 
 ---
 
-## 🔧 Công nghệ sử dụng
+## 🚀 Tính năng chính
 
-| Thành phần | Công nghệ |
-|-----------|-----------|
-| **Backend** | Java 17+, Jakarta Servlet 6.0, JSP, JSTL |
-| **Server** | Apache Tomcat 10.1+ |
-| **Database** | Microsoft SQL Server 2019+ |
-| **ORM/Data** | JDBC trực tiếp (mssql-jdbc driver) |
-| **Frontend** | Bootstrap 5.3, Chart.js, Font Awesome 6 |
-| **Authentication** | JWT (jjwt) + Session + Google OAuth 2.0 |
-| **Password** | BCrypt (jBCrypt) |
-| **Payment** | SeePay QR Payment Gateway |
-| **Media Storage** | Cloudinary (Image/Video CDN) |
-| **JSON** | Gson (Google) |
-| **Build** | Apache Ant (NetBeans project) |
-| **IDE** | NetBeans 21+ / IntelliJ IDEA |
+### 🎯 Customer (Khách hàng)
+| # | Tính năng | Mô tả |
+|---|-----------|-------|
+| 1 | **Trang chủ** | Hero banner, stats animated counter, trending/featured/upcoming events |
+| 2 | **Tìm kiếm & Lọc** | AJAX real-time search, lọc theo danh mục/ngày/giá/sắp xếp |
+| 3 | **Chi tiết sự kiện** | Countdown timer, chọn loại vé, terms modal, similar events |
+| 4 | **Đặt vé & Checkout** | Multi-step checkout (chọn vé → thông tin → thanh toán) |
+| 5 | **Thanh toán QR** | VietQR integration via SeePay, auto-verify webhook |
+| 6 | **Mã giảm giá** | Voucher validation, discount calculation real-time |
+| 7 | **Vé điện tử** | QR code e-ticket, download, anti-fraud watermark |
+| 8 | **Quản lý vé** | Xem đơn hàng, trạng thái vé, lịch sử mua |
+| 9 | **Hồ sơ cá nhân** | Cập nhật thông tin, đổi mật khẩu, avatar (Cloudinary) |
+| 10 | **Chat hỗ trợ** | Real-time chat với tư vấn viên (polling-based) |
+| 11 | **Đa ngôn ngữ** | Tiếng Việt, English, 日本語 (i18n client-side) |
+| 12 | **Google OAuth** | Đăng nhập/Đăng ký bằng Google |
+| 13 | **Thông báo** | Notification center cho đơn hàng, sự kiện |
+
+### 🏢 Organizer (Nhà tổ chức)
+| # | Tính năng | Mô tả |
+|---|-----------|-------|
+| 1 | **Dashboard** | Doanh thu, vé bán, biểu đồ thống kê |
+| 2 | **Quản lý sự kiện** | Tạo, sửa, xóa mềm sự kiện + upload ảnh |
+| 3 | **Quản lý vé** | Tạo loại vé, giá, số lượng, thời gian bán |
+| 4 | **Quản lý đơn hàng** | Xem đơn hàng, xác nhận thanh toán manual |
+| 5 | **Check-in** | Quét QR check-in tại sự kiện |
+| 6 | **Thống kê chi tiết** | Doanh thu theo ngày/tháng, loại vé, biểu đồ |
+| 7 | **Quản lý staff** | Thêm/xóa nhân viên cho sự kiện |
+| 8 | **Chat hỗ trợ** | Trả lời chat từ khách hàng |
+| 9 | **Support tickets** | Gửi/phản hồi yêu cầu hỗ trợ đến Admin |
+
+### 🛡️ Admin (Quản trị viên)
+| # | Tính năng | Mô tả |
+|---|-----------|-------|
+| 1 | **Dashboard** | Tổng quan hệ thống: users, events, revenue charts |
+| 2 | **Duyệt sự kiện** | Approve/Reject sự kiện từ organizer |
+| 3 | **Quản lý người dùng** | CRUD users, phân quyền, ban/unban |
+| 4 | **Quản lý danh mục** | CRUD categories sự kiện |
+| 5 | **Quản lý đơn hàng** | Xem tất cả đơn, confirm payment thủ công |
+| 6 | **Voucher hệ thống** | Tạo/quản lý mã giảm giá toàn hệ thống |
+| 7 | **Báo cáo** | Revenue reports, event analytics |
+| 8 | **Chat dashboard** | Monitor & respond chat sessions |
+| 9 | **Support tickets** | Quản lý tất cả yêu cầu hỗ trợ |
+| 10 | **Activity log** | Audit trail mọi hành động hệ thống |
+| 11 | **Thông báo** | Gửi thông báo đến users |
+| 12 | **Cài đặt hệ thống** | Site settings, cấu hình chung |
+
+### 👷 Staff (Nhân viên sự kiện)
+| # | Tính năng | Mô tả |
+|---|-----------|-------|
+| 1 | **Dashboard** | Thống kê sự kiện được phân công |
+| 2 | **Check-in** | Quét QR xác thực vé tại sự kiện |
+| 3 | **Danh sách vé** | Xem danh sách attendee |
+
+---
+
+## 💻 Tech Stack
+
+### Backend
+| Công nghệ | Version | Mục đích |
+|-----------|---------|----------|
+| **Java** | 17+ | Ngôn ngữ chính |
+| **Jakarta EE** | 6.0 | Servlet API, JSP |
+| **Apache Tomcat** | 10.x | Application Server |
+| **JDBC** | — | Database connectivity |
+| **JSTL** | 3.0 | JSP tag library |
+| **Jackson** | 2.x | JSON processing |
+| **Google OAuth** | 2.0 | Social login |
+| **JWT (jsonwebtoken)** | — | Token-based auth |
+| **Cloudinary** | — | Image upload & CDN |
+| **BCrypt** | — | Password hashing |
+
+### Frontend
+| Công nghệ | Version | Mục đích |
+|-----------|---------|----------|
+| **JSP** | — | Server-side rendering |
+| **Bootstrap** | 5.3 | Responsive UI framework |
+| **Font Awesome** | 6.x | Icon library |
+| **Vanilla JS** | ES6+ | Client-side logic |
+| **AJAX** | Fetch API | Async data fetching |
+| **CSS3** | — | Custom styling, animations |
+| **Chart.js** | — | Dashboard charts |
+
+### Database & Infrastructure
+| Công nghệ | Mục đích |
+|-----------|----------|
+| **SQL Server** 2019+ | Primary database |
+| **SeePay** | Payment gateway (VietQR) |
+| **Cloudinary** | Media storage & CDN |
+
+---
+
+## 🗄️ Cơ sở dữ liệu
+
+### ER Diagram — 24 Bảng
+
+```mermaid
+erDiagram
+    Users ||--o{ Events : "organizes"
+    Users ||--o{ Orders : "places"
+    Users ||--o{ UserSessions : "has"
+    Users ||--o{ PasswordResets : "requests"
+    Users ||--o{ SupportTickets : "creates"
+    Users ||--o{ ChatSessions : "initiates"
+    Users ||--o{ ActivityLog : "generates"
+    Users ||--o{ Notifications : "receives"
+    Users ||--o{ VoucherUsages : "uses"
+    Users }o--o{ Permissions : "RolePermissions"
+    Users ||--o{ EventStaff : "assigned"
+
+    Categories ||--o{ Events : "belongs_to"
+
+    Events ||--o{ TicketTypes : "has"
+    Events ||--o{ Orders : "receives"
+    Events ||--o{ Media : "has"
+    Events ||--o{ EventStaff : "staffed_by"
+
+    TicketTypes ||--o{ OrderItems : "ordered"
+    TicketTypes ||--o{ Tickets : "generates"
+
+    Orders ||--o{ OrderItems : "contains"
+    Orders ||--o{ Tickets : "produces"
+    Orders ||--o{ PaymentTransactions : "paid_via"
+    Orders ||--o{ VoucherUsages : "applied"
+
+    Vouchers ||--o{ VoucherUsages : "redeemed"
+
+    SupportTickets ||--o{ TicketMessages : "has"
+    ChatSessions ||--o{ ChatMessages : "contains"
+```
+
+### Chi tiết 24 Bảng
+
+| # | Bảng | Mô tả | Cột chính | Seed Data |
+|---|------|-------|-----------|-----------|
+| 1 | **Users** | Tài khoản (admin/organizer/customer/staff) | user_id, email, role, password_hash | 16 users |
+| 2 | **Categories** | Danh mục sự kiện | category_id, name, icon, color | 8 categories |
+| 3 | **Media** | Ảnh/video sự kiện (Cloudinary) | media_id, event_id, url, type | 22 media |
+| 4 | **Events** | Sự kiện (approved/pending/draft/rejected) | event_id, title, status, organizer_id | 28 events |
+| 5 | **TicketTypes** | Loại vé (VIP, Standard, ...) | ticket_type_id, price, quantity, sold_quantity | 65 types |
+| 6 | **Orders** | Đơn hàng (paid/pending/cancelled/refunded) | order_id, order_code, final_amount, status | 35 orders |
+| 7 | **OrderItems** | Chi tiết đơn hàng | item_id, order_id, ticket_type_id, quantity | 55 items |
+| 8 | **Tickets** | Vé điện tử (QR code) | ticket_id, qr_code, check_in_status | 72 tickets |
+| 9 | **PaymentTransactions** | Giao dịch thanh toán | transaction_id, payment_ref, status | 30 txns |
+| 10 | **SeepayWebhookDedup** | Chống duplicate webhook | id, transaction_ref | — |
+| 11 | **Vouchers** | Mã giảm giá | voucher_id, code, discount_type, value | 8 vouchers |
+| 12 | **VoucherUsages** | Lịch sử dùng voucher | usage_id, voucher_id, user_id | 5 usages |
+| 13 | **UserSessions** | Phiên đăng nhập (JWT) | session_id, refresh_token, expires_at | — |
+| 14 | **PasswordResets** | Token reset mật khẩu | id, token, expires_at | — |
+| 15 | **Permissions** | Quyền hệ thống | permission_id, permission_key | 20 perms |
+| 16 | **RolePermissions** | Gán quyền theo role | role, permission_id | 52 mappings |
+| 17 | **EventStaff** | Nhân viên sự kiện | id, event_id, user_id, role | 5 staff |
+| 18 | **SupportTickets** | Yêu cầu hỗ trợ | ticket_id, subject, status, priority | 6 tickets |
+| 19 | **TicketMessages** | Tin nhắn trong support ticket | message_id, ticket_id, content | 14 msgs |
+| 20 | **ChatSessions** | Phiên chat live | session_id, status | 3 sessions |
+| 21 | **ChatMessages** | Tin nhắn chat | message_id, session_id, content | 10 msgs |
+| 22 | **SiteSettings** | Cài đặt hệ thống | setting_key, setting_value | 10 settings |
+| 23 | **ActivityLog** | Nhật ký hoạt động | log_id, action, entity_type | 15 logs |
+| 24 | **Notifications** | Thông báo người dùng | notification_id, type, message | 12 notifs |
+
+---
+
+## 🔐 Bảo mật
+
+| Cơ chế | Chi tiết |
+|--------|----------|
+| **Password Hashing** | BCrypt (cost factor 12) |
+| **CSRF Protection** | Token-based CSRF filter trên mọi form POST |
+| **Security Headers** | X-Frame-Options, X-Content-Type-Options, CSP, Referrer-Policy |
+| **Input Validation** | Server-side validation (InputValidator + ValidationUtil) |
+| **SQL Injection** | PreparedStatement 100% — không dùng string concatenation |
+| **XSS Prevention** | JSTL `<c:out>` encoding + CSP headers |
+| **Auth Filter** | Role-based access control trên mọi protected URL |
+| **JWT Tokens** | Refresh token rotation cho remember-me |
+| **Google OAuth 2.0** | Social login an toàn |
+| **Access Filters** | OrganizerAccessFilter, StaffAccessFilter, ProtectedJspAccessFilter |
+
+---
+
+## 🔍 Hệ thống Tìm kiếm
+
+### Search Architecture
+
+```
+User Input → AJAX Request (ajax-cards.js)
+                │
+                ▼
+    Servlet (EventsServlet / OrganizerEventController)
+                │
+                ▼
+    EventService → EventDAO (SQL LIKE + filters)
+                │
+                ▼
+    JSON Response → Client-side Render (card template)
+```
+
+### Search Features
+- **Real-time AJAX search** — Không reload trang, debounced input
+- **Multi-parameter filtering** — Keyword (`?q=`), category, date range, price range
+- **Sorting** — Theo ngày, mới nhất, phổ biến, giá tăng/giảm
+- **Pagination** — Server-side pagination với PageResult
+- **Homepage search** — Redirect từ hero search form → `/events?q=...`
+- **My Tickets search** — AJAX search trong danh sách vé
+- **Organizer search** — AJAX search trong quản lý sự kiện
+- **Admin search** — Search trong users, events, orders
+
+---
+
+## 💳 Hệ thống Thanh toán
+
+### Payment Flow
+
+```
+1. Customer chọn vé → Checkout form
+2. Validate voucher (optional) → API /api/voucher/validate
+3. Tạo Order (status=pending) + Generate QR
+4. Hiển thị QR VietQR cho customer
+5. Customer quét QR → Chuyển khoản ngân hàng
+6. SeePay webhook → /api/seepay-webhook
+7. Verify webhook (dedup + amount check)
+8. Order status → paid, Tickets generated
+9. Redirect → Order Confirmation page
+```
+
+### Payment Components
+| Component | File | Mô tả |
+|-----------|------|-------|
+| `PaymentFactory` | `service/payment/` | Factory Pattern tạo payment provider |
+| `SeepayProvider` | `service/payment/` | SeePay VietQR integration |
+| `BankTransferProvider` | `service/payment/` | Manual bank transfer |
+| `SeepayWebhookServlet` | `controller/api/` | Webhook receiver & verifier |
+| `SeepayWebhookDedupDAO` | `dao/` | Chống duplicate webhook |
+| `PaymentStatusServlet` | `controller/api/` | Polling payment status |
+
+---
+
+## 🌐 Đa ngôn ngữ (i18n)
+
+| Ngôn ngữ | File | Keys |
+|----------|------|------|
+| 🇻🇳 Tiếng Việt | `assets/i18n/vi.json` | 370+ keys |
+| 🇺🇸 English | `assets/i18n/en.json` | 370+ keys |
+| 🇯🇵 日本語 | `assets/i18n/ja.json` | 370+ keys |
+
+**Cơ chế:** Client-side i18n via `i18n.js` — detect `data-i18n` attributes, load JSON, replace text. Lưu preference vào `localStorage`.
+
+---
+
+## 📊 API Endpoints
+
+### Public APIs
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET` | `/api/events` | Danh sách sự kiện (search, filter, pagination) |
+| `GET` | `/api/events/{id}` | Chi tiết sự kiện |
+| `POST` | `/api/voucher/validate` | Validate mã giảm giá |
+| `GET` | `/api/payment-status` | Kiểm tra trạng thái thanh toán |
+| `POST` | `/api/seepay-webhook` | SeePay payment callback |
+| `GET` | `/api/email-check` | Kiểm tra email đã tồn tại |
+
+### Authenticated APIs
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET` | `/api/my-tickets` | Vé của user |
+| `GET` | `/api/my-orders` | Đơn hàng của user |
+| `GET/POST` | `/api/chat` | Chat messages |
+| `POST` | `/api/upload` | Upload file (Cloudinary) |
+
+### Admin APIs
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET/PUT` | `/api/admin/events` | Admin event management |
+| `POST` | `/api/admin/events/feature` | Toggle featured event |
+| `GET/PUT` | `/api/admin/orders` | Admin order management |
+| `POST` | `/api/admin/confirm-payment` | Xác nhận thanh toán thủ công |
+| `GET/PUT/DELETE` | `/api/admin/users` | Admin user management |
+
+### Organizer APIs
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET/POST/PUT/DELETE` | `/api/organizer/events` | CRUD sự kiện của organizer |
+
+---
+
+## 🛠️ Cài đặt & Chạy
+
+### Prerequisites
+
+| Tool | Version | Download |
+|------|---------|----------|
+| **JDK** | 17+ | [Oracle](https://www.oracle.com/java/technologies/downloads/) / [OpenJDK](https://adoptium.net/) |
+| **Apache Tomcat** | 10.x | [tomcat.apache.org](https://tomcat.apache.org/) |
+| **SQL Server** | 2019+ | [Microsoft](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) |
+| **IDE** | NetBeans 19+ / IntelliJ | Recommended |
+| **Git** | 2.x | [git-scm.com](https://git-scm.com/) |
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/dghoang/PRJ301_GROUP4_SELLING_TICKET.git
+cd PRJ301_GROUP4_SELLING_TICKET
+```
+
+### 2. Cấu hình Database
+
+**Option A: Schema only (tạo bảng trống)**
+```sql
+-- Mở SQL Server Management Studio
+-- Tạo database mới: TicketBoxDB
+-- Chạy file:
+database/schema/ticketbox_schema.sql
+```
+
+**Option B: Full reset + Seed data (khuyên dùng cho demo)**
+```sql
+-- File này DROP + CREATE lại toàn bộ 24 bảng
+-- Kèm 460+ dòng INSERT realistic data
+database/schema/full_reset_seed.sql
+```
+
+### 3. Cấu hình Connection String
+
+Mở file `src/java/com/sellingticket/util/DBContext.java` và cập nhật:
+
+```java
+private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=TicketBoxDB;encrypt=true;trustServerCertificate=true";
+private static final String USER = "sa";
+private static final String PASSWORD = "your_password";
+```
+
+### 4. Cấu hình External Services (Optional)
+
+| Service | File cấu hình | Biến môi trường |
+|---------|---------------|-----------------|
+| **Cloudinary** | `CloudinaryUtil.java` | `CLOUDINARY_URL` |
+| **Google OAuth** | `GoogleOAuthServlet.java` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| **SeePay** | `SeepayProvider.java` | `SEEPAY_API_KEY` |
+| **JWT** | `JwtUtil.java` | `JWT_SECRET` |
+
+### 5. Build & Deploy
+
+```bash
+# Với NetBeans:
+# 1. Mở project → Clean and Build
+# 2. Run on Tomcat 10.x
+# 3. Truy cập: http://localhost:8080/SellingTicketJava/
+
+# Với Maven (nếu có):
+mvn clean package
+# Deploy WAR file lên Tomcat
+```
+
+### 6. Tài khoản Demo
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@ticketbox.vn` | `Admin@123` |
+| **Organizer** | `organizer@ticketbox.vn` | `Org@12345` |
+| **Customer** | `customer@ticketbox.vn` | `Cust@1234` |
+| **Staff** | `staff@ticketbox.vn` | `Staff@123` |
 
 ---
 
 ## 📁 Cấu trúc thư mục
 
 ```
-SellingTicketJava/
-├── .env.example                    # Biến môi trường mẫu
-├── build.xml                       # Ant build script
-│
-├── conf/
-│   └── tomcat-connector.dev-example.xml
-│
-├── database/
-│   ├── schema/
-│   │   ├── ticketbox_schema.sql    # Schema đầy đủ (24 tables, V5.0)
-│   │   └── full_reset_seed.sql     # Reset + seed data (460+ rows)
-│   ├── migrations/                 # Migration files
-│   └── seeds/                      # Seed data
-│
-├── docs/                           # Tài liệu dự án
-│   ├── architecture.md
-│   ├── business-flows.md
-│   ├── database-schema.md
-│   ├── payment_ticket_flow.md
-│   └── diagrams/                   # PlantUML diagrams
-│
-└── src/
-    ├── java/com/sellingticket/
-    │   ├── controller/             # Servlet Controllers
-    │   │   ├── *.java              # 19 public controllers
-    │   │   ├── admin/              # 13 admin controllers
-    │   │   ├── organizer/          # 11 organizer controllers
-    │   │   ├── staff/              # 2 staff controllers
-    │   │   └── api/                # 15 REST API servlets
-    │   │
-    │   ├── dao/                    # Data Access Objects (18 files)
-    │   │   ├── BaseDAO.java        # Abstract base with connection pooling
-    │   │   ├── UserDAO.java
-    │   │   ├── EventDAO.java
-    │   │   ├── OrderDAO.java
-    │   │   ├── TicketDAO.java
-    │   │   ├── DashboardDAO.java
-    │   │   └── ...
-    │   │
-    │   ├── model/                  # POJOs / Entities (17 files)
-    │   │   ├── User.java
-    │   │   ├── Event.java
-    │   │   ├── Order.java / OrderItem.java
-    │   │   ├── Ticket.java / TicketType.java
-    │   │   ├── Category.java
-    │   │   ├── Voucher.java
-    │   │   ├── Media.java
-    │   │   ├── SupportTicket.java / TicketMessage.java
-    │   │   ├── ChatSession.java / ChatMessage.java
-    │   │   ├── Notification.java
-    │   │   ├── ActivityLog.java
-    │   │   └── PageResult.java     # Pagination wrapper
-    │   │
-    │   ├── service/                # Business Logic (15 files)
-    │   │   ├── EventService.java
-    │   │   ├── OrderService.java
-    │   │   ├── AuthTokenService.java
-    │   │   ├── DashboardService.java
-    │   │   ├── payment/            # Payment providers
-    │   │   │   ├── PaymentProvider.java   (interface)
-    │   │   │   ├── PaymentFactory.java    (factory pattern)
-    │   │   │   ├── SeepayProvider.java
-    │   │   │   └── BankTransferProvider.java
-    │   │   └── ...
-    │   │
-    │   ├── filter/                 # Servlet Filters (7 files)
-    │   │   ├── AuthFilter.java             # JWT + Session auth
-    │   │   ├── CsrfFilter.java             # CSRF protection
-    │   │   ├── SecurityHeadersFilter.java  # X-XSS, CSP, etc.
-    │   │   ├── CacheFilter.java            # Static asset caching
-    │   │   ├── OrganizerAccessFilter.java  # Role-based access
-    │   │   ├── StaffAccessFilter.java
-    │   │   └── ProtectedJspAccessFilter.java
-    │   │
-    │   ├── security/
-    │   │   └── LoginAttemptTracker.java  # Brute-force protection
-    │   │
-    │   ├── util/                   # Utility Classes (12 files)
-    │   │   ├── DBContext.java      # DB connection manager
-    │   │   ├── JwtUtil.java        # JWT token management
-    │   │   ├── CloudinaryUtil.java # Media upload helper
-    │   │   ├── InputValidator.java # Input sanitization
-    │   │   ├── PasswordUtil.java   # BCrypt wrapper
-    │   │   ├── JsonResponse.java   # JSON response builder
-    │   │   ├── CookieUtil.java     # Secure cookie helper
-    │   │   ├── FlashUtil.java      # Flash messages
-    │   │   ├── AppConstants.java   # App-wide constants
-    │   │   ├── PermissionCache.java
-    │   │   ├── ServletUtil.java
-    │   │   └── ValidationUtil.java
-    │   │
-    │   └── exception/              # Custom exceptions
-    │
-    └── webapp/
-        ├── index.jsp               # Entry point → redirect /home
-        ├── home.jsp                # Trang chủ
-        ├── login.jsp / register.jsp
-        ├── events.jsp              # Danh sách sự kiện
-        ├── event-detail.jsp        # Chi tiết sự kiện
-        ├── ticket-selection.jsp    # Chọn vé
-        ├── checkout.jsp            # Thanh toán
-        ├── order-confirmation.jsp  # Xác nhận đơn hàng
-        ├── my-tickets.jsp          # Vé của tôi
-        ├── profile.jsp             # Hồ sơ người dùng
-        ├── categories.jsp          # Danh mục sự kiện
-        ├── support-ticket.jsp      # Hỗ trợ
-        ├── notifications.jsp       # Thông báo
-        ├── header.jsp / footer.jsp # Layout chung
-        ├── 404.jsp / 500.jsp       # Error pages
-        │
-        ├── admin/                  # 18 trang admin
-        │   ├── dashboard.jsp
-        │   ├── events.jsp / event-detail.jsp / event-approval.jsp
-        │   ├── users.jsp / user-detail.jsp
-        │   ├── orders.jsp
-        │   ├── categories.jsp
-        │   ├── reports.jsp
-        │   ├── system-vouchers.jsp
-        │   ├── support.jsp / support-detail.jsp
-        │   ├── settings.jsp
-        │   ├── activity-log.jsp
-        │   ├── chat-dashboard.jsp
-        │   ├── notifications.jsp
-        │   └── sidebar.jsp
-        │
-        ├── organizer/              # 19 trang organizer
-        │   ├── dashboard.jsp
-        │   ├── create-event.jsp / edit-event.jsp
-        │   ├── events.jsp / event-detail.jsp
-        │   ├── tickets.jsp
-        │   ├── orders.jsp / event-orders.jsp
-        │   ├── vouchers.jsp / voucher-form.jsp
-        │   ├── statistics.jsp
-        │   ├── check-in.jsp
-        │   ├── team.jsp / manage-staff.jsp
-        │   ├── support.jsp / support-detail.jsp
-        │   ├── chat.jsp
-        │   ├── settings.jsp
-        │   └── sidebar.jsp
-        │
-        ├── staff/                  # 3 trang staff
-        │   ├── dashboard.jsp
-        │   ├── check-in.jsp
-        │   └── sidebar.jsp
-        │
-        ├── assets/
-        │   ├── css/                # Stylesheets
-        │   ├── js/                 # JavaScript
-        │   └── i18n/               # Internationalization (VI/EN)
-        │
-        └── WEB-INF/
-            ├── web.xml             # Servlet & filter config
-            ├── google-oauth.properties
-            ├── lib/                # JAR dependencies
-            └── tags/               # Custom tag files
+PRJ301_GROUP4_SELLING_TICKET/
+├── SellingTicketJava/
+│   ├── database/
+│   │   └── schema/
+│   │       ├── ticketbox_schema.sql     # DDL only (24 tables + indexes)
+│   │       └── full_reset_seed.sql      # DDL + 460+ rows seed data
+│   ├── src/
+│   │   ├── java/com/sellingticket/
+│   │   │   ├── controller/              # 60 Servlet controllers
+│   │   │   │   ├── admin/               #   13 admin controllers
+│   │   │   │   ├── organizer/           #   10 organizer controllers
+│   │   │   │   ├── staff/               #   3 staff controllers
+│   │   │   │   └── api/                 #   15 REST API servlets
+│   │   │   ├── service/                 # 20 Business services
+│   │   │   │   └── payment/             #   Payment subsystem
+│   │   │   ├── dao/                     # 18 DAOs (JDBC)
+│   │   │   ├── model/                   # 17 Entity models
+│   │   │   ├── filter/                  # 7 Security/cache filters
+│   │   │   └── util/                    # 12 Utilities
+│   │   └── webapp/
+│   │       ├── assets/
+│   │       │   ├── css/                 # main.css, navbar.css
+│   │       │   ├── js/                  # 6 JS modules
+│   │       │   └── i18n/               # vi.json, en.json, ja.json
+│   │       ├── admin/                   # 17 admin JSP views
+│   │       ├── organizer/               # 12 organizer JSP views
+│   │       ├── staff/                   # 5 staff JSP views
+│   │       ├── WEB-INF/web.xml          # Jakarta EE 6.0 config
+│   │       └── *.jsp                    # 30+ public pages
+│   └── docs/                            # Tài liệu UML diagrams
+└── README.md                            # ← Bạn đang đọc file này
 ```
 
 ---
 
-## 🗄 Cơ sở dữ liệu
+## 🎨 Frontend Components
 
-### 24 Bảng (V5.0)
+### JavaScript Modules
 
-```mermaid
-erDiagram
-    Users ||--o{ Events : "organizer_id"
-    Users ||--o{ Orders : "user_id"
-    Users ||--o{ Media : "uploaded_by"
-    Users ||--o{ SupportTickets : "user_id"
-    Users ||--o{ ActivityLog : "user_id"
-    Users ||--o{ Notifications : "user_id"
-    Users ||--o{ UserSessions : "has"
-    Users ||--o{ PasswordResets : "requests"
-    Categories ||--o{ Events : "category_id"
-    Events ||--o{ TicketTypes : "event_id"
-    Events ||--o{ Orders : "event_id"
-    Events ||--o{ EventStaff : "event_id"
-    Events ||--o{ Media : "event_id"
-    TicketTypes ||--o{ OrderItems : "ticket_type_id"
-    TicketTypes ||--o{ Tickets : "ticket_type_id"
-    Orders ||--o{ OrderItems : "order_id"
-    Orders ||--o{ Tickets : "order_id"
-    Orders ||--o{ PaymentTransactions : "order_id"
-    Orders ||--o{ VoucherUsages : "order_id"
-    Vouchers ||--o{ VoucherUsages : "voucher_id"
-    SupportTickets ||--o{ TicketMessages : "ticket_id"
-    ChatSessions ||--o{ ChatMessages : "session_id"
-    Permissions ||--o{ RolePermissions : "permission_id"
-```
+| Module | File | Chức năng |
+|--------|------|-----------|
+| **AJAX Cards** | `ajax-cards.js` | Lazy-load, search, filter, render event cards |
+| **AJAX Table** | `ajax-table.js` | Admin data tables with AJAX pagination |
+| **i18n** | `i18n.js` | Multi-language support (VI/EN/JA) |
+| **Animations** | `animations.js` | Scroll animations, counter, stagger effects |
+| **Navbar** | `navbar.js` | Sticky navbar, mobile menu, scroll behavior |
+| **Toast** | `toast.js` | Notification toasts (success/error/warning) |
 
-| # | Bảng | Mô tả | Seed Data |
-|---|------|-------|----------|
-| 1 | **Users** | Người dùng (customer, organizer, admin, support_agent) | 25 users |
-| 2 | **Categories** | Danh mục sự kiện (Âm nhạc, Thể thao, Workshop...) | 8 danh mục |
-| 3 | **Media** | Cloudinary media (ảnh/video sự kiện) | ~10 files |
-| 4 | **Events** | Sự kiện (draft → pending → approved → completed) | 12 sự kiện |
-| 5 | **TicketTypes** | Loại vé (VIP, Standard, Early Bird) | ~25 loại |
-| 6 | **Orders** | Đơn hàng (pending → paid → cancelled → refunded) | 50 đơn |
-| 7 | **OrderItems** | Chi tiết đơn hàng (loại vé × số lượng) | ~60 dòng |
-| 8 | **Tickets** | Vé phát hành (QR code, check-in tracking) | ~80 vé |
-| 9 | **PaymentTransactions** | Giao dịch thanh toán SeePay | ~35 giao dịch |
-| 10 | **SeepayWebhookDedup** | Chống trùng webhook (idempotency) | — |
-| 11 | **Vouchers** | Mã giảm giá (percentage/fixed, event/system) | 12 vouchers |
-| 12 | **VoucherUsages** | Lịch sử sử dụng voucher | 13 records |
-| 13 | **UserSessions** | Phiên đăng nhập (token, device, IP) | — |
-| 14 | **PasswordResets** | Token đặt lại mật khẩu | — |
-| 15 | **Permissions** | Quyền hạn (18 permissions, 4 modules) | 18 quyền |
-| 16 | **RolePermissions** | Phân quyền theo vai trò (RBAC) | ~35 mappings |
-| 17 | **EventStaff** | Nhân viên sự kiện (check-in, manager) | ~8 staff |
-| 18 | **SupportTickets** | Phiếu hỗ trợ khách hàng | 8 tickets |
-| 19 | **TicketMessages** | Tin nhắn trong support ticket | ~15 messages |
-| 20 | **ChatSessions** | Phiên chat live (bot/agent) | 5 sessions |
-| 21 | **ChatMessages** | Tin nhắn trong chat | ~10 messages |
-| 22 | **SiteSettings** | Cấu hình hệ thống (key-value) | 21 settings |
-| 23 | **ActivityLog** | Nhật ký hoạt động (audit trail) | 30 entries |
-| 24 | **Notifications** | Thông báo người dùng | 24 thông báo |
-
-> **Tổng cộng: ~460+ dòng seed data** phục vụ demo đầy đủ chức năng.
+### CSS Architecture
+- **`main.css`** — Design system: CSS variables, components, utilities, responsive
+- **`navbar.css`** — Navigation styles, mobile hamburger menu
+- **Bootstrap 5.3** — Grid, forms, modals, cards, badges
+- **Inline JSP styles** — Page-specific styles embedded in JSP
 
 ---
 
-## 🚀 Cài đặt & Chạy dự án
+## 📐 Design Patterns
 
-### Yêu cầu hệ thống
-
-| Phần mềm | Phiên bản |
-|----------|-----------|
-| **JDK** | 17 trở lên |
-| **Apache Tomcat** | 10.1+ (Jakarta EE 10) |
-| **SQL Server** | 2019+ (hoặc SQL Server Express) |
-| **IDE** | NetBeans 21+ hoặc IntelliJ IDEA |
-| **Git** | 2.x |
-
-### Bước 1: Clone repository
-
-```bash
-git clone https://github.com/your-org/PRJ301_GROUP4_SELLING_TICKET.git
-cd PRJ301_GROUP4_SELLING_TICKET/SellingTicketJava
-```
-
-### Bước 2: Tạo cơ sở dữ liệu
-
-Mở **SQL Server Management Studio (SSMS)** và chạy:
-
-```sql
--- Option 1: Schema only (idempotent, safe to re-run)
-:r database/schema/ticketbox_schema.sql
-
--- Option 2: Full reset + seed data (DROP + CREATE + INSERT 460+ rows)
-:r database/schema/full_reset_seed.sql
-```
-
-Hoặc chạy từ command line:
-
-```bash
-# Schema only
-sqlcmd -S localhost -i database/schema/ticketbox_schema.sql
-
-# Full reset + seed data (recommended for first setup)
-sqlcmd -S localhost -i database/schema/full_reset_seed.sql
-```
-
-> **Seed data bao gồm:** 25 users (4 roles), 8 danh mục, 12 sự kiện, 50 đơn hàng, ~80 vé, 12 vouchers, 18 quyền, 21 site settings, 30 activity logs, 24 notifications — tổng **460+ dòng** realistic data.
-
-### Bước 3: Cấu hình kết nối database
-
-Cấu hình trong `src/java/com/sellingticket/util/DBContext.java` hoặc qua biến môi trường:
-
-```properties
-# Mặc định (DBContext.java)
-DB_SERVER=localhost
-DB_PORT=1433
-DB_NAME=SellingTicketDB
-DB_USER=sa
-DB_PASSWORD=your_password
-```
-
-### Bước 4: Cấu hình biến môi trường
-
-```bash
-# Copy file mẫu
-cp .env.example .env
-```
-
-Chỉnh sửa `.env`:
-
-```properties
-# JWT Secret - Dùng cho signing token
-# Tạo: openssl rand -base64 64
-TICKETBOX_JWT_SECRET=YOUR_STRONG_SECRET_HERE
-
-# Admin Key - Dùng cho admin role upgrade
-# Tạo: openssl rand -hex 16
-TICKETBOX_ADMIN_KEY=YOUR_ADMIN_KEY_HERE
-```
-
-### Bước 5: Cấu hình Google OAuth (tuỳ chọn)
-
-Chỉnh sửa `src/webapp/WEB-INF/google-oauth.properties`:
-
-```properties
-google.client.id=YOUR_GOOGLE_CLIENT_ID
-google.client.secret=YOUR_GOOGLE_CLIENT_SECRET
-google.redirect.uri=http://localhost:8080/SellingTicketJava/oauth/google/callback
-```
-
-### Bước 6: Cấu hình Cloudinary (tuỳ chọn)
-
-Thêm vào biến môi trường hoặc `AppConstants.java`:
-
-```properties
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
-### Bước 7: Deploy & Chạy
-
-**Với NetBeans:**
-1. Mở project `SellingTicketJava` (File → Open Project)
-2. Right-click project → Properties → Run → Server: **Apache Tomcat 10.1+**
-3. Click **Run** (▶) hoặc **F6**
-4. Truy cập: `http://localhost:8080/SellingTicketJava/`
-
-**Với IntelliJ IDEA:**
-1. Mở thư mục `SellingTicketJava`
-2. Cấu hình Tomcat: Run → Edit Configurations → Tomcat Server → Local
-3. Deployment: `SellingTicketJava:war exploded`
-4. Run và truy cập: `http://localhost:8080/SellingTicketJava/`
-
-**Với Ant (command line):**
-```bash
-ant clean build
-# Copy build/web vào Tomcat webapps
-```
+| Pattern | Áp dụng |
+|---------|---------|
+| **MVC** | Controller (Servlet) → Service → DAO → Model → View (JSP) |
+| **DAO Pattern** | BaseDAO abstract class, mỗi entity có dedicated DAO |
+| **Service Layer** | Business logic tách biệt khỏi controller |
+| **Factory Pattern** | PaymentFactory tạo PaymentProvider theo loại |
+| **Filter Chain** | 7 filters xử lý security, caching, access control |
+| **Repository Pattern** | DAO layer đóng gói JDBC queries |
+| **Template Pattern** | BaseDAO cung cấp connection management chung |
 
 ---
 
-## ⚙ Cấu hình
+## 📈 Seed Data Statistics
 
-### Biến môi trường
+Khi chạy `full_reset_seed.sql`:
 
-| Biến | Bắt buộc | Mô tả |
-|------|----------|-------|
-| `TICKETBOX_JWT_SECRET` | ✅ | Secret key cho JWT token signing |
-| `TICKETBOX_ADMIN_KEY` | ✅ | Private key cho admin role upgrade |
-| `DB_SERVER` | ❌ | SQL Server host (default: `localhost`) |
-| `DB_PORT` | ❌ | SQL Server port (default: `1433`) |
-| `DB_NAME` | ❌ | Database name (default: `SellingTicketDB`) |
-| `DB_USER` | ❌ | Database user (default: `sa`) |
-| `DB_PASSWORD` | ❌ | Database password |
-| `CLOUDINARY_CLOUD_NAME` | ❌ | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | ❌ | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | ❌ | Cloudinary API secret |
-
-### Session Configuration (web.xml)
-
-```xml
-<session-config>
-    <session-timeout>60</session-timeout>  <!-- 60 phút -->
-    <cookie-config>
-        <http-only>true</http-only>
-    </cookie-config>
-</session-config>
-```
+| Entity | Số lượng | Chi tiết |
+|--------|----------|----------|
+| **Users** | 16 | 1 admin, 3 organizers, 8 customers, 3 staff, 1 inactive |
+| **Categories** | 8 | Âm nhạc, Thể thao, Workshop, Ẩm thực, Nghệ thuật, Công nghệ, Giải trí, Kinh doanh |
+| **Events** | 28 | 20 approved, 4 pending, 2 draft, 1 rejected, 1 past |
+| **Ticket Types** | 65 | 2-4 loại mỗi event, giá 0đ → 6.000.000đ |
+| **Orders** | 35 | 25 paid, 3 pending, 4 cancelled, 3 refunded |
+| **Tickets** | 72 | QR codes, check-in tracking |
+| **Vouchers** | 8 | %, fixed amount, max usage, expiry |
+| **Total Tickets Sold** | **~35.300+** | SUM(sold_quantity) từ TicketTypes |
 
 ---
 
-## 🔑 Tài khoản mặc định
+## 🧪 Testing
 
-| Vai trò | Email | Mật khẩu |
-|---------|-------|----------|
-| **Admin** | `admin@ticketbox.vn` | `Admin@123` |
-| **Organizer** | `organizer@ticketbox.vn` | `Organizer@123` |
-| **Customer** | `customer@ticketbox.vn` | `Customer@123` |
+### Manual Testing
+- Đăng nhập/Đăng ký với 4 roles
+- Tìm kiếm sự kiện, filter, sorting
+- Flow mua vé: chọn vé → checkout → thanh toán QR
+- Admin: duyệt event, quản lý user, báo cáo
+- Organizer: tạo event, check-in, thống kê
+- Đa ngôn ngữ: chuyển VI/EN/JA
 
-> ⚠️ **Quan trọng:** Đổi mật khẩu ngay sau lần đăng nhập đầu tiên trong môi trường production.
+### Account Testing Matrix
 
----
-
-## 📱 Trang & Chức năng theo vai trò
-
-### Khách hàng (Public + Authenticated)
-
-| # | Trang | URL | Mô tả |
-|---|-------|-----|-------|
-| 1 | Trang chủ | `/home` | Featured events, upcoming, stats, testimonials |
-| 2 | Danh sách sự kiện | `/events` | Tìm kiếm, lọc theo danh mục/ngày |
-| 3 | Chi tiết sự kiện | `/event/{slug}` | Thông tin đầy đủ, gallery, loại vé |
-| 4 | Chọn vé | `/tickets?event={id}` | Chọn loại vé & số lượng |
-| 5 | Thanh toán | `/checkout` | Nhập thông tin, áp voucher, thanh toán |
-| 6 | Xác nhận | `/order-confirmation` | Mã đơn hàng, QR code |
-| 7 | Vé của tôi | `/my-tickets` | Danh sách vé, tải QR |
-| 8 | Hồ sơ | `/profile` | Cập nhật thông tin cá nhân |
-| 9 | Đổi mật khẩu | `/change-password` | Đổi mật khẩu |
-| 10 | Danh mục | `/categories` | Danh mục sự kiện |
-| 11 | Hỗ trợ | `/support/new` | Tạo yêu cầu hỗ trợ |
-| 12 | Thông báo | `/notifications` | Thông báo hệ thống |
-| 13 | Đăng nhập | `/login` | Email/Password + Google OAuth |
-| 14 | Đăng ký | `/register` | Đăng ký tài khoản mới |
-
-### Ban tổ chức (Organizer)
-
-| # | Trang | URL | Mô tả |
-|---|-------|-----|-------|
-| 1 | Dashboard | `/organizer/dashboard` | Tổng quan doanh thu, sự kiện, đơn hàng |
-| 2 | Tạo sự kiện | `/organizer/events/create` | Form tạo sự kiện (rich editor, upload) |
-| 3 | Sửa sự kiện | `/organizer/events/edit/{id}` | Chỉnh sửa sự kiện đã tạo |
-| 4 | Danh sách sự kiện | `/organizer/events` | Quản lý tất cả sự kiện |
-| 5 | Chi tiết sự kiện | `/organizer/events/{id}` | Xem chi tiết & trạng thái |
-| 6 | Quản lý vé | `/organizer/tickets` | Loại vé, số lượng, giá |
-| 7 | Đơn hàng | `/organizer/orders` | Danh sách đơn hàng |
-| 8 | Voucher | `/organizer/vouchers` | Tạo & quản lý mã giảm giá |
-| 9 | Thống kê | `/organizer/statistics` | Biểu đồ doanh thu, vé bán |
-| 10 | Soát vé | `/organizer/check-in` | Quét QR code check-in |
-| 11 | Nhân viên | `/organizer/team` | Quản lý event staff |
-| 12 | Chat | `/organizer/chat` | Chat hỗ trợ khách hàng |
-| 13 | Hỗ trợ | `/organizer/support` | Yêu cầu hỗ trợ từ admin |
-| 14 | Cài đặt | `/organizer/settings` | Thông tin tổ chức, social links |
-
-### Quản trị viên (Admin)
-
-| # | Trang | URL | Mô tả |
-|---|-------|-----|-------|
-| 1 | Dashboard | `/admin/dashboard` | Tổng quan toàn hệ thống |
-| 2 | Duyệt sự kiện | `/admin/events/approval` | Approve / Reject events |
-| 3 | Quản lý sự kiện | `/admin/events` | CRUD sự kiện toàn hệ thống |
-| 4 | Quản lý người dùng | `/admin/users` | Active/Ban, xem chi tiết |
-| 5 | Quản lý đơn hàng | `/admin/orders` | Xem & xác nhận thanh toán |
-| 6 | Danh mục | `/admin/categories` | CRUD danh mục sự kiện |
-| 7 | Voucher hệ thống | `/admin/system-vouchers` | Voucher toàn platform |
-| 8 | Báo cáo | `/admin/reports` | Báo cáo doanh thu nâng cao |
-| 9 | Hỗ trợ | `/admin/support` | Xử lý support tickets |
-| 10 | Nhật ký | `/admin/activity-log` | Activity log toàn hệ thống |
-| 11 | Cài đặt | `/admin/settings` | Site settings |
-| 12 | Chat | `/admin/chat-dashboard` | Chat dashboard |
-| 13 | Thông báo | `/admin/notifications` | Gửi thông báo hệ thống |
-
----
-
-## 🔌 API Endpoints
-
-### Public APIs (không cần auth)
-
-```
-GET  /api/events                    # Danh sách sự kiện (search, filter, pagination)
-GET  /api/events/{id}               # Chi tiết sự kiện
-GET  /api/check-email               # Kiểm tra email tồn tại
-POST /api/webhook/seepay            # SeePay payment webhook
-```
-
-### Authenticated APIs
-
-```
-GET  /api/my-tickets                # Vé của tôi
-GET  /api/my-orders                 # Đơn hàng của tôi
-GET  /api/payment/status            # Trạng thái thanh toán
-POST /api/voucher/validate          # Kiểm tra mã giảm giá
-POST /api/upload                    # Upload media (Cloudinary)
-
-# Chat
-GET  /api/chat/sessions             # Danh sách chat sessions
-POST /api/chat/send                 # Gửi tin nhắn
-GET  /api/chat/messages/{sessionId} # Lịch sử tin nhắn
-```
-
-### Organizer APIs
-
-```
-GET  /api/organizer/events          # Sự kiện của organizer
-PUT  /api/organizer/events/{id}     # Cập nhật sự kiện
-```
-
-### Admin APIs
-
-```
-PUT  /api/admin/events/{id}/approve     # Duyệt sự kiện
-PUT  /api/admin/events/{id}/feature     # Toggle featured
-POST /api/admin/orders/{id}/confirm     # Xác nhận thanh toán
-PUT  /api/admin/users/{id}/status       # Active/Ban user
-```
-
----
-
-## 🔒 Bảo mật
-
-### Hệ thống bảo mật đa tầng
-
-| Layer | Cơ chế | File |
-|-------|--------|------|
-| **Authentication** | JWT + HttpOnly Session Cookie | `AuthFilter.java`, `JwtUtil.java` |
-| **CSRF Protection** | Double-submit cookie pattern | `CsrfFilter.java` |
-| **XSS Prevention** | Security headers + Input sanitization | `SecurityHeadersFilter.java`, `InputValidator.java` |
-| **Password** | BCrypt hashing (12 rounds) | `PasswordUtil.java` |
-| **Brute Force** | Login attempt tracking + lockout | `LoginAttemptTracker.java` |
-| **Authorization** | Role-based (RBAC) + Permission-based | `AuthFilter.java`, `OrganizerAccessFilter.java` |
-| **Session** | Secure cookie config, 60min timeout | `web.xml` |
-| **SQL Injection** | Prepared statements throughout | All DAOs |
-| **Static Assets** | Cache headers for CSS/JS/images | `CacheFilter.java` |
-
-### Security Headers
-
-```
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Content-Security-Policy: configured
-Referrer-Policy: strict-origin-when-cross-origin
-```
-
----
-
-## 💳 Luồng thanh toán
-
-```mermaid
-sequenceDiagram
-    actor Customer
-    participant Web as Ticketbox
-    participant SeePay as SeePay Gateway
-
-    Customer->>Web: Chọn vé & Checkout
-    Web->>Web: Tạo Order (status: pending)
-    Web->>SeePay: Tạo giao dịch thanh toán
-    SeePay-->>Web: QR Code + Transaction ID
-    Web-->>Customer: Hiển thị QR Code
-
-    Customer->>SeePay: Quét QR & Thanh toán
-    SeePay->>Web: Webhook callback (payment success)
-    Web->>Web: Update Order (status: paid)
-    Web->>Web: Phát hành Ticket (QR code)
-    Web-->>Customer: Xác nhận + Vé điện tử
-```
-
-**Phương thức thanh toán:**
-- **SeePay** — Thanh toán QR Code tự động
-- **Chuyển khoản** — Chuyển khoản ngân hàng (admin xác nhận thủ công)
-- **Tiền mặt** — Thanh toán trực tiếp tại quầy
-
----
-
-## 📚 Tài liệu bổ sung
-
-| Tài liệu | Đường dẫn |
-|----------|-----------|
-| Kiến trúc hệ thống | [`docs/architecture.md`](SellingTicketJava/docs/architecture.md) |
-| Database Schema | [`docs/database-schema.md`](SellingTicketJava/docs/database-schema.md) |
-| Business Flows | [`docs/business-flows.md`](SellingTicketJava/docs/business-flows.md) |
-| Payment & Ticket Flow | [`docs/payment_ticket_flow.md`](SellingTicketJava/docs/payment_ticket_flow.md) |
-| Security Report | [`docs/chapter6_security_report.md`](SellingTicketJava/docs/chapter6_security_report.md) |
-| Use Case Specification | [`docs/usecase-specification.md`](SellingTicketJava/docs/usecase-specification.md) |
-| API Reference | [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) |
-| Auth Flow | [`docs/AUTH_FLOW.md`](docs/AUTH_FLOW.md) |
-| Endpoint Reference | [`docs/ENDPOINT_REFERENCE.md`](docs/ENDPOINT_REFERENCE.md) |
-| System Documentation | [`docs/SYSTEM_DOCUMENTATION.md`](docs/SYSTEM_DOCUMENTATION.md) |
-
----
-
-## 🤝 Đóng góp
-
-### Development Workflow
-
-```bash
-# 1. Fork & Clone
-git clone https://github.com/your-username/PRJ301_GROUP4_SELLING_TICKET.git
-
-# 2. Tạo branch
-git checkout -b feature/ten-tinh-nang
-
-# 3. Commit với conventional commits
-git commit -m "feat: thêm chức năng XYZ"
-git commit -m "fix: sửa lỗi thanh toán"
-git commit -m "docs: cập nhật README"
-
-# 4. Push & tạo Pull Request
-git push origin feature/ten-tinh-nang
-```
-
-### Commit Convention
-
-| Prefix | Mô tả |
-|--------|-------|
-| `feat:` | Tính năng mới |
-| `fix:` | Sửa lỗi |
-| `docs:` | Tài liệu |
-| `style:` | Formatting (không thay đổi logic) |
-| `refactor:` | Refactoring code |
-| `test:` | Thêm test |
-| `chore:` | Build, CI, dependencies |
-
----
-
-## 👥 Nhóm phát triển
-
-**PRJ301 — Group 4** | FPT University
+| Test Scenario | Account | Expected |
+|--------------|---------|----------|
+| Admin Dashboard | `admin@ticketbox.vn` | Full system access |
+| Event Creation | `organizer@ticketbox.vn` | Create + manage events |
+| Buy Ticket Flow | `customer@ticketbox.vn` | Search → Buy → E-ticket |
+| Check-in | `staff@ticketbox.vn` | QR scan at event |
+| Google Login | Any Google account | OAuth flow |
 
 ---
 
 ## 📄 License
 
-Dự án này được phát triển cho mục đích học tập tại FPT University.
+Dự án này được phát triển cho mục đích học tập tại **FPT University**, môn **PRJ301**.
+
+© 2026 Nhóm 7 — Dương Minh Hoàng, Nguyễn Tấn Dũng, Doãn Thu Hằng
 
 ---
 
 <p align="center">
-  <b>🎫 Ticketbox — Kết nối sự kiện, trải nghiệm vượt trội</b>
+  <i>Built with ❤️ by <b>Nhóm 7</b> — FPT University Spring 2026</i>
 </p>

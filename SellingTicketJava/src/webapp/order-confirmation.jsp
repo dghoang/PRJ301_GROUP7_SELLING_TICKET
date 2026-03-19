@@ -45,19 +45,19 @@
                 <span class="badge rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981, #06b6d4);">
                     <i class="fas fa-check text-white" style="font-size: 12px;"></i>
                 </span>
-                <span class="fw-medium text-success d-none d-sm-inline">Chọn vé</span>
+                <span class="fw-medium text-success d-none d-sm-inline" data-i18n="order.step_select">Chọn vé</span>
             </div>
             <div class="flex-grow-1 border-top border-2 border-success" style="max-width: 80px;"></div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981, #06b6d4);">
                     <i class="fas fa-check text-white" style="font-size: 12px;"></i>
                 </span>
-                <span class="fw-medium text-success d-none d-sm-inline">Thanh toán</span>
+                <span class="fw-medium text-success d-none d-sm-inline" data-i18n="order.step_payment">Thanh toán</span>
             </div>
             <div class="flex-grow-1 border-top border-2 border-success" style="max-width: 80px;"></div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--secondary));">3</span>
-                <span class="fw-bold gradient-text-animate d-none d-sm-inline">Hoàn tất</span>
+                <span class="fw-bold gradient-text-animate d-none d-sm-inline" data-i18n="order.step_complete">Hoàn tất</span>
             </div>
         </div>
     </div>
@@ -72,15 +72,15 @@
                     </svg>
                 </div>
 
-                <h1 class="display-5 fw-bold mb-3 animate-fadeInUp stagger-2">Đặt vé thành công!</h1>
-                <p class="text-muted lead mb-5 animate-fadeInUp stagger-3">
+                <h1 class="display-5 fw-bold mb-3 animate-fadeInUp stagger-2" data-i18n="order.confirmation_title">Đặt vé thành công!</h1>
+                <p class="text-muted lead mb-5 animate-fadeInUp stagger-3" data-i18n="order.qr_desc">
                     Mã QR bên dưới chính là vé điện tử của bạn. Xuất trình khi check-in tại sự kiện! <i class="fas fa-gift text-primary"></i>
                 </p>
 
                 <!-- Order Info Card -->
                 <div class="glass p-4 rounded-4 text-start mb-4 animate-on-scroll">
                     <div class="d-flex align-items-center justify-content-between mb-4 pb-4 border-bottom">
-                        <span class="text-muted">Mã đơn hàng</span>
+                        <span class="text-muted" data-i18n="order.order_code">Mã đơn hàng</span>
                         <div class="d-flex align-items-center gap-2">
                             <span class="font-monospace fw-bold fs-5 text-primary" id="orderCodeDisplay">${order.orderCode}</span>
                             <button class="btn btn-sm glass rounded-3" onclick="copyCode('${order.orderCode}')" title="Sao chép">
@@ -91,7 +91,7 @@
 
                     <div class="row mb-3">
                         <div class="col-sm-6">
-                            <small class="text-muted">Người mua</small>
+                            <small class="text-muted" data-i18n="order.buyer">Người mua</small>
                             <p class="fw-medium mb-1">${order.buyerName}</p>
                         </div>
                         <div class="col-sm-6">
@@ -101,23 +101,23 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-6">
-                            <small class="text-muted">Phương thức thanh toán</small>
+                            <small class="text-muted" data-i18n="order.payment_method">Phương thức thanh toán</small>
                             <p class="fw-medium mb-1">
                                 <c:choose>
                                     <c:when test="${order.paymentMethod == 'seepay'}"><i class="fas fa-qrcode text-primary me-1"></i>SeePay</c:when>
-                                    <c:when test="${order.paymentMethod == 'bank_transfer'}"><i class="fas fa-university text-info me-1"></i>Chuyển khoản</c:when>
+                                    <c:when test="${order.paymentMethod == 'bank_transfer'}"><i class="fas fa-university text-info me-1"></i><span data-i18n="order.bank_transfer">Chuyển khoản</span></c:when>
                                     <c:otherwise><i class="fas fa-money-bill-wave text-success me-1"></i>${order.paymentMethod}</c:otherwise>
                                 </c:choose>
                             </p>
                         </div>
                         <div class="col-sm-6">
-                            <small class="text-muted">Trạng thái</small>
+                            <small class="text-muted" data-i18n="order.status">Trạng thái</small>
                             <p class="mb-1">
                                 <c:choose>
-                                    <c:when test="${order.status == 'paid'}"><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span></c:when>
-                                    <c:when test="${order.status == 'checked_in'}"><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;"><i class="fas fa-door-open me-1"></i>Đã check-in</span></c:when>
-                                    <c:when test="${order.status == 'pending'}"><span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="fas fa-clock me-1"></i>Chờ thanh toán</span>
-                                        <a href="${pageContext.request.contextPath}/resume-payment?orderId=${order.orderId}" class="btn btn-sm rounded-pill px-3 ms-2" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-1"></i>Thanh toán ngay</a>
+                                    <c:when test="${order.status == 'paid'}"><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;"><i class="fas fa-check-circle me-1"></i><span data-i18n="order.status_paid">Đã thanh toán</span></span></c:when>
+                                    <c:when test="${order.status == 'checked_in'}"><span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;"><i class="fas fa-door-open me-1"></i><span data-i18n="order.status_checked_in">Đã check-in</span></span></c:when>
+                                    <c:when test="${order.status == 'pending'}"><span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="fas fa-clock me-1"></i><span data-i18n="order.status_pending">Chờ thanh toán</span></span>
+                                        <a href="${pageContext.request.contextPath}/resume-payment?orderId=${order.orderId}" class="btn btn-sm rounded-pill px-3 ms-2" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-1"></i><span data-i18n="order.pay_now">Thanh toán ngay</span></a>
                                     </c:when>
                                     <c:otherwise><span class="badge bg-secondary rounded-pill px-3 py-2">${order.status}</span></c:otherwise>
                                 </c:choose>
@@ -134,7 +134,7 @@
                                 </div>
                             </c:forEach>
                             <div class="d-flex justify-content-between fw-bold fs-5 mt-3 pt-3 border-top" style="border-style: dashed !important;">
-                                <span>Tổng cộng</span>
+                                <span data-i18n="order.total">Tổng cộng</span>
                                 <span class="text-primary"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/>đ</span>
                             </div>
                         </div>
@@ -144,8 +144,8 @@
                 <!-- ========== ISSUED TICKETS WITH QR CODES ========== -->
                 <c:if test="${not empty tickets}">
                     <div class="text-start mb-5 animate-on-scroll">
-                        <h4 class="fw-bold mb-3"><i class="fas fa-qrcode text-primary me-2"></i>Vé điện tử của bạn (${tickets.size()} vé)</h4>
-                        <p class="text-muted small mb-4">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-qrcode text-primary me-2"></i><span data-i18n="order.tickets_title">Vé điện tử của bạn</span> (${tickets.size()} vé)</h4>
+                        <p class="text-muted small mb-4" data-i18n="order.tickets_desc">
                             <i class="fas fa-shield-alt text-success me-1"></i>
                             Mỗi vé có mã QR được ký số JWT — không thể giả mạo. Xuất trình QR khi vào cửa.
                         </p>
@@ -161,12 +161,12 @@
                                             <c:choose>
                                                 <c:when test="${ticket.checkedIn}">
                                                     <span class="badge bg-danger rounded-pill px-2 py-1">
-                                                        <i class="fas fa-times-circle me-1"></i>Đã sử dụng
+                                                        <i class="fas fa-times-circle me-1"></i><span data-i18n="order.ticket_used">Đã sử dụng</span>
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <span class="badge rounded-pill px-2 py-1" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: white;">
-                                                        <i class="fas fa-check-circle me-1"></i>Còn hiệu lực
+                                                        <i class="fas fa-check-circle me-1"></i><span data-i18n="order.ticket_valid">Còn hiệu lực</span>
                                                     </span>
                                                 </c:otherwise>
                                             </c:choose>
@@ -198,7 +198,7 @@
 
                                         <c:if test="${!ticket.checkedIn}">
                                             <button class="btn btn-sm glass rounded-pill px-3 mt-2" onclick="downloadTicketQR('${ticket.ticketCode}')">
-                                                <i class="fas fa-download me-1 text-primary"></i>Tải vé
+                                                <i class="fas fa-download me-1 text-primary"></i><span data-i18n="order.download_ticket">Tải vé</span>
                                             </button>
                                         </c:if>
                                     </div>
@@ -211,13 +211,13 @@
                 <!-- Action Buttons -->
                 <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center animate-on-scroll">
                     <a href="${pageContext.request.contextPath}/my-tickets" class="btn btn-lg btn-gradient rounded-pill px-5 py-3 hover-glow">
-                        <i class="fas fa-ticket-alt me-2"></i> Vé của tôi
+                        <i class="fas fa-ticket-alt me-2"></i> <span data-i18n="order.my_tickets">Vé của tôi</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/events" class="btn btn-lg glass rounded-pill px-5 py-3 hover-lift">
-                        <i class="fas fa-search me-2"></i> Khám phá thêm
+                        <i class="fas fa-search me-2"></i> <span data-i18n="order.explore_more">Khám phá thêm</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/support/new?orderId=${order.orderId}" class="btn btn-lg btn-outline-warning rounded-pill px-4 py-3 hover-lift">
-                        <i class="fas fa-flag me-2"></i> Báo cáo vấn đề
+                        <i class="fas fa-flag me-2"></i> <span data-i18n="order.report_issue">Báo cáo vấn đề</span>
                     </a>
                 </div>
             </div>
@@ -227,10 +227,10 @@
                 <div class="mb-4">
                     <i class="fas fa-exclamation-triangle fa-4x text-warning"></i>
                 </div>
-                <h3 class="fw-bold mb-3">Không tìm thấy đơn hàng</h3>
-                <p class="text-muted mb-4">Đơn hàng không tồn tại hoặc bạn không có quyền xem.</p>
+                <h3 class="fw-bold mb-3" data-i18n="order.not_found">Không tìm thấy đơn hàng</h3>
+                <p class="text-muted mb-4" data-i18n="order.not_found_desc">Đơn hàng không tồn tại hoặc bạn không có quyền xem.</p>
                 <a href="${pageContext.request.contextPath}/events" class="btn btn-gradient rounded-pill px-4">
-                    <i class="fas fa-home me-2"></i>Về trang chủ
+                    <i class="fas fa-home me-2"></i><span data-i18n="order.back_home">Về trang chủ</span>
                 </a>
             </div>
         </c:otherwise>

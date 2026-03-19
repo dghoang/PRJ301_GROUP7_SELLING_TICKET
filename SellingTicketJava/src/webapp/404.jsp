@@ -38,25 +38,25 @@
             </div>
         </div>
         
-        <h2 class="fw-bold mb-3 animate-fadeInUp">Không tìm thấy trang</h2>
-        <p class="text-muted mb-5 animate-fadeInUp stagger-2" style="max-width: 400px; margin: 0 auto;">
+        <h2 class="fw-bold mb-3 animate-fadeInUp" data-i18n="error.404_title">Không tìm thấy trang</h2>
+        <p class="text-muted mb-5 animate-fadeInUp stagger-2" style="max-width: 400px; margin: 0 auto;" data-i18n="error.404_desc">
             Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển đến vị trí khác.
         </p>
         
         <!-- Actions -->
         <div class="d-flex justify-content-center gap-3 flex-wrap animate-fadeInUp stagger-3">
             <a href="${pageContext.request.contextPath}/home" class="btn btn-gradient btn-lg rounded-pill px-5 py-3 hover-glow">
-                <i class="fas fa-home me-2"></i>Về trang chủ
+                <i class="fas fa-home me-2"></i><span data-i18n="error.back_home">Về trang chủ</span>
             </a>
             <a href="${pageContext.request.contextPath}/events" class="btn glass btn-lg rounded-pill px-5 py-3 hover-lift">
-                <i class="fas fa-search me-2"></i>Khám phá sự kiện
+                <i class="fas fa-search me-2"></i><span data-i18n="error.explore_events">Khám phá sự kiện</span>
             </a>
         </div>
         
         <!-- Help link -->
         <div class="mt-5 animate-fadeInUp stagger-4">
             <a href="${pageContext.request.contextPath}/faq" class="text-muted text-decoration-none d-inline-flex align-items-center gap-2 hover-lift">
-                <i class="fas fa-question-circle"></i> Cần hỗ trợ? Xem FAQ
+                <i class="fas fa-question-circle"></i> <span data-i18n="error.need_help">Cần hỗ trợ? Xem FAQ</span>
             </a>
         </div>
     </div>

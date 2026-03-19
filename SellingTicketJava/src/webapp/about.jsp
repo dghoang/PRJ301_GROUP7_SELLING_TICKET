@@ -12,10 +12,10 @@
         <div class="row align-items-center py-4">
             <div class="col-lg-6">
                 <span class="badge glass rounded-pill px-3 py-2 mb-3 animate-fadeInDown">
-                    <i class="fas fa-star text-warning me-2"></i>Nền tảng đặt vé #1 Việt Nam
+                    <i class="fas fa-star text-warning me-2"></i><span data-i18n="about.badge">Nền tảng đặt vé #1 Việt Nam</span>
                 </span>
-                <h1 class="display-4 fw-bold text-white mb-4 animate-fadeInUp">Về Ticketbox</h1>
-                <p class="lead text-white-50 mb-0 animate-fadeInUp stagger-2">
+                <h1 class="display-4 fw-bold text-white mb-4 animate-fadeInUp" data-i18n="about.title">Về Ticketbox</h1>
+                <p class="lead text-white-50 mb-0 animate-fadeInUp stagger-2" data-i18n="about.desc">
                     Kết nối triệu người yêu sự kiện với những trải nghiệm đáng nhớ nhất
                 </p>
             </div>
@@ -23,15 +23,15 @@
                 <div class="d-flex justify-content-lg-end gap-4">
                     <div class="text-center text-white">
                         <div class="fs-2 fw-bold" data-counter="5">0</div>
-                        <small class="opacity-75">Năm hoạt động</small>
+                        <small class="opacity-75" data-i18n="about.stat_years">Năm hoạt động</small>
                     </div>
                     <div class="text-center text-white">
                         <div class="fs-2 fw-bold" data-counter="50">0</div>
-                        <small class="opacity-75">Đối tác</small>
+                        <small class="opacity-75" data-i18n="about.stat_partners">Đối tác</small>
                     </div>
                     <div class="text-center text-white">
                         <div class="fs-2 fw-bold" data-counter="63">0</div>
-                        <small class="opacity-75">Tỉnh thành</small>
+                        <small class="opacity-75" data-i18n="about.stat_provinces">Tỉnh thành</small>
                     </div>
                 </div>
             </div>
@@ -54,7 +54,7 @@
                             </div>
                             <div>
                                 <div class="fw-bold" data-counter="10000">0</div>
-                                <small class="text-muted">Sự kiện thành công</small>
+                                <small class="text-muted" data-i18n="about.stat_success">Sự kiện thành công</small>
                             </div>
                         </div>
                     </div>
@@ -63,29 +63,29 @@
         </div>
         <div class="col-lg-6 animate-on-scroll">
             <span class="badge rounded-pill px-3 py-2 mb-3" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
-                <i class="fas fa-heart me-1"></i>Sứ mệnh
+                <i class="fas fa-heart me-1"></i><span data-i18n="about.mission_badge">Sứ mệnh</span>
             </span>
-            <h2 class="display-6 fw-bold mb-4">Mang sự kiện đến <span class="gradient-text-animate">gần hơn</span> với bạn</h2>
-            <p class="text-muted mb-4 fs-5">
+            <h2 class="display-6 fw-bold mb-4"><span data-i18n="about.mission_title_1">Mang sự kiện đến</span> <span class="gradient-text-animate" data-i18n="about.mission_title_2">gần hơn</span> <span data-i18n="about.mission_title_3">với bạn</span></h2>
+            <p class="text-muted mb-4 fs-5" data-i18n="about.mission_p1">
                 Ticketbox ra đời với sứ mệnh kết nối mọi người thông qua các sự kiện. 
                 Chúng tôi tin rằng mỗi khoảnh khắc đặc biệt trong cuộc sống đều xứng đáng được trải nghiệm.
             </p>
-            <p class="text-muted mb-4">
+            <p class="text-muted mb-4" data-i18n="about.mission_p2">
                 Từ những buổi hòa nhạc đến các workshop học tập, từ giải đấu thể thao đến lễ hội ẩm thực - 
                 Ticketbox mang đến cho bạn cơ hội tiếp cận hàng nghìn sự kiện chất lượng chỉ với vài cú click.
             </p>
             <div class="d-flex gap-4 flex-wrap">
                 <div class="text-center">
                     <h3 class="fw-bold gradient-text-animate mb-0" data-counter="${not empty totalEvents ? totalEvents : 0}">0</h3>
-                    <small class="text-muted">Sự kiện</small>
+                    <small class="text-muted" data-i18n="about.stat_events">Sự kiện</small>
                 </div>
                 <div class="text-center">
                     <h3 class="fw-bold gradient-text-animate mb-0" data-counter="${not empty totalUsers ? totalUsers : 0}">0</h3>
-                    <small class="text-muted">Người dùng</small>
+                    <small class="text-muted" data-i18n="about.stat_users">Người dùng</small>
                 </div>
                 <div class="text-center">
                     <h3 class="fw-bold gradient-text-animate mb-0">4.9<i class="fas fa-star text-warning ms-1 fs-6"></i></h3>
-                    <small class="text-muted">Đánh giá</small>
+                    <small class="text-muted" data-i18n="about.stat_rating">Đánh giá</small>
                 </div>
             </div>
         </div>
@@ -94,9 +94,9 @@
     <!-- Values Section -->
     <div class="text-center mb-5 animate-on-scroll">
         <span class="badge rounded-pill px-3 py-2 mb-3" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
-            <i class="fas fa-gem me-1"></i>Giá trị cốt lõi
+            <i class="fas fa-gem me-1"></i><span data-i18n="about.values_badge">Giá trị cốt lõi</span>
         </span>
-        <h2 class="display-6 fw-bold">Điều khiến chúng tôi khác biệt</h2>
+        <h2 class="display-6 fw-bold" data-i18n="about.values_title">Điều khiến chúng tôi khác biệt</h2>
     </div>
     <div class="row g-4 mb-5" data-stagger-children="0.15">
         <div class="col-md-4 animate-on-scroll">
@@ -104,8 +104,8 @@
                 <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px; background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(219, 39, 119, 0.1));">
                     <i class="fas fa-shield-alt text-primary fa-2x"></i>
                 </div>
-                <h5 class="fw-bold mb-3">An toàn & Tin cậy</h5>
-                <p class="text-muted">Bảo vệ thông tin khách hàng với công nghệ mã hóa tiên tiến. Đảm bảo giao dịch an toàn 100%.</p>
+                <h5 class="fw-bold mb-3" data-i18n="about.value1_title">An toàn & Tin cậy</h5>
+                <p class="text-muted" data-i18n="about.value1_desc">Bảo vệ thông tin khách hàng với công nghệ mã hóa tiên tiến. Đảm bảo giao dịch an toàn 100%.</p>
             </div>
         </div>
         <div class="col-md-4 animate-on-scroll">
@@ -113,8 +113,8 @@
                 <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));">
                     <i class="fas fa-bolt text-success fa-2x"></i>
                 </div>
-                <h5 class="fw-bold mb-3">Nhanh chóng</h5>
-                <p class="text-muted">Đặt vé chỉ trong vài giây với giao diện thân thiện. Nhận vé điện tử ngay tức thì qua email.</p>
+                <h5 class="fw-bold mb-3" data-i18n="about.value2_title">Nhanh chóng</h5>
+                <p class="text-muted" data-i18n="about.value2_desc">Đặt vé chỉ trong vài giây với giao diện thân thiện. Nhận vé điện tử ngay tức thì qua email.</p>
             </div>
         </div>
         <div class="col-md-4 animate-on-scroll">
@@ -122,8 +122,8 @@
                 <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1));">
                     <i class="fas fa-heart text-warning fa-2x"></i>
                 </div>
-                <h5 class="fw-bold mb-3">Tận tâm</h5>
-                <p class="text-muted">Đội ngũ hỗ trợ 24/7 sẵn sàng giải đáp mọi thắc mắc. Cam kết mang đến trải nghiệm tốt nhất.</p>
+                <h5 class="fw-bold mb-3" data-i18n="about.value3_title">Tận tâm</h5>
+                <p class="text-muted" data-i18n="about.value3_desc">Đội ngũ hỗ trợ 24/7 sẵn sàng giải đáp mọi thắc mắc. Cam kết mang đến trải nghiệm tốt nhất.</p>
             </div>
         </div>
     </div>
@@ -131,9 +131,9 @@
     <!-- Team Section -->
     <div class="text-center mb-5 animate-on-scroll">
         <span class="badge rounded-pill px-3 py-2 mb-3" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
-            <i class="fas fa-users me-1"></i>Đội ngũ
+            <i class="fas fa-users me-1"></i><span data-i18n="about.team_badge">Đội ngũ</span>
         </span>
-        <h2 class="display-6 fw-bold">Những người đứng sau Ticketbox</h2>
+        <h2 class="display-6 fw-bold" data-i18n="about.team_title">Những người đứng sau Ticketbox</h2>
     </div>
     <div class="row g-4 justify-content-center" data-stagger-children="0.1">
         <div class="col-6 col-md-3 animate-on-scroll">
@@ -177,10 +177,10 @@
     <!-- CTA -->
     <div class="text-center mt-5 pt-4 animate-on-scroll">
         <div class="p-5 rounded-4" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
-            <h3 class="fw-bold text-white mb-3">Sẵn sàng khám phá sự kiện?</h3>
-            <p class="text-white-50 mb-4">Hàng nghìn sự kiện đang chờ đón bạn</p>
+            <h3 class="fw-bold text-white mb-3" data-i18n="about.cta_title">Sẵn sàng khám phá sự kiện?</h3>
+            <p class="text-white-50 mb-4" data-i18n="about.cta_desc">Hàng nghìn sự kiện đang chờ đón bạn</p>
             <a href="${pageContext.request.contextPath}/events" class="btn btn-light rounded-pill px-5 py-3 fw-bold hover-lift">
-                <i class="fas fa-rocket me-2"></i>Khám phá ngay
+                <i class="fas fa-rocket me-2"></i><span data-i18n="about.cta_btn">Khám phá ngay</span>
             </a>
         </div>
     </div>

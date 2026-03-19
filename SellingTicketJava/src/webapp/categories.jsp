@@ -11,8 +11,8 @@
     <div class="container position-relative" style="z-index: 10;">
         <div class="row align-items-center">
             <div class="col-lg-8">
-                <h1 class="display-4 fw-bold text-white mb-3 animate-fadeInUp">Khám phá danh mục</h1>
-                <p class="lead text-white-50 mb-0 animate-fadeInUp stagger-2">
+                <h1 class="display-4 fw-bold text-white mb-3 animate-fadeInUp" data-i18n="categories.hero_title">Khám phá danh mục</h1>
+                <p class="lead text-white-50 mb-0 animate-fadeInUp stagger-2" data-i18n="categories.hero_subtitle">
                     Tìm sự kiện theo sở thích của bạn - Từ âm nhạc đến thể thao, nghệ thuật đến công nghệ
                 </p>
             </div>
@@ -21,7 +21,7 @@
                     <i class="fas fa-th-large fs-2 text-white"></i>
                     <div class="text-white">
                         <div class="fs-4 fw-bold" data-counter="${categories.size()}">${categories.size()}</div>
-                        <small class="opacity-75">Danh mục</small>
+                        <small class="opacity-75" data-i18n="categories.count_label">Danh mục</small>
                     </div>
                 </div>
             </div>
@@ -88,9 +88,9 @@
                                     <div class="d-flex align-items-center justify-content-between">
                                         <span class="badge rounded-pill px-3 py-2" 
                                               style="background: linear-gradient(135deg, ${gradientColors});">
-                                            <i class="fas fa-calendar-alt me-1"></i>${cat.eventCount} sự kiện
+                                            <i class="fas fa-calendar-alt me-1"></i>${cat.eventCount} <span data-i18n="categories.events_count">sự kiện</span>
                                         </span>
-                                        <span class="text-primary fw-medium">Khám phá <i class="fas fa-arrow-right ms-1"></i></span>
+                                        <span class="text-primary fw-medium"><span data-i18n="categories.explore">Khám phá</span> <i class="fas fa-arrow-right ms-1"></i></span>
                                     </div>
                                 </div>
                             </div>
@@ -102,8 +102,8 @@
         <c:otherwise>
             <div class="text-center py-5">
                 <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                <h4 class="text-muted">Chưa có danh mục nào</h4>
-                <p class="text-muted">Các danh mục sự kiện sẽ sớm được cập nhật.</p>
+                <h4 class="text-muted" data-i18n="categories.no_categories">Chưa có danh mục nào</h4>
+                <p class="text-muted" data-i18n="categories.no_categories_desc">Các danh mục sự kiện sẽ sớm được cập nhật.</p>
             </div>
         </c:otherwise>
     </c:choose>
@@ -111,10 +111,10 @@
     <!-- CTA Section -->
     <div class="text-center mt-5 pt-4 animate-on-scroll">
         <div class="glass-strong p-5 rounded-4">
-            <h3 class="fw-bold mb-3">Không tìm thấy danh mục phù hợp?</h3>
-            <p class="text-muted mb-4">Khám phá tất cả sự kiện hoặc tìm kiếm theo từ khóa</p>
+            <h3 class="fw-bold mb-3" data-i18n="categories.cta_title">Không tìm thấy danh mục phù hợp?</h3>
+            <p class="text-muted mb-4" data-i18n="categories.cta_desc">Khám phá tất cả sự kiện hoặc tìm kiếm theo từ khóa</p>
             <a href="${pageContext.request.contextPath}/events" class="btn btn-gradient rounded-pill px-5 py-3 hover-glow">
-                <i class="fas fa-search me-2"></i>Xem tất cả sự kiện
+                <i class="fas fa-search me-2"></i><span data-i18n="categories.cta_btn">Xem tất cả sự kiện</span>
             </a>
         </div>
     </div>

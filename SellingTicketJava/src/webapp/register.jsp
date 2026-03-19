@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng ký - Ticketbox</title>
+    <title data-i18n="auth.register_title_page">Đăng ký - Ticketbox</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -122,9 +122,42 @@
             font-size: 0.8rem;
             margin-top: 0.25rem;
         }
+        
+        /* Language switcher for auth pages */
+        .auth-lang-switcher {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 100;
+        }
+        .auth-lang-switcher .dropdown-toggle {
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 50rem;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            color: #374151;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .auth-lang-switcher .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.95);
+        }
     </style>
 </head>
-<body class="auth-page d-flex align-items-center justify-content-center py-4">
+<body class="auth-page d-flex align-items-center justify-content-center py-4" data-context-path="${pageContext.request.contextPath}">
+    <!-- Language Switcher -->
+    <div class="auth-lang-switcher dropdown">
+        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="authLangBtn">
+            <i class="fas fa-globe me-1"></i> <span id="authCurrentLang">VI</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="switchAuthLang('vi')">🇻🇳 Tiếng Việt</a></li>
+            <li><a class="dropdown-item" href="#" onclick="switchAuthLang('en')">🇺🇸 English</a></li>
+            <li><a class="dropdown-item" href="#" onclick="switchAuthLang('ja')">🇯🇵 日本語</a></li>
+        </ul>
+    </div>
+
     <!-- Floating Blobs -->
     <div class="auth-blob auth-blob-1"></div>
     <div class="auth-blob auth-blob-2"></div>
@@ -148,22 +181,22 @@
                         </div>
                         <span class="fw-bold fs-3">Ticketbox</span>
                     </div>
-                    <h2 class="display-6 fw-bold mb-3 animate-fadeInLeft stagger-2">Tham gia ngay!</h2>
-                    <p class="fs-5 opacity-75 animate-fadeInLeft stagger-3">Tạo tài khoản để bắt đầu khám phá hàng nghìn sự kiện hấp dẫn.</p>
+                    <h2 class="display-6 fw-bold mb-3 animate-fadeInLeft stagger-2" data-i18n="auth.join_now">Tham gia ngay!</h2>
+                    <p class="fs-5 opacity-75 animate-fadeInLeft stagger-3" data-i18n="auth.register_hero_desc">Tạo tài khoản để bắt đầu khám phá hàng nghìn sự kiện hấp dẫn.</p>
                     
                     <!-- Benefits -->
                     <div class="mt-4 animate-fadeInUp stagger-4">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="fas fa-check-circle text-white"></i>
-                            <span class="small">Đặt vé nhanh chóng, an toàn</span>
+                            <span class="small" data-i18n="auth.benefit1">Đặt vé nhanh chóng, an toàn</span>
                         </div>
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="fas fa-check-circle text-white"></i>
-                            <span class="small">Nhận thông báo sự kiện hot</span>
+                            <span class="small" data-i18n="auth.benefit2">Nhận thông báo sự kiện hot</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <i class="fas fa-check-circle text-white"></i>
-                            <span class="small">Tích điểm đổi quà hấp dẫn</span>
+                            <span class="small" data-i18n="auth.benefit3">Tích điểm đổi quà hấp dẫn</span>
                         </div>
                     </div>
                 </div>
@@ -183,9 +216,9 @@
                     </div>
 
                     <div class="text-center mb-4 animate-fadeInUp">
-                        <h2 class="fw-bold mb-2">Tạo tài khoản mới</h2>
+                        <h2 class="fw-bold mb-2" data-i18n="auth.create_account">Tạo tài khoản mới</h2>
                         <p class="text-muted">
-                            Đã có tài khoản? <a href="login.jsp" class="text-primary fw-medium text-decoration-none">Đăng nhập</a>
+                            <span data-i18n="auth.have_account">Đã có tài khoản?</span> <a href="login.jsp" class="text-primary fw-medium text-decoration-none" data-i18n="auth.login_link">Đăng nhập</a>
                         </p>
                     </div>
                     
@@ -207,16 +240,16 @@
                     <form id="registerForm" action="${pageContext.request.contextPath}/register" method="POST">
                         <input type="hidden" name="csrf_token" value="${sessionScope.csrf_token}"/>
                         <div class="mb-3 animate-fadeInUp stagger-1">
-                            <label for="fullName" class="form-label fw-medium">Họ và tên</label>
+                            <label for="fullName" class="form-label fw-medium" data-i18n="auth.full_name">Họ và tên</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-user text-muted"></i></span>
-                                <input type="text" id="fullName" name="fullName" required placeholder="Nguyễn Văn A" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.fullName ? 'is-invalid' : ''}" value="<c:out value='${not empty formFullName ? formFullName : param.fullName}'/>">
+                                <input type="text" id="fullName" name="fullName" required data-i18n-placeholder="auth.full_name_placeholder" placeholder="Nguyễn Văn A" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.fullName ? 'is-invalid' : ''}" value="<c:out value='${not empty formFullName ? formFullName : param.fullName}'/>">
                             </div>
                             <c:if test="${not empty fieldErrors.fullName}"><small class="field-inline-error"><c:out value='${fieldErrors.fullName}'/></small></c:if>
                         </div>
 
                         <div class="mb-3 animate-fadeInUp stagger-2">
-                            <label for="email" class="form-label fw-medium">Email</label>
+                            <label for="email" class="form-label fw-medium" data-i18n="auth.email">Email</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-envelope text-muted"></i></span>
                                 <input type="email" id="email" name="email" required placeholder="email@example.com" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.email ? 'is-invalid' : ''}" value="<c:out value='${not empty formEmail ? formEmail : param.email}'/>">
@@ -225,7 +258,7 @@
                         </div>
 
                         <div class="mb-3 animate-fadeInUp stagger-3">
-                            <label for="phone" class="form-label fw-medium">Số điện thoại</label>
+                            <label for="phone" class="form-label fw-medium" data-i18n="auth.phone">Số điện thoại</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-phone text-muted"></i></span>
                                 <input type="tel" id="phone" name="phone" placeholder="0901234567" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.phone ? 'is-invalid' : ''}" value="<c:out value='${not empty formPhone ? formPhone : param.phone}'/>">
@@ -235,7 +268,7 @@
 
                         <div class="row mb-3 animate-fadeInUp stagger-4">
                             <div class="col-6">
-                                <label for="birthDate" class="form-label fw-medium">Ngày sinh</label>
+                                <label for="birthDate" class="form-label fw-medium" data-i18n="auth.birth_date">Ngày sinh</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-calendar text-muted"></i></span>
                                     <input type="date" id="birthDate" name="birthDate" required class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.birthDate ? 'is-invalid' : ''}" value="<c:out value='${not empty formBirthDate ? formBirthDate : param.birthDate}'/>">
@@ -243,12 +276,12 @@
                                 <small id="birthDateFeedback" class="${not empty fieldErrors.birthDate ? 'field-inline-error' : ''}"><c:out value='${fieldErrors.birthDate}'/></small>
                             </div>
                             <div class="col-6">
-                                <label for="gender" class="form-label fw-medium">Giới tính</label>
+                                <label for="gender" class="form-label fw-medium" data-i18n="auth.gender">Giới tính</label>
                                 <select id="gender" name="gender" class="form-select bg-light rounded-3 ${not empty fieldErrors.gender ? 'is-invalid' : ''}">
-                                    <option value="" ${empty formGender && empty param.gender ? 'selected' : ''}>Chọn</option>
-                                    <option value="male" ${(formGender == 'male' || param.gender == 'male') ? 'selected' : ''}>Nam</option>
-                                    <option value="female" ${(formGender == 'female' || param.gender == 'female') ? 'selected' : ''}>Nữ</option>
-                                    <option value="other" ${(formGender == 'other' || param.gender == 'other') ? 'selected' : ''}>Khác</option>
+                                    <option value="" ${empty formGender && empty param.gender ? 'selected' : ''} data-i18n="auth.gender_select">Chọn</option>
+                                    <option value="male" ${(formGender == 'male' || param.gender == 'male') ? 'selected' : ''} data-i18n="auth.gender_male">Nam</option>
+                                    <option value="female" ${(formGender == 'female' || param.gender == 'female') ? 'selected' : ''} data-i18n="auth.gender_female">Nữ</option>
+                                    <option value="other" ${(formGender == 'other' || param.gender == 'other') ? 'selected' : ''} data-i18n="auth.gender_other">Khác</option>
                                 </select>
                                 <c:if test="${not empty fieldErrors.gender}"><small class="field-inline-error"><c:out value='${fieldErrors.gender}'/></small></c:if>
                             </div>
@@ -256,10 +289,10 @@
 
                          <!-- Password -->
                         <div class="mb-3 animate-fadeInUp stagger-5">
-                            <label for="password" class="form-label fw-medium">Mật khẩu</label>
+                            <label for="password" class="form-label fw-medium" data-i18n="auth.password">Mật khẩu</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
-                                <input type="password" id="password" name="password" required placeholder="Tối thiểu 8 ký tự" class="form-control bg-light border-start-0 border-end-0 ps-0 ${not empty fieldErrors.password ? 'is-invalid' : ''}" onkeyup="checkStrength(this.value)">
+                                <input type="password" id="password" name="password" required data-i18n-placeholder="auth.password_min" placeholder="Tối thiểu 8 ký tự" class="form-control bg-light border-start-0 border-end-0 ps-0 ${not empty fieldErrors.password ? 'is-invalid' : ''}" onkeyup="checkStrength(this.value)">
                                 <button class="btn btn-light border border-start-0 rounded-end-3" type="button" onclick="togglePassword('password', 'eyeIcon1')">
                                     <i class="fas fa-eye text-muted" id="eyeIcon1"></i>
                                 </button>
@@ -276,10 +309,10 @@
                         </div>
 
                         <div class="mb-4 animate-fadeInUp stagger-6">
-                            <label for="confirmPassword" class="form-label fw-medium">Xác nhận mật khẩu</label>
+                            <label for="confirmPassword" class="form-label fw-medium" data-i18n="auth.confirm_password">Xác nhận mật khẩu</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
-                                <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Nhập lại mật khẩu" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.confirmPassword ? 'is-invalid' : ''}">
+                                <input type="password" id="confirmPassword" name="confirmPassword" required data-i18n-placeholder="auth.confirm_password_placeholder" placeholder="Nhập lại mật khẩu" class="form-control bg-light border-start-0 ps-0 rounded-end-3 ${not empty fieldErrors.confirmPassword ? 'is-invalid' : ''}">
                             </div>
                             <c:if test="${not empty fieldErrors.confirmPassword}"><small class="field-inline-error"><c:out value='${fieldErrors.confirmPassword}'/></small></c:if>
                         </div>
@@ -287,19 +320,19 @@
                         <div class="mb-4 form-check animate-fadeInUp stagger-7">
                             <input type="checkbox" id="agreeTerms" name="agreeTerms" class="form-check-input" required ${param.agreeTerms == 'on' ? 'checked' : ''}>
                              <label for="agreeTerms" class="form-check-label small">
-                                Tôi đồng ý với <a href="#" class="text-primary text-decoration-none">Điều khoản sử dụng</a> và <a href="#" class="text-primary text-decoration-none">Chính sách bảo mật</a>
+                                <span data-i18n="auth.agree_prefix">Tôi đồng ý với</span> <a href="#" class="text-primary text-decoration-none" data-i18n="auth.terms_link">Điều khoản sử dụng</a> <span data-i18n="auth.agree_and">và</span> <a href="#" class="text-primary text-decoration-none" data-i18n="auth.privacy_link">Chính sách bảo mật</a>
                             </label>
                         </div>
 
                         <!-- Submit -->
                         <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3 fw-bold mb-4 hover-glow animate-fadeInUp stagger-8">
-                            Tạo tài khoản <i class="fas fa-arrow-right ms-2"></i>
+                            <span data-i18n="auth.register_btn">Tạo tài khoản</span> <i class="fas fa-arrow-right ms-2"></i>
                         </button>
                     </form>
                     
                     <div class="text-center animate-fadeInUp">
                         <a href="home" class="small text-muted text-decoration-none d-inline-flex align-items-center gap-2 hover-lift">
-                            <i class="fas fa-arrow-left"></i> Quay về trang chủ
+                            <i class="fas fa-arrow-left"></i> <span data-i18n="auth.back_home">Quay về trang chủ</span>
                         </a>
                     </div>
                 </div>
@@ -310,6 +343,7 @@
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/animations.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/i18n.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/toast.js"></script>
     <script>
         const REGISTER_CONTEXT_PATH = '${pageContext.request.contextPath}';
@@ -330,6 +364,10 @@
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
+        }
+        
+        function _t(key, fallback) {
+            return (typeof window.__i18n !== 'undefined' && window.__i18n[key]) ? window.__i18n[key] : fallback;
         }
         
         function checkStrength(password) {
@@ -357,10 +395,10 @@
             });
             
             if (strength === 0) text.textContent = '';
-            else if (strength === 1) text.textContent = 'Yếu';
-            else if (strength === 2) text.textContent = 'Trung bình';
-            else if (strength === 3) text.textContent = 'Mạnh';
-            else text.textContent = 'Rất mạnh';
+            else if (strength === 1) text.textContent = _t('auth.pw_weak', 'Yếu');
+            else if (strength === 2) text.textContent = _t('auth.pw_medium', 'Trung bình');
+            else if (strength === 3) text.textContent = _t('auth.pw_strong', 'Mạnh');
+            else text.textContent = _t('auth.pw_very_strong', 'Rất mạnh');
             
             text.className = 'small ' + (strength <= 1 ? 'text-danger' : strength <= 2 ? 'text-warning' : 'text-success');
         }
@@ -392,7 +430,7 @@
             today.setHours(0, 0, 0, 0);
             if (selected > today) {
                 birthDateInput.classList.add('is-invalid');
-                feedback.textContent = 'Ngày sinh không thể ở tương lai';
+                feedback.textContent = _t('auth.birthdate_future', 'Ngày sinh không thể ở tương lai');
                 feedback.className = 'field-inline-error';
                 return false;
             }
@@ -400,7 +438,7 @@
             const age = getAge(birthDateInput.value);
             if (age < 16) {
                 birthDateInput.classList.add('is-invalid');
-                feedback.textContent = 'Bạn phải đủ 16 tuổi để tạo tài khoản';
+                feedback.textContent = _t('auth.birthdate_underage', 'Bạn phải đủ 16 tuổi để tạo tài khoản');
                 feedback.className = 'field-inline-error';
                 return false;
             }
@@ -445,10 +483,9 @@
         function setCachedEmailResult(email, exists, message) {
             emailAvailabilityCache.set(email, {
                 exists: !!exists,
-                message: message || (exists ? 'Email đã tồn tại' : 'Email có thể sử dụng'),
+                message: message || (exists ? _t('auth.email_exists', 'Email đã tồn tại') : _t('auth.email_available', 'Email có thể sử dụng')),
                 expiresAt: Date.now() + EMAIL_CACHE_TTL_MS
             });
-            // Keep memory bounded for long-running tabs.
             if (emailAvailabilityCache.size > 200) {
                 const firstKey = emailAvailabilityCache.keys().next().value;
                 if (firstKey) emailAvailabilityCache.delete(firstKey);
@@ -486,12 +523,12 @@
 
             const typoSuggestion = getEmailTypoSuggestion(email);
             if (typoSuggestion) {
-                showEmailFeedback(emailInput, feedback, 'Bạn có muốn dùng: ' + typoSuggestion + ' ?', 'error');
+                showEmailFeedback(emailInput, feedback, _t('auth.email_typo', 'Bạn có muốn dùng: ') + typoSuggestion + ' ?', 'error');
                 return false;
             }
 
             if (!isValidEmailFormat(email)) {
-                showEmailFeedback(emailInput, feedback, 'Email không hợp lệ', 'error');
+                showEmailFeedback(emailInput, feedback, _t('auth.email_invalid', 'Email không hợp lệ'), 'error');
                 return false;
             }
 
@@ -504,7 +541,7 @@
                 }
             }
 
-            feedback.textContent = 'Đang kiểm tra email...';
+            feedback.textContent = _t('auth.email_checking', 'Đang kiểm tra email...');
             feedback.className = 'text-muted small';
 
             try {
@@ -524,11 +561,11 @@
                 setCachedEmailResult(email, emailExists, data.message);
 
                 if (emailExists) {
-                    showEmailFeedback(emailInput, feedback, data.message || 'Email đã tồn tại', 'error');
+                    showEmailFeedback(emailInput, feedback, data.message || _t('auth.email_exists', 'Email đã tồn tại'), 'error');
                     return false;
                 }
 
-                showEmailFeedback(emailInput, feedback, data.message || 'Email có thể sử dụng', 'ok');
+                showEmailFeedback(emailInput, feedback, data.message || _t('auth.email_available', 'Email có thể sử dụng'), 'ok');
                 return true;
             } catch (e) {
                 if (e && e.name === 'AbortError') {
@@ -559,12 +596,12 @@
 
                 const suggestion = getEmailTypoSuggestion(normalized);
                 if (suggestion) {
-                    showEmailFeedback(emailInput, feedback, 'Bạn có muốn dùng: ' + suggestion + ' ?', 'error');
+                    showEmailFeedback(emailInput, feedback, _t('auth.email_typo', 'Bạn có muốn dùng: ') + suggestion + ' ?', 'error');
                     return;
                 }
 
                 if (!isValidEmailFormat(normalized)) {
-                    showEmailFeedback(emailInput, feedback, 'Email không hợp lệ', 'error');
+                    showEmailFeedback(emailInput, feedback, _t('auth.email_invalid', 'Email không hợp lệ'), 'error');
                     return;
                 }
 
@@ -577,7 +614,7 @@
 
                 emailInput.classList.remove('is-valid', 'is-invalid');
                 if (feedback) {
-                    feedback.textContent = 'Định dạng hợp lệ. Rời ô để kiểm tra tồn tại.';
+                    feedback.textContent = _t('auth.email_valid_format', 'Định dạng hợp lệ. Rời ô để kiểm tra tồn tại.');
                     feedback.className = 'text-muted small';
                 }
             });
@@ -608,11 +645,28 @@
                 if (!emailOk || !ageOk || emailExists) {
                     e.preventDefault();
                     if (typeof showToast === 'function') {
-                        showToast('Vui lòng kiểm tra lại thông tin đăng ký', 'error');
+                        showToast(_t('auth.check_info', 'Vui lòng kiểm tra lại thông tin đăng ký'), 'error');
                     }
                 }
             });
         }
+        
+        // Auth page language switcher
+        function switchAuthLang(lang) {
+            if (typeof i18n !== 'undefined') {
+                i18n.setLanguage(lang);
+                const labelMap = { vi: 'VI', en: 'EN', ja: 'JA' };
+                document.getElementById('authCurrentLang').textContent = labelMap[lang] || lang.toUpperCase();
+            }
+        }
+        
+        // Sync initial lang indicator
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('ticketbox.language') || 'vi';
+            const labelMap = { vi: 'VI', en: 'EN', ja: 'JA' };
+            const el = document.getElementById('authCurrentLang');
+            if (el) el.textContent = labelMap[savedLang] || savedLang.toUpperCase();
+        });
     </script>
 </body>
 </html>

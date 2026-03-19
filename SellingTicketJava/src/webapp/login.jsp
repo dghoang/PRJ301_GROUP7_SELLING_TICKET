@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - Ticketbox</title>
+    <title data-i18n="auth.login_title_page">Đăng nhập - Ticketbox</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -86,9 +86,42 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
+        
+        /* Language switcher for auth pages */
+        .auth-lang-switcher {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 100;
+        }
+        .auth-lang-switcher .dropdown-toggle {
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 50rem;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            color: #374151;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .auth-lang-switcher .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.95);
+        }
     </style>
 </head>
-<body class="auth-page d-flex align-items-center justify-content-center py-4">
+<body class="auth-page d-flex align-items-center justify-content-center py-4" data-context-path="${pageContext.request.contextPath}">
+    <!-- Language Switcher -->
+    <div class="auth-lang-switcher dropdown">
+        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="authLangBtn">
+            <i class="fas fa-globe me-1"></i> <span id="authCurrentLang">VI</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="switchAuthLang('vi')">🇻🇳 Tiếng Việt</a></li>
+            <li><a class="dropdown-item" href="#" onclick="switchAuthLang('en')">🇺🇸 English</a></li>
+            <li><a class="dropdown-item" href="#" onclick="switchAuthLang('ja')">🇯🇵 日本語</a></li>
+        </ul>
+    </div>
+
     <!-- Floating Blobs -->
     <div class="auth-blob auth-blob-1"></div>
     <div class="auth-blob auth-blob-2"></div>
@@ -112,18 +145,18 @@
                         </div>
                         <span class="fw-bold fs-3">Ticketbox</span>
                     </div>
-                    <h2 class="display-6 fw-bold mb-3 animate-fadeInLeft stagger-2">Chào mừng trở lại!</h2>
-                    <p class="fs-5 opacity-75 animate-fadeInLeft stagger-3">Đăng nhập để tiếp tục khám phá và đặt vé cho những sự kiện tuyệt vời nhất.</p>
+                    <h2 class="display-6 fw-bold mb-3 animate-fadeInLeft stagger-2" data-i18n="auth.welcome_back">Chào mừng trở lại!</h2>
+                    <p class="fs-5 opacity-75 animate-fadeInLeft stagger-3" data-i18n="auth.login_hero_desc">Đăng nhập để tiếp tục khám phá và đặt vé cho những sự kiện tuyệt vời nhất.</p>
                     
                     <!-- Stats -->
                     <div class="d-flex gap-4 mt-4 animate-fadeInUp stagger-4">
                         <div class="text-center">
                             <div class="fs-4 fw-bold" data-counter="10000">0</div>
-                            <small class="opacity-75">Sự kiện</small>
+                            <small class="opacity-75" data-i18n="auth.stat_events">Sự kiện</small>
                         </div>
                         <div class="text-center">
                             <div class="fs-4 fw-bold" data-counter="500000">0</div>
-                            <small class="opacity-75">Người dùng</small>
+                            <small class="opacity-75" data-i18n="auth.stat_users">Người dùng</small>
                         </div>
                     </div>
                 </div>
@@ -143,10 +176,10 @@
                     </div>
 
                     <div class="text-center mb-5 animate-fadeInUp">
-                        <h2 class="fw-bold mb-2">Đăng nhập</h2>
+                        <h2 class="fw-bold mb-2" data-i18n="auth.login_heading">Đăng nhập</h2>
                         <p class="text-muted">
-                            Chưa có tài khoản? 
-                            <a href="register.jsp" class="text-primary fw-medium text-decoration-none hover-underline">Đăng ký ngay</a>
+                            <span data-i18n="auth.no_account">Chưa có tài khoản?</span> 
+                            <a href="register.jsp" class="text-primary fw-medium text-decoration-none hover-underline" data-i18n="auth.register_now">Đăng ký ngay</a>
                         </p>
                     </div>
 
@@ -154,7 +187,7 @@
                     <c:if test="${param.error == 'csrf'}">
                         <div class="alert alert-warning d-flex align-items-center rounded-3" role="alert">
                             <i class="fas fa-sync-alt me-2"></i>
-                            <span>Phiên đăng nhập đã hết hạn. Vui lòng thử lại.</span>
+                            <span data-i18n="auth.session_expired">Phiên đăng nhập đã hết hạn. Vui lòng thử lại.</span>
                         </div>
                     </c:if>
                     <c:if test="${not empty error}">
@@ -170,7 +203,7 @@
                         <input type="hidden" name="returnUrl" value="${loginReturnUrl}"/>
                         <!-- Email -->
                         <div class="mb-4 animate-fadeInUp stagger-1">
-                            <label for="email" class="form-label fw-medium">Email</label>
+                            <label for="email" class="form-label fw-medium" data-i18n="auth.email">Email</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-envelope text-muted"></i></span>
                                 <input type="email" id="email" name="email" required placeholder="email@example.com" class="form-control bg-light border-start-0 ps-0 rounded-end-3">
@@ -180,8 +213,8 @@
                         <!-- Password -->
                         <div class="mb-4 animate-fadeInUp stagger-2">
                             <div class="d-flex justify-content-between">
-                                <label for="password" class="form-label fw-medium">Mật khẩu</label>
-                                <a href="javascript:void(0)" onclick="showInfo('Tính năng đặt lại mật khẩu sẽ sớm ra mắt!')" class="small text-primary text-decoration-none">Quên mật khẩu?</a>
+                                <label for="password" class="form-label fw-medium" data-i18n="auth.password">Mật khẩu</label>
+                                <a href="javascript:void(0)" onclick="showInfo(typeof i18n !== 'undefined' ? i18n.t('auth.forgot_coming_soon') : 'Tính năng đặt lại mật khẩu sẽ sớm ra mắt!')" class="small text-primary text-decoration-none" data-i18n="auth.forgot_password">Quên mật khẩu?</a>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-lock text-muted"></i></span>
@@ -195,31 +228,31 @@
                         <!-- Remember me -->
                         <div class="mb-4 form-check animate-fadeInUp stagger-3">
                             <input type="checkbox" id="remember" name="remember" class="form-check-input">
-                            <label for="remember" class="form-check-label small">Ghi nhớ đăng nhập</label>
+                            <label for="remember" class="form-check-label small" data-i18n="auth.remember_me">Ghi nhớ đăng nhập</label>
                         </div>
 
                         <!-- Submit -->
                         <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3 fw-bold mb-4 hover-glow animate-fadeInUp stagger-4">
-                            Đăng nhập <i class="fas fa-arrow-right ms-2"></i>
+                            <span data-i18n="auth.login_btn">Đăng nhập</span> <i class="fas fa-arrow-right ms-2"></i>
                         </button>
 
                         <!-- Divider -->
                         <div class="position-relative text-center mb-4 animate-fadeInUp stagger-5">
                             <hr class="position-absolute top-50 start-0 w-100 z-0">
-                            <span class="position-relative z-1 bg-white px-3 text-muted small">Hoặc tiếp tục với</span>
+                            <span class="position-relative z-1 bg-white px-3 text-muted small" data-i18n="auth.or_continue">Hoặc tiếp tục với</span>
                         </div>
 
                         <!-- Social Login -->
                         <div class="animate-fadeInUp stagger-6">
                             <a href="${pageContext.request.contextPath}/auth/google" class="btn btn-outline-secondary w-100 py-2 rounded-3 social-btn text-decoration-none">
-                                <i class="fab fa-google me-2 text-danger"></i> Đăng nhập với Google
+                                <i class="fab fa-google me-2 text-danger"></i> <span data-i18n="auth.login_google">Đăng nhập với Google</span>
                             </a>
                         </div>
                     </form>
                     
                      <div class="text-center mt-4 animate-fadeInUp stagger-7">
                         <a href="home" class="small text-muted text-decoration-none d-inline-flex align-items-center gap-2 hover-lift">
-                            <i class="fas fa-arrow-left"></i> Quay về trang chủ
+                            <i class="fas fa-arrow-left"></i> <span data-i18n="auth.back_home">Quay về trang chủ</span>
                         </a>
                     </div>
                 </div>
@@ -230,6 +263,7 @@
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/animations.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/i18n.js"></script>
     <script>
         function togglePassword() {
             const passwordInput = document.getElementById('password');
@@ -244,6 +278,23 @@
                 eyeIcon.classList.add('fa-eye');
             }
         }
+        
+        // Auth page language switcher
+        function switchAuthLang(lang) {
+            if (typeof i18n !== 'undefined') {
+                i18n.setLanguage(lang);
+                const labelMap = { vi: 'VI', en: 'EN', ja: 'JA' };
+                document.getElementById('authCurrentLang').textContent = labelMap[lang] || lang.toUpperCase();
+            }
+        }
+        
+        // Sync initial lang indicator
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('ticketbox.language') || 'vi';
+            const labelMap = { vi: 'VI', en: 'EN', ja: 'JA' };
+            const el = document.getElementById('authCurrentLang');
+            if (el) el.textContent = labelMap[savedLang] || savedLang.toUpperCase();
+        });
     </script>
     <script src="${pageContext.request.contextPath}/assets/js/toast.js"></script>
 </body>

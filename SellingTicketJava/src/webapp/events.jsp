@@ -439,10 +439,10 @@
     <div class="container position-relative" style="z-index: 2;">
         <div class="hero-badge">
             <i class="fas fa-fire-alt text-white me-2"></i>
-            <span class="text-white fw-medium">Hơn ${totalResults}+ sự kiện đang chờ bạn</span>
+            <span class="text-white fw-medium"><span id="hero-total-count">${totalResults}</span>+ <span data-i18n="events.hero_badge_suffix">sự kiện đang chờ bạn</span></span>
         </div>
-        <h1 class="hero-title">Khám phá sự kiện</h1>
-        <p class="hero-subtitle">
+        <h1 class="hero-title" data-i18n="events.hero_title">Khám phá sự kiện</h1>
+        <p class="hero-subtitle" data-i18n="events.hero_subtitle">
             Tìm kiếm và đặt vé cho hàng ngàn sự kiện hấp dẫn trên khắp Việt Nam
         </p>
     </div>
@@ -454,20 +454,21 @@
         <div class="row g-3 align-items-end">
             <div class="col-lg-3 col-md-6">
                 <label class="search-label">
-                    <i class="fas fa-search"></i>Tìm kiếm
+                    <i class="fas fa-search"></i><span data-i18n="events.search_label">Tìm kiếm</span>
                 </label>
                 <div style="position:relative">
                     <input type="text" id="ajax-search" class="search-input" 
+                           data-i18n-placeholder="events.search_placeholder"
                            placeholder="Tên sự kiện, nghệ sĩ, địa điểm...">
                     <span class="search-clear" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;display:none;color:#9ca3af"><i class="fas fa-times"></i></span>
                 </div>
             </div>
             <div class="col-lg-2 col-md-6">
                 <label class="search-label">
-                    <i class="fas fa-folder"></i>Danh mục
+                    <i class="fas fa-folder"></i><span data-i18n="events.category_label">Danh mục</span>
                 </label>
                 <select id="filter-category" class="search-select" data-filter-select="category">
-                    <option value="">Tất cả danh mục</option>
+                    <option value="" data-i18n="events.all_categories">Tất cả danh mục</option>
                     <c:forEach var="cat" items="${categories}">
                         <option value="${cat.slug}">${cat.name}</option>
                     </c:forEach>
@@ -475,25 +476,25 @@
             </div>
             <div class="col-lg-2 col-md-4">
                 <label class="search-label">
-                    <i class="fas fa-calendar"></i>Từ ngày
+                    <i class="fas fa-calendar"></i><span data-i18n="events.date_from">Từ ngày</span>
                 </label>
                 <input type="date" class="search-input" data-filter-date="dateFrom">
             </div>
             <div class="col-lg-2 col-md-4">
                 <label class="search-label">
-                    <i class="fas fa-calendar-check"></i>Đến ngày
+                    <i class="fas fa-calendar-check"></i><span data-i18n="events.date_to">Đến ngày</span>
                 </label>
                 <input type="date" class="search-input" data-filter-date="dateTo">
             </div>
             <div class="col-lg-2 col-md-4">
                 <label class="search-label">
-                    <i class="fas fa-tags"></i>Mức giá
+                    <i class="fas fa-tags"></i><span data-i18n="events.price_label">Mức giá</span>
                 </label>
                 <select class="search-select" data-filter-select="priceRange">
-                    <option value="">Tất cả mức giá</option>
-                    <option value="lt500">Dưới 500.000đ</option>
-                    <option value="500to1000">Từ 500.000đ - 1.000.000đ</option>
-                    <option value="gt1000">Trên 1.000.000đ</option>
+                    <option value="" data-i18n="events.all_prices">Tất cả mức giá</option>
+                    <option value="lt500" data-i18n="events.price_lt500">Dưới 500.000đ</option>
+                    <option value="500to1000" data-i18n="events.price_500to1000">Từ 500.000đ - 1.000.000đ</option>
+                    <option value="gt1000" data-i18n="events.price_gt1000">Trên 1.000.000đ</option>
                 </select>
             </div>
             <div class="col-lg-1 col-md-2">
@@ -510,7 +511,7 @@
     <div class="container">
         <div class="d-flex flex-wrap gap-2" data-pill-group="category">
             <a href="#" class="category-pill active" data-pill-value="">
-                <i class="fas fa-border-all"></i>Tất cả
+                <i class="fas fa-border-all"></i><span data-i18n="events.all">Tất cả</span>
             </a>
             <c:forEach var="cat" items="${categories}">
                 <a href="#" class="category-pill" data-pill-value="${cat.slug}">
@@ -527,14 +528,14 @@
         <!-- Results Header -->
         <div class="results-header">
             <span class="results-count">
-                Tìm thấy <strong id="total-count">0</strong> sự kiện
+                <span data-i18n="events.found">Tìm thấy</span> <strong id="total-count">0</strong> <span data-i18n="events.events_count">sự kiện</span>
             </span>
             <select class="sort-select" data-filter-select="sort">
-                <option value="date_asc">Sắp diễn ra</option>
-                <option value="newest">Mới nhất</option>
-                <option value="popular">Phổ biến nhất</option>
-                <option value="price_asc">Giá thấp → cao</option>
-                <option value="price_desc">Giá cao → thấp</option>
+                <option value="date_asc" data-i18n="events.sort_date">Sắp diễn ra</option>
+                <option value="newest" data-i18n="events.sort_newest">Mới nhất</option>
+                <option value="popular" data-i18n="events.sort_popular">Phổ biến nhất</option>
+                <option value="price_asc" data-i18n="events.sort_price_asc">Giá thấp → cao</option>
+                <option value="price_desc" data-i18n="events.sort_price_desc">Giá cao → thấp</option>
             </select>
         </div>
 
@@ -549,15 +550,15 @@
             <div class="cta-icon">
                 <i class="fas fa-bullhorn"></i>
             </div>
-            <h3 class="fw-bold mb-3">Bạn muốn tổ chức sự kiện?</h3>
-            <p class="text-muted mb-4 mx-auto" style="max-width: 500px;">
+            <h3 class="fw-bold mb-3" data-i18n="events.cta_title">Bạn muốn tổ chức sự kiện?</h3>
+            <p class="text-muted mb-4 mx-auto" style="max-width: 500px;" data-i18n="events.cta_desc">
                 Đăng ký làm nhà tổ chức để quản lý và bán vé cho sự kiện của bạn 
                 với các công cụ mạnh mẽ và dễ sử dụng nhất.
             </p>
             <a href="${pageContext.request.contextPath}/organizer/create-event" 
                class="btn btn-gradient btn-lg rounded-pill px-5"
                onclick="return requireLogin(this)">
-                <i class="fas fa-plus-circle me-2"></i>Tạo sự kiện ngay
+                <i class="fas fa-plus-circle me-2"></i><span data-i18n="events.cta_btn">Tạo sự kiện ngay</span>
             </a>
         </div>
     </div>
@@ -568,7 +569,7 @@
 const ctxPath = '${pageContext.request.contextPath}';
 
 function formatPrice(price) {
-    if (price === 0) return 'Miễn phí';
+    if (price === 0) return (window.__i18n && window.__i18n['events.free']) || 'Miễn phí';
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 }
 

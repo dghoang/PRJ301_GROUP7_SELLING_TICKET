@@ -1101,7 +1101,7 @@ INSERT INTO TicketTypes (event_id, name, description, price, quantity, sold_quan
 (3, N'Diamond',            N'Front row + Fan meeting + Photo',                         6000000, 30, 30, '#FFD700', '2026-03-01', '2026-06-14'),
 (3, N'Platinum',           N'Standing gần sân khấu',                                   3500000, 300, 290, '#C0C0C0', '2026-03-01', '2026-06-14'),
 (3, N'Gold Standing',      N'Standing trung tâm',                                       2000000, 1000, 820, '#FFA500', '2026-03-01', '2026-06-15'),
-(3, N'General Admission',  N'Vé vào cổng',                                              800000, 3000, 2100, '#4ECDC4', '2026-03-01', '2026-06-15'),
+(3, N'General Admission',  N'Vé vào cổng',                                              800000, 3000, 2600, '#4ECDC4', '2026-03-01', '2026-06-15'),
 
 -- ===== E4: Acoustic Bên Nhau =====
 (4, N'Couple Seat',        N'Ghế đôi + Nến & hoa + 2 đồ uống',                        1200000, 50, 42, '#FF69B4', '2026-02-15', '2026-03-27'),
@@ -1115,20 +1115,20 @@ INSERT INTO TicketTypes (event_id, name, description, price, quantity, sold_quan
 
 -- ===== E6: Indie Sunset Sessions =====
 (6, N'Early Bird',         N'Giá ưu đãi đặt sớm',                                     300000, 300, 300, '#FF6B6B', '2026-02-01', '2026-03-15'),
-(6, N'General Admission',  N'Vé phổ thông',                                              500000, 1500, 1050, '#4ECDC4', '2026-03-16', '2026-04-11'),
+(6, N'General Admission',  N'Vé phổ thông',                                              500000, 1500, 1300, '#4ECDC4', '2026-03-16', '2026-04-11'),
 (6, N'VIP Beach Lounge',   N'Khu VIP bãi biển + Đồ uống',                               1200000, 200, 160, '#FFD700', '2026-02-01', '2026-04-11'),
 
 -- ===== E8: Vietnam Marathon =====
 (8, N'42K Full Marathon',  N'Bib + Huy chương + Áo finisher',                          1200000, 2000, 1800, '#E74C3C', '2026-01-01', '2026-05-01'),
 (8, N'21K Half Marathon',  N'Bib + Huy chương + Áo race',                               800000, 3000, 2700, '#F39C12', '2026-01-01', '2026-05-01'),
-(8, N'5K Fun Run',         N'Bib + Huy chương, mọi lứa tuổi',                           300000, 5000, 4400, '#2ECC71', '2026-01-01', '2026-05-02'),
+(8, N'5K Fun Run',         N'Bib + Huy chương, mọi lứa tuổi',                           300000, 5000, 4800, '#2ECC71', '2026-01-01', '2026-05-02'),
 
 -- ===== E9: Bóng rổ 3x3 =====
 (9, N'Đội tham gia',       N'Phí đăng ký 1 đội (3-4 người)',                            500000, 64, 58, '#FF6B6B', '2026-02-01', '2026-04-10'),
 (9, N'Khán giả',           N'Vé vào xem (đăng ký nhận ghế)',                              0, 500, 420, '#4ECDC4', '2026-02-01', '2026-04-12'),
 
 -- ===== E10: Saigon Night Run =====
-(10, N'Runner 10K',        N'Bib + Huy chương + Áo phát quang',                         400000, 3000, 2650, '#9B59B6', '2026-01-15', '2026-03-21'),
+(10, N'Runner 10K',        N'Bib + Huy chương + Áo phát quang',                         400000, 3000, 2900, '#9B59B6', '2026-01-15', '2026-03-21'),
 
 -- ===== E12: Saigon Fun Run 5K 2025 (past) =====
 (12, N'5K Runner',         N'Vé 5K runner',                                              200000, 800, 650, '#2ECC71', '2025-09-01', '2025-11-14'),
@@ -1148,8 +1148,8 @@ INSERT INTO TicketTypes (event_id, name, description, price, quantity, sold_quan
 (16, N'Single Day',        N'1 buổi (chọn ngày)',                                         600000, 60, 20, '#3498DB', '2026-03-15', '2026-05-19'),
 
 -- ===== E17: Lễ hội Ẩm thực =====
-(17, N'Vé ngày thường',    N'Vào cổng 1 ngày (Thứ 2-5)',                                 50000, 5000, 4100, '#2ECC71', '2026-03-01', '2026-05-04'),
-(17, N'Vé cuối tuần',      N'Vào cổng 1 ngày (Thứ 6-CN)',                                80000, 5000, 4500, '#F39C12', '2026-03-01', '2026-05-04'),
+(17, N'Vé ngày thường',    N'Vào cổng 1 ngày (Thứ 2-5)',                                 50000, 5000, 4500, '#2ECC71', '2026-03-01', '2026-05-04'),
+(17, N'Vé cuối tuần',      N'Vào cổng 1 ngày (Thứ 6-CN)',                                80000, 5000, 4900, '#F39C12', '2026-03-01', '2026-05-04'),
 (17, N'VIP Passport 4 ngày', N'All-access 4 ngày + Voucher ăn 200K',                    250000, 500, 450, '#E74C3C', '2026-03-01', '2026-05-01'),
 
 -- ===== E18: Cooking Class Phở =====
