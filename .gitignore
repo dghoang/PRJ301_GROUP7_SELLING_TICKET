@@ -46,6 +46,7 @@ desktop.ini
 
 # ===== AI AGENT FILES (do not push) =====
 .agent/
+.agent
 .agents/
 .cursor/
 .context/
