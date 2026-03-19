@@ -45,7 +45,8 @@ desktop.ini
 *.egg
 
 # ===== AI AGENT FILES (do not push) =====
-.agent/
+agent/
+docs
 .agent
 .agents/
 .cursor/
