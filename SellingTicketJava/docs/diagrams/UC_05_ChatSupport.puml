@@ -1,0 +1,79 @@
+@startuml UC_05_ChatSupport
+' ============================================================
+' USE CASE DIAGRAM - MODULE 5: Chat & Support
+' Live Chat + Support Tickets
+' ============================================================
+
+title **Use Case Diagram - Module 5\nChat & Support**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #E0F7FA
+    BorderColor #00838F
+    FontSize 12
+    ArrowColor #00838F
+}
+
+' === ACTORS ===
+actor "Attendee\n(Customer)" as Attendee #LightBlue
+actor "Organizer" as Organizer #Gold
+actor "Admin" as Admin #Orchid
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 5: Chat & Support" {
+
+    usecase "**UC-5.1: Start Chat**\n---\nCustomer opens chat\nwith event organizer.\nAuto-create session\nif not exists." as UC_START
+
+    usecase "**UC-5.2: Send Message**\n---\nSend text message.\nPoll for new messages\n(interval: 3s).\n2-way communication." as UC_SEND
+
+    usecase "**UC-5.3: View Chat History**\n---\nView past conversations.\nList of sessions\nwith last message." as UC_HISTORY
+
+    usecase "**UC-5.4: Create Support Ticket**\n---\nCustomer creates ticket.\nCategories: missing_ticket,\ncancellation, event_issue,\nother.\nAuto-route by category." as UC_CREATE
+
+    usecase "**UC-5.5: Respond to Support**\n---\nOrganizer/Admin responds\nto support ticket.\nUpdate status:\nopen → in_progress → resolved." as UC_RESPOND
+
+    usecase "**UC-5.6: View Support Tickets**\n---\nView all assigned tickets.\nFilter: status, category.\nOrganizer sees event-related,\nAdmin sees system-level." as UC_VIEW
+
+    ' --- Sub use cases ---
+    usecase "New Message\nNotification" as UC_NOTIF <<include>>
+
+    usecase "Auto-route\n(event → organizer,\nsystem → admin)" as UC_ROUTE <<include>>
+}
+
+' === ASSOCIATIONS ===
+Attendee --> UC_START
+Attendee --> UC_SEND
+Attendee --> UC_HISTORY
+Attendee --> UC_CREATE
+
+Organizer --> UC_SEND
+Organizer --> UC_HISTORY
+Organizer --> UC_RESPOND
+Organizer --> UC_VIEW
+
+Admin --> UC_RESPOND
+Admin --> UC_VIEW
+
+' === INCLUDE ===
+UC_SEND ..> UC_NOTIF : <<include>>
+UC_CREATE ..> UC_ROUTE : <<include>>
+
+' === NOTES ===
+note right of UC_SEND
+  **FR-29~FR-30**
+  Implementation: Long Polling.
+  JS polls every 3 seconds.
+  Future: upgrade to WebSocket.
+end note
+
+note right of UC_CREATE
+  **FR-31~FR-32**
+  Routing logic:
+  - event_issue → organizer
+  - missing_ticket → organizer
+  - cancellation → organizer
+  - other → admin
+end note
+
+@enduml

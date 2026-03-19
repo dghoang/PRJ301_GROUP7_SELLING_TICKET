@@ -1,0 +1,108 @@
+@startuml SD_12_VoucherManagement
+' ============================================================
+' SEQUENCE DIAGRAM - Voucher Management
+' FR-33~FR-36: Create Voucher + Validate at Checkout
+' ============================================================
+
+title **SD-12: Voucher Management\n(Create → Validate → Apply Discount)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #FFFDE7
+    ParticipantBorderColor #F9A825
+    ArrowColor #F9A825
+}
+
+actor "Organizer /\nAdmin" as Creator #Gold
+participant "Browser" as Browser #LightYellow
+participant "VoucherServlet\n(Controller)" as Controller #FFFDE7
+participant "VoucherService" as Service #E8F5E9
+participant "VoucherDAO" as DAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+actor "Attendee" as Customer #LightBlue
+
+== Part A: Create Voucher ==
+
+Creator -> Browser: Open Voucher Management
+Browser -> Controller: GET /organizer/vouchers
+activate Controller
+Controller --> Browser: Forward → vouchers.jsp\n(list + create form)
+deactivate Controller
+
+Creator -> Browser: Fill in voucher info:\ncode: "SUMMER2025"\ntype: percentage\nvalue: 10%\nmaxDiscount: 200,000 VND\nminOrderAmount: 500,000 VND\nusageLimit: 100\nstartDate, endDate
+Browser -> Controller: POST /organizer/vouchers/create\n{code, discountType,\ndiscountValue, maxDiscount,\nminOrderAmount, usageLimit,\nstartDate, endDate, eventId}
+activate Controller
+
+Controller -> Service: createVoucher(voucherData)
+activate Service
+
+Service -> DAO: findByCode("SUMMER2025")
+activate DAO
+DAO -> DB: SELECT * FROM Vouchers\nWHERE code = ?
+activate DB
+DB --> DAO: null (not exists)
+deactivate DB
+DAO --> Service: null
+deactivate DAO
+
+alt #FFE0E0 Code Already Exists
+    Service --> Controller: "Voucher code already exists"
+    Controller --> Browser: Error
+else #E8F5E9 Code Available
+
+    Service -> DAO: create(voucher)
+    activate DAO
+    DAO -> DB: INSERT INTO Vouchers (\n  voucherId, code, discountType,\n  discountValue, maxDiscount,\n  minOrderAmount, usageLimit,\n  usedCount=0, startDate, endDate,\n  scope='EVENT', eventId,\n  fundSource='ORGANIZER',\n  isActive=1, createdAt\n)
+    activate DB
+    DB --> DAO: Created
+    deactivate DB
+    DAO --> Service: voucher
+    deactivate DAO
+
+    Service --> Controller: voucher
+    deactivate Service
+    Controller --> Browser: Redirect + flash:\n"Voucher created successfully"
+    deactivate Controller
+    Browser --> Creator: ✅ Voucher SUMMER2025 created
+end
+
+== Part B: Apply Voucher at Checkout ==
+
+Customer -> Browser: Enter voucher "SUMMER2025"\nat checkout
+Browser -> Controller: POST /checkout/validate-voucher\n{code: "SUMMER2025",\ntotalAmount: 1600000,\neventId}
+activate Controller
+
+Controller -> Service: validateVoucher(\n"SUMMER2025", 1600000, eventId)
+activate Service
+
+Service -> DAO: findByCode("SUMMER2025")
+activate DAO
+DAO -> DB: SELECT * FROM Vouchers\nWHERE code = 'SUMMER2025'
+activate DB
+DB --> DAO: Voucher
+deactivate DB
+DAO --> Service: voucher
+deactivate DAO
+
+Service -> Service: **Validate 7 conditions:**\n1. ✅ Code exists\n2. ✅ isActive == true\n3. ✅ now ≥ startDate\n4. ✅ now ≤ endDate\n5. ✅ usedCount (50) < usageLimit (100)\n6. ✅ totalAmount (1.6M) ≥ minOrder (500K)\n7. ✅ scope (EVENT) matches event
+
+alt #FFE0E0 Validation Failed
+    Service --> Controller: {valid: false,\nerror: "Voucher has expired"}
+    Controller --> Browser: JSON {valid: false,\nmessage: "Voucher has expired"}
+    Browser --> Customer: ❌ Invalid voucher
+else #E8F5E9 Valid!
+
+    Service -> Service: **Calculate discount:**\ntype: percentage (10%)\ndiscount = 1,600,000 × 10%\n= 160,000 VND\nmaxDiscount = 200,000\nfinalDiscount = min(160K, 200K)\n= **160,000 VND**
+
+    Service --> Controller: {valid: true,\ndiscountAmount: 160000,\nnewTotal: 1440000}
+    deactivate Service
+
+    Controller --> Browser: JSON {valid: true,\ndiscount: "160,000 VND",\nnewTotal: "1,440,000 VND"}
+    deactivate Controller
+
+    Browser -> Browser: Update checkout UI:\n-160,000 VND discount\nTotal: 1,440,000 VND
+    Browser --> Customer: ✅ Voucher applied!\nDiscount: 160,000 VND
+end
+
+@enduml

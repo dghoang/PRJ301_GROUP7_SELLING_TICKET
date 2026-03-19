@@ -1,0 +1,66 @@
+@startuml UC_09_Notification
+' ============================================================
+' USE CASE DIAGRAM - MODULE 9: Notification System
+' Cross-module Notification Management
+' ============================================================
+
+title **Use Case Diagram - Module 9\nNotification System**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #E0F7FA
+    BorderColor #00838F
+    FontSize 12
+    ArrowColor #00838F
+}
+
+' === ACTORS ===
+actor "User\n(All Roles)" as User #LightBlue
+actor "System\n(Auto-trigger)" as System #LightGray
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 9: Notification System" {
+
+    usecase "**UC-9.1: Create Notification**\n---\nSystem auto-creates when:\n- Event approved/rejected\n- Order confirmed\n- New chat message\n- New support ticket\n- Account status changed" as UC_CREATE
+
+    usecase "**UC-9.2: View Notifications**\n---\nBell icon 🔔 shows unread count.\nDropdown list sorted by date.\nFilter: unread only." as UC_VIEW
+
+    usecase "**UC-9.3: Mark as Read**\n---\nClick notification →\nmark isRead=true.\nReduce unread counter." as UC_READ
+
+    usecase "**UC-9.4: Mark All as Read**\n---\nBatch update all\nunread → read.\nOne-click action." as UC_READALL
+}
+
+' === ASSOCIATIONS ===
+System --> UC_CREATE
+
+User --> UC_VIEW
+User --> UC_READ
+User --> UC_READALL
+
+' === NOTES ===
+note right of UC_CREATE
+  **FR-40**
+  Notification Types:
+  - EVENT_APPROVED
+  - EVENT_REJECTED
+  - EVENT_PENDING
+  - ORDER_CONFIRMED
+  - NEW_MESSAGE
+  - NEW_SUPPORT_TICKET
+  - TICKET_RESPONSE
+  - ACCOUNT_BANNED
+end note
+
+note right of UC_VIEW
+  **FR-41**
+  Each notification has:
+  - type (enum)
+  - message (text)
+  - relatedEventId (nullable)
+  - relatedOrderId (nullable)
+  - isRead (boolean)
+  - createdAt
+end note
+
+@enduml

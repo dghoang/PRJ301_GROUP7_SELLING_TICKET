@@ -1,0 +1,120 @@
+@startuml SD_09_BrowseEvents
+' ============================================================
+' SEQUENCE DIAGRAM - Browse & Search Events
+' FR-11~FR-14: Browse events + Pagination + Search + Detail
+' ============================================================
+
+title **SD-09: Browse & Search Events\n(Homepage → Event Detail + Search/Filter)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ArrowColor #2E7D32
+}
+
+actor "Guest /\nAttendee" as User #LightGreen
+participant "Browser" as Browser #LightYellow
+participant "HomeServlet" as HomeCtrl #E8F5E9
+participant "EventServlet" as EvtCtrl #E8F5E9
+participant "EventService" as Service #E8F5E9
+participant "EventDAO" as DAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Step 1: Load Homepage ==
+
+User -> Browser: Visit homepage
+Browser -> HomeCtrl: GET /
+activate HomeCtrl
+HomeCtrl -> Service: getFeaturedEvents()
+activate Service
+Service -> DAO: findFeatured()
+activate DAO
+DAO -> DB: SELECT TOP 6 e.*,\nc.name as categoryName\nFROM Events e\nJOIN Categories c ON ...\nWHERE e.status = 'approved'\nAND e.isFeatured = 1\nAND e.endDate > GETDATE()
+activate DB
+DB --> DAO: List<Event>
+deactivate DB
+DAO --> Service: featured events
+deactivate DAO
+Service --> HomeCtrl: events
+deactivate Service
+HomeCtrl --> Browser: Forward → index.jsp\n(featured events carousel,\ncategories, search bar)
+deactivate HomeCtrl
+Browser --> User: Homepage:\nBanner, Featured Events,\nCategories, Search Bar
+
+== Step 2: Browse All Events ==
+
+User -> Browser: Click "All Events"
+Browser -> EvtCtrl: GET /events\n?page=1&category=&sort=date
+activate EvtCtrl
+EvtCtrl -> Service: searchEvents(\nquery, category, sort, page)
+activate Service
+Service -> DAO: search(...)
+activate DAO
+DAO -> DB: SELECT e.*, c.name,\nMIN(tt.price) as minPrice,\nCOUNT(DISTINCT o.orderId) as orderCount\nFROM Events e\nJOIN Categories c ON ...\nLEFT JOIN TicketTypes tt ON ...\nLEFT JOIN Orders o ON ...\nWHERE e.status = 'approved'\nAND e.endDate > GETDATE()\nAND (e.isPrivate = 0)\nGROUP BY e.eventId\nORDER BY e.startDate\nOFFSET ? ROWS FETCH NEXT 12 ROWS ONLY
+activate DB
+DB --> DAO: List<Event> + totalCount
+deactivate DB
+DAO --> Service: events, total
+deactivate DAO
+Service --> EvtCtrl: events, pagination
+deactivate Service
+EvtCtrl --> Browser: Forward → events.jsp\n(event cards grid,\nfilters, pagination)
+deactivate EvtCtrl
+Browser --> User: Event list:\nCards (banner, title,\ndate, price from),\nCategory filter, Pagination
+
+== Step 3: Search Events ==
+
+User -> Browser: Type "music" in search\n+ Filter: "Music" category
+Browser -> EvtCtrl: GET /events\n?search=music&category=music\n&sort=date&page=1
+activate EvtCtrl
+EvtCtrl -> Service: searchEvents("music",\n"music", "date", 1)
+activate Service
+Service -> DAO: search(...)
+activate DAO
+DAO -> DB: SELECT ... FROM Events e\nWHERE e.status = 'approved'\nAND (e.title LIKE '%music%'\nOR e.location LIKE '%music%'\nOR e.description LIKE '%music%')\nAND c.slug = 'music'\nORDER BY ...
+activate DB
+DB --> DAO: filtered results
+deactivate DB
+DAO --> Service: events
+deactivate DAO
+Service --> EvtCtrl: events
+deactivate Service
+EvtCtrl --> Browser: Forward → events.jsp\n(filtered results)
+deactivate EvtCtrl
+Browser --> User: Search results:\n3 music events found
+
+== Step 4: View Event Detail ==
+
+User -> Browser: Click on event card
+Browser -> EvtCtrl: GET /events/{slug}
+activate EvtCtrl
+EvtCtrl -> Service: getEventBySlug(slug)
+activate Service
+Service -> DAO: findBySlug(slug)
+activate DAO
+DAO -> DB: SELECT e.*, c.name,\nu.fullName as organizerName,\nu.bio, u.avatar,\ntt.* (ticket types)\nFROM Events e\nJOIN Categories c ON ...\nJOIN Users u ON e.organizerId=u.userId\nJOIN TicketTypes tt ON ...\nWHERE e.slug = ?\nAND e.status = 'approved'
+activate DB
+DB --> DAO: Event + Organizer + TicketTypes
+deactivate DB
+DAO --> Service: eventDetail
+deactivate DAO
+
+' --- Increment View Count ---
+Service -> DAO: incrementViewCount(eventId)
+activate DAO
+DAO -> DB: UPDATE Events SET\nviewCount = viewCount + 1\nWHERE eventId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+
+Service --> EvtCtrl: eventDetail
+deactivate Service
+EvtCtrl --> Browser: Forward → event-detail.jsp
+deactivate EvtCtrl
+Browser --> User: Event Detail:\n- Banner image (large)\n- Title, Date, Location\n- Description (rich text)\n- Organizer info\n- Ticket Types table:\n  VIP: 500,000 VND (32/100 sold)\n  Standard: 200,000 VND\n- "Buy Tickets" button
+
+@enduml

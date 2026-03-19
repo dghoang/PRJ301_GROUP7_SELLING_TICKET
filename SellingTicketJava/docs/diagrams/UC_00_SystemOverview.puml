@@ -1,0 +1,156 @@
+@startuml UC_00_SystemOverview
+' ============================================================
+' USE CASE DIAGRAM - SYSTEM OVERVIEW
+' All Modules + All Actors
+' ============================================================
+
+title **System Overview Use Case Diagram\nEvent Ticket E-Commerce Platform**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #E3F2FD
+    BorderColor #1565C0
+    FontSize 11
+    ArrowColor #1565C0
+}
+
+' === ACTORS ===
+actor "Guest\n(Unregistered)" as Guest #LightGreen
+actor "Attendee\n(Customer)" as Attendee #LightBlue
+actor "Organizer" as Organizer #Gold
+actor "Staff\n(Event Staff)" as Staff #LightCoral
+actor "Admin\n(System Admin)" as Admin #Orchid
+
+' === EXTERNAL SYSTEMS ===
+actor "Google OAuth\n2.0" as Google #Tomato
+actor "SePay\n(VietQR)" as SePay #Tomato
+actor "Cloudinary\nCDN" as Cloud #Tomato
+
+' === INHERITANCE ===
+Guest <|-- Attendee : register/login
+
+' === MODULE 1: Authentication ===
+package "M1: Authentication &\nUser Management" #E3F2FD {
+    usecase "Register" as UC1_REG
+    usecase "Login\n(Email/Password)" as UC1_LOGIN
+    usecase "Login via\nGoogle OAuth" as UC1_OAUTH
+    usecase "Manage\nProfile" as UC1_PROF
+    usecase "Logout" as UC1_LOGOUT
+}
+
+' === MODULE 2: Event Management ===
+package "M2: Event\nManagement" #FFF3E0 {
+    usecase "Browse &\nSearch Events" as UC2_BROWSE
+    usecase "Create\nEvent" as UC2_CREATE
+    usecase "Manage\nEvents" as UC2_MANAGE
+    usecase "Manage\nTicket Types" as UC2_TICKET
+    usecase "Approve/Reject\nEvent" as UC2_APPROVE
+}
+
+' === MODULE 3: Ordering ===
+package "M3: Order &\nPayment" #FCE4EC {
+    usecase "Select Tickets\n& Checkout" as UC3_CHECKOUT
+    usecase "VietQR\nPayment" as UC3_PAY
+    usecase "View My\nTickets" as UC3_MYTICKET
+    usecase "Manage\nOrders" as UC3_ORDERS
+}
+
+' === MODULE 4: Check-in ===
+package "M4: QR\nCheck-in" #F3E5F5 {
+    usecase "QR Code\nCheck-in" as UC4_CHECKIN
+    usecase "View Check-in\nStatistics" as UC4_STATS
+}
+
+' === MODULE 5: Communication ===
+package "M5: Chat &\nSupport" #E0F7FA {
+    usecase "Live Chat" as UC5_CHAT
+    usecase "Support\nTicket" as UC5_SUPPORT
+}
+
+' === MODULE 6: Voucher ===
+package "M6: Voucher\nManagement" #FFFDE7 {
+    usecase "Create\nVoucher" as UC6_VOUCH
+    usecase "Apply\nVoucher" as UC6_APPLY
+}
+
+' === MODULE 7: Dashboard ===
+package "M7: Dashboard &\nReporting" #E8EAF6 {
+    usecase "Organizer\nDashboard" as UC7_ORGDASH
+    usecase "Admin\nDashboard" as UC7_ADMDASH
+    usecase "Staff\nDashboard" as UC7_STFDASH
+}
+
+' === MODULE 8: Administration ===
+package "M8: System\nAdministration" #EFEBE9 {
+    usecase "User\nManagement" as UC8_USER
+    usecase "Category\nManagement" as UC8_CAT
+    usecase "System\nConfiguration" as UC8_CONFIG
+    usecase "Staff\nAssignment" as UC8_STAFF
+}
+
+' ========== ASSOCIATIONS ==========
+
+' --- Guest ---
+Guest --> UC1_REG
+Guest --> UC1_LOGIN
+Guest --> UC1_OAUTH
+Guest --> UC2_BROWSE
+
+' --- Attendee ---
+Attendee --> UC1_PROF
+Attendee --> UC1_LOGOUT
+Attendee --> UC2_BROWSE
+Attendee --> UC3_CHECKOUT
+Attendee --> UC3_MYTICKET
+Attendee --> UC5_CHAT
+Attendee --> UC5_SUPPORT
+Attendee --> UC6_APPLY
+
+' --- Organizer ---
+Organizer --> UC2_CREATE
+Organizer --> UC2_MANAGE
+Organizer --> UC2_TICKET
+Organizer --> UC3_ORDERS
+Organizer --> UC5_CHAT
+Organizer --> UC5_SUPPORT
+Organizer --> UC6_VOUCH
+Organizer --> UC7_ORGDASH
+Organizer --> UC8_STAFF
+
+' --- Staff ---
+Staff --> UC4_CHECKIN
+Staff --> UC4_STATS
+Staff --> UC7_STFDASH
+
+' --- Admin ---
+Admin --> UC2_APPROVE
+Admin --> UC3_ORDERS
+Admin --> UC5_SUPPORT
+Admin --> UC6_VOUCH
+Admin --> UC7_ADMDASH
+Admin --> UC8_USER
+Admin --> UC8_CAT
+Admin --> UC8_CONFIG
+
+' --- External Systems ---
+Google --> UC1_OAUTH
+SePay --> UC3_PAY
+Cloud --> UC2_CREATE
+
+' === LEGEND ===
+legend bottom
+  |= Color |= Module |
+  | <#E3F2FD> | M1: Authentication |
+  | <#FFF3E0> | M2: Event Management |
+  | <#FCE4EC> | M3: Order & Payment |
+  | <#F3E5F5> | M4: QR Check-in |
+  | <#E0F7FA> | M5: Chat & Support |
+  | <#FFFDE7> | M6: Voucher |
+  | <#E8EAF6> | M7: Dashboard |
+  | <#EFEBE9> | M8: Administration |
+  ---
+  **Total:** 25 Use Cases | 5 Actors | 3 External Systems
+end legend
+
+@enduml

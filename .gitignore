@@ -1,77 +1,78 @@
-# Java Project
+# =============================================
+#  SellingTicket .gitignore
+#  Keep: source code, README, docs, SQL
+#  Ignore: secrets, IDE, build, AI agent files
+# =============================================
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
+# ===== SECRETS (CRITICAL - NEVER COMMIT) =====
+.env
+.env.*
+!.env.example
+SellingTicketJava/src/webapp/WEB-INF/google-oauth.properties
+
+# ===== BUILD & COMPILED =====
+SellingTicketJava/build/
+SellingTicketJava/dist/
+*.class
+*.jar
+*.war
+*.ear
+
+# ===== IDE & EDITOR =====
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+nbproject/private/
+*.sublime-*
 *.suo
 *.sw?
 
-# Secrets
-# Ignore environment-specific files
-config/database.php
+# ===== OS FILES =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.log
 
-
+# ===== PYTHON (scripts) =====
 *.py[cod]
 *$py.class
 *.so
 .Python
-
-develop-eggs/
-eggs/
-.eggs/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
 
-
-# Ignore temp/cache files
-*.log
-*.tmp
-.DS_Store
-Thumbs.db
-
-# Ignore IDE files
-.idea/
-.vscode/
-*.sublime-*
-
-# Ignore uploads (keep directory structure)
-
-# Ignore test/dev files
-create_test_users.php
-migrate.php
-*.agent
-*.md
+# ===== AI AGENT FILES (do not push) =====
 .agent/
-.agents
-.agent
-.agents
-.github/
+.agents/
 .cursor/
-.context
+.context/
 .antigravity/
+.github/
+*.agent
 *.cursorrules
 agent_memory.json
 mcp_servers.json
-.sh
 memory-bank/
 artifacts/
-tests/
 skills-lock.json
 ui-ux-pro-max-skill/
-~/.gemini/antigravity/skills/
-~/antigravity-skills/
-SellingTicketJava/docs/node_modules
+~/
+
+# ===== DOCS: ignore generated/heavy files =====
+SellingTicketJava/docs/node_modules/
 SellingTicketJava/docs/package-lock.json
 SellingTicketJava/docs/package.json
+SellingTicketJava/docs/convert_ch6_to_docx.js
+SellingTicketJava/docs/generate-usecase-docx.js
 SellingTicketJava/docs/Do an Vu Duy Nguyen D19 HTTT.pdf
 SellingTicketJava/docs/Project_PRJ301_ReportTemplate.docx
-SellingTicketJava/docs/convert_ch6_to_docx.js
+/SellingTicketJava/docs/diagrams/images
+
+# ===== TEST/DEV FILES =====
+create_test_users.php
+migrate.php
+config/database.php
+tests/

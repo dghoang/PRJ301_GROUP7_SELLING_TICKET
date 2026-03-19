@@ -1,0 +1,93 @@
+@startuml SD_14_AdminDashboard
+' ============================================================
+' SEQUENCE DIAGRAM - Admin Dashboard
+' FR-38: System-wide statistics + Revenue charts
+' ============================================================
+
+title **SD-14: Admin Dashboard\n(System-wide KPIs + Charts)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #E8EAF6
+    ParticipantBorderColor #283593
+    ArrowColor #283593
+}
+
+actor "Admin" as Admin #Orchid
+participant "Browser" as Browser #LightYellow
+participant "AdminDashboardServlet\n(Controller)" as Controller #E8EAF6
+participant "AdminDashboardService" as Service #E8F5E9
+participant "UserDAO" as UserDAO #FFF3E0
+participant "EventDAO" as EvtDAO #FFF3E0
+participant "OrderDAO" as OrdDAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Load Admin Dashboard ==
+
+Admin -> Browser: Open Admin Dashboard
+Browser -> Controller: GET /admin/dashboard
+activate Controller
+
+Controller -> Service: getSystemStats()
+activate Service
+
+' --- User Statistics ---
+Service -> UserDAO: getUserStats()
+activate UserDAO
+UserDAO -> DB: SELECT\nCOUNT(*) as totalUsers,\nSUM(CASE WHEN role='customer'\n  THEN 1 ELSE 0 END) as customers,\nSUM(CASE WHEN role='organizer'\n  THEN 1 ELSE 0 END) as organizers,\nSUM(CASE WHEN role='staff'\n  THEN 1 ELSE 0 END) as staff\nFROM Users WHERE isDeleted=0
+activate DB
+DB --> UserDAO: userStats
+deactivate DB
+UserDAO --> Service: userStats
+deactivate UserDAO
+
+' --- Event Statistics ---
+Service -> EvtDAO: getEventStats()
+activate EvtDAO
+EvtDAO -> DB: SELECT\nCOUNT(*) as total,\nSUM(CASE WHEN status='pending'\n  THEN 1 ELSE 0 END) as pending,\nSUM(CASE WHEN status='approved'\n  THEN 1 ELSE 0 END) as approved\nFROM Events
+activate DB
+DB --> EvtDAO: eventStats
+deactivate DB
+EvtDAO --> Service: eventStats
+deactivate EvtDAO
+
+' --- Revenue Statistics ---
+Service -> OrdDAO: getSystemRevenue()
+activate OrdDAO
+OrdDAO -> DB: SELECT\nSUM(totalAmount) as totalRevenue,\nCOUNT(*) as totalOrders,\nSUM(CASE WHEN status='confirmed'\n  THEN 1 ELSE 0 END) as confirmed,\nSUM(CASE WHEN status='pending'\n  THEN 1 ELSE 0 END) as pending\nFROM Orders
+activate DB
+DB --> OrdDAO: revenueStats
+deactivate DB
+OrdDAO --> Service: revenueStats
+deactivate OrdDAO
+
+' --- Monthly Revenue (12-month Chart) ---
+Service -> OrdDAO: getMonthlyRevenue(12)
+activate OrdDAO
+OrdDAO -> DB: SELECT\nFORMAT(paymentDate,'yyyy-MM') as month,\nSUM(totalAmount) as revenue,\nCOUNT(*) as orders\nFROM Orders\nWHERE status = 'confirmed'\nAND paymentDate >= DATEADD(month,-12,GETDATE())\nGROUP BY FORMAT(paymentDate,'yyyy-MM')\nORDER BY month
+activate DB
+DB --> OrdDAO: monthlyData
+deactivate DB
+OrdDAO --> Service: monthlyRevenue
+deactivate OrdDAO
+
+' --- Category Distribution ---
+Service -> EvtDAO: getCategoryDistribution()
+activate EvtDAO
+EvtDAO -> DB: SELECT c.name,\nCOUNT(e.eventId) as eventCount\nFROM Categories c\nLEFT JOIN Events e ON c.categoryId=e.categoryId\nWHERE e.status='approved'\nGROUP BY c.name
+activate DB
+DB --> EvtDAO: distribution
+deactivate DB
+EvtDAO --> Service: categories
+deactivate EvtDAO
+
+Service --> Controller: AdminDashboardData {\n  userStats, eventStats,\n  revenueStats, monthlyRevenue,\n  categoryDistribution\n}
+deactivate Service
+
+Controller --> Browser: Forward → admin/dashboard.jsp
+deactivate Controller
+
+Browser --> Admin: **📊 Admin Dashboard:**\n\n**KPI Cards:**\n• Total Users: 5,230\n  (5,100 customers, 98 organizers,\n  30 staff, 2 admins)\n• Total Events: 156\n  (5 pending approval)\n• Total Orders: 12,450\n  (11,800 confirmed)\n• Revenue: 2,150,000,000 VND\n\n**Charts:**\n• Line: Monthly revenue (12 months)\n• Pie: Category distribution\n• Bar: Top organizers by revenue
+
+@enduml

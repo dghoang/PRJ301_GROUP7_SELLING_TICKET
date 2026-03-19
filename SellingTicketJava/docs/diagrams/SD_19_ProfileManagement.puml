@@ -1,0 +1,139 @@
+@startuml SD_19_ProfileManagement
+' ============================================================
+' SEQUENCE DIAGRAM - Profile Management
+' FR-05~FR-06: Edit Profile + Upload Avatar + Change Password
+' ============================================================
+
+title **SD-19: Profile Management\n(Edit Info + Upload Avatar + Change Password)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #E3F2FD
+    ParticipantBorderColor #1565C0
+    ArrowColor #1565C0
+}
+
+actor "Authenticated\nUser" as User #LightBlue
+participant "Browser" as Browser #LightYellow
+participant "ProfileServlet\n(Controller)" as Controller #E3F2FD
+participant "UserService" as Service #E8F5E9
+participant "UserDAO" as DAO #FFF3E0
+participant "CloudinaryService" as Cloud #E0F7FA
+database "SQL Server" as DB #F3E5F5
+
+== Step 1: View Profile ==
+
+User -> Browser: Open My Profile
+Browser -> Controller: GET /profile
+activate Controller
+Controller -> Service: getProfile(userId)
+activate Service
+Service -> DAO: findById(userId)
+activate DAO
+DAO -> DB: SELECT * FROM Users\nWHERE userId = ?
+activate DB
+DB --> DAO: User
+deactivate DB
+DAO --> Service: user
+deactivate DAO
+Service --> Controller: user
+deactivate Service
+Controller --> Browser: Forward → profile.jsp\n(editable form)
+deactivate Controller
+Browser --> User: Profile page:\nAvatar, Name, Email (readonly),\nPhone, Gender, Date of Birth\n+ Password change section
+
+== Step 2: Update Profile ==
+
+User -> Browser: Edit: fullName, phone,\ngender, dateOfBirth
+Browser -> Controller: POST /profile/update\n{fullName, phone, gender,\ndateOfBirth}
+activate Controller
+Controller -> Service: updateProfile(userId, data)
+activate Service
+Service -> DAO: update(userId, data)
+activate DAO
+DAO -> DB: UPDATE Users SET\nfullName=?, phone=?,\ngender=?, dateOfBirth=?,\nupdatedAt=GETDATE()\nWHERE userId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+Service --> Controller: updated user
+deactivate Service
+Controller -> Controller: Update session:\nsession.setAttribute("user",\nupdatedUser)
+Controller --> Browser: Redirect + flash:\n"Profile updated\nsuccessfully"
+deactivate Controller
+Browser --> User: ✅ Profile updated
+
+== Step 3: Upload Avatar ==
+
+User -> Browser: Select new avatar image
+Browser -> Controller: POST /profile/avatar\n(multipart: avatarFile)
+activate Controller
+Controller -> Cloud: uploadImage(file,\n"avatars/")
+activate Cloud
+Cloud --> Controller: {url: "https://res...jpg"}
+deactivate Cloud
+Controller -> Service: updateAvatar(userId, url)
+activate Service
+Service -> DAO: updateAvatar(userId, url)
+activate DAO
+DAO -> DB: UPDATE Users SET\navatar = ?\nWHERE userId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+Service --> Controller: OK
+deactivate Service
+Controller -> Controller: session.user.avatar = url
+Controller --> Browser: Redirect + flash:\n"Avatar updated"
+deactivate Controller
+Browser --> User: ✅ New avatar displayed
+
+== Step 4: Change Password ==
+
+User -> Browser: Enter current password\n+ new password × 2
+Browser -> Controller: POST /profile/change-password\n{currentPassword, newPassword,\nconfirmPassword}
+activate Controller
+
+Controller -> Controller: Validate:\n- newPassword ≥ 8 chars\n- newPassword == confirmPassword
+
+Controller -> Service: changePassword(userId,\ncurrentPw, newPw)
+activate Service
+
+Service -> DAO: findById(userId)
+activate DAO
+DAO -> DB: SELECT password FROM Users\nWHERE userId = ?
+activate DB
+DB --> DAO: hashedPassword
+deactivate DB
+DAO --> Service: user
+deactivate DAO
+
+Service -> Service: BCrypt.checkpw(\ncurrentPw, user.password)
+
+alt #FFE0E0 Current Password Incorrect
+    Service --> Controller: "Current password\nis incorrect"
+    Controller --> Browser: Forward → profile.jsp\n+ error
+    Browser --> User: ❌ Incorrect current password
+else #E8F5E9 Password Correct
+
+    Service -> Service: newHash = BCrypt.hashpw(\nnewPassword, gensalt(12))
+    Service -> DAO: updatePassword(\nuserId, newHash)
+    activate DAO
+    DAO -> DB: UPDATE Users SET\npassword = ?\nWHERE userId = ?
+    activate DB
+    DB --> DAO: Updated
+    deactivate DB
+    DAO --> Service: OK
+    deactivate DAO
+
+    Service --> Controller: Success
+    deactivate Service
+    Controller --> Browser: Redirect + flash:\n"Password changed\nsuccessfully"
+    deactivate Controller
+    Browser --> User: ✅ Password changed
+end
+
+@enduml

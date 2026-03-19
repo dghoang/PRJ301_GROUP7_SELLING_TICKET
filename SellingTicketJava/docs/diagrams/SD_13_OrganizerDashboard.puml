@@ -1,0 +1,82 @@
+@startuml SD_13_OrganizerDashboard
+' ============================================================
+' SEQUENCE DIAGRAM - Organizer Dashboard
+' FR-37: Dashboard statistics + Charts + KPIs
+' ============================================================
+
+title **SD-13: Organizer Dashboard\n(KPI Statistics + Charts)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #E8EAF6
+    ParticipantBorderColor #283593
+    ArrowColor #283593
+}
+
+actor "Organizer" as Organizer #Gold
+participant "Browser" as Browser #LightYellow
+participant "OrgDashboardServlet\n(Controller)" as Controller #E8EAF6
+participant "DashboardService" as Service #E8F5E9
+participant "EventDAO" as EvtDAO #FFF3E0
+participant "OrderDAO" as OrdDAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Load Organizer Dashboard ==
+
+Organizer -> Browser: Open Dashboard
+Browser -> Controller: GET /organizer/dashboard
+activate Controller
+
+' --- Event Statistics ---
+Controller -> Service: getOrganizerStats(organizerId)
+activate Service
+
+Service -> EvtDAO: countByOrganizer(organizerId)
+activate EvtDAO
+EvtDAO -> DB: SELECT\nCOUNT(*) as totalEvents,\nSUM(CASE WHEN status='approved'\n  THEN 1 ELSE 0 END) as active,\nSUM(CASE WHEN status='pending'\n  THEN 1 ELSE 0 END) as pending\nFROM Events\nWHERE organizerId = ?
+activate DB
+DB --> EvtDAO: stats
+deactivate DB
+EvtDAO --> Service: eventStats
+deactivate EvtDAO
+
+' --- Revenue Statistics ---
+Service -> OrdDAO: getRevenue(organizerId)
+activate OrdDAO
+OrdDAO -> DB: SELECT\nSUM(o.totalAmount) as totalRevenue,\nCOUNT(DISTINCT o.orderId) as totalOrders,\nSUM(oi.quantity) as totalTicketsSold\nFROM Orders o\nJOIN Events e ON o.eventId=e.eventId\nJOIN OrderItems oi ON o.orderId=oi.orderId\nWHERE e.organizerId = ?\nAND o.status = 'confirmed'
+activate DB
+DB --> OrdDAO: revenue
+deactivate DB
+OrdDAO --> Service: revenueStats
+deactivate OrdDAO
+
+' --- Daily Sales (30-day Chart) ---
+Service -> OrdDAO: getDailySales(\norganizerId, last30Days)
+activate OrdDAO
+OrdDAO -> DB: SELECT CAST(o.paymentDate AS DATE) as date,\nSUM(o.totalAmount) as revenue,\nCOUNT(*) as orders\nFROM Orders o\nJOIN Events e ON ...\nWHERE o.status='confirmed'\nAND o.paymentDate >= DATEADD(day,-30,GETDATE())\nGROUP BY CAST(o.paymentDate AS DATE)\nORDER BY date
+activate DB
+DB --> OrdDAO: daily data
+deactivate DB
+OrdDAO --> Service: dailySales
+deactivate OrdDAO
+
+' --- Top 5 Events by Revenue ---
+Service -> EvtDAO: getTopEvents(organizerId, 5)
+activate EvtDAO
+EvtDAO -> DB: SELECT TOP 5 e.title,\nSUM(o.totalAmount) as revenue,\nSUM(oi.quantity) as tickets\nFROM Events e\nJOIN Orders o ON ...\nJOIN OrderItems oi ON ...\nWHERE e.organizerId = ?\nAND o.status = 'confirmed'\nGROUP BY e.eventId, e.title\nORDER BY revenue DESC
+activate DB
+DB --> EvtDAO: top events
+deactivate DB
+EvtDAO --> Service: topEvents
+deactivate EvtDAO
+
+Service --> Controller: DashboardData {\n  eventStats, revenueStats,\n  dailySales, topEvents\n}
+deactivate Service
+
+Controller --> Browser: Forward → organizer/dashboard.jsp
+deactivate Controller
+
+Browser --> Organizer: **📊 Organizer Dashboard:**\n\n**KPI Cards:**\n• Total Events: 12 (8 active)\n• Total Tickets Sold: 2,450\n• Total Revenue: 485,000,000 VND\n• Pending Approval: 2\n\n**Charts (Chart.js):**\n• Line chart: Revenue last 30 days\n• Bar chart: Top 5 events by revenue\n• Doughnut: Ticket type distribution
+
+@enduml

@@ -1,0 +1,107 @@
+@startuml SD_17_Notification
+' ============================================================
+' SEQUENCE DIAGRAM - Notification System
+' FR-40: Create + Display + Mark Read Notifications
+' ============================================================
+
+title **SD-17: Notification System\n(Create → Display → Mark as Read)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #E0F7FA
+    ParticipantBorderColor #00838F
+    ArrowColor #00838F
+}
+
+actor "User\n(All Roles)" as User #LightBlue
+participant "Browser" as Browser #LightYellow
+participant "NotificationServlet\n(API)" as Controller #E0F7FA
+participant "NotificationService" as Service #E8F5E9
+participant "NotificationDAO" as DAO #FFF3E0
+database "SQL Server" as DB #F3E5F5
+
+== Part A: Notification is Created (by System) ==
+
+note over Service
+  Notifications are created by various system events:
+  - Order confirmed → Customer
+  - Event approved/rejected → Organizer
+  - New support ticket → Assignee
+  - New chat message → Recipient
+  - Account banned → User
+end note
+
+Service -> DAO: create(notification)
+activate DAO
+DAO -> DB: INSERT INTO Notifications (\n  notificationId, userId,\n  type, message,\n  relatedEventId (nullable),\n  relatedOrderId (nullable),\n  isRead=0, createdAt\n)
+activate DB
+DB --> DAO: Created
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+
+== Part B: User Views Notifications ==
+
+User -> Browser: Click bell icon 🔔
+Browser -> Controller: GET /api/notifications\n?unreadOnly=true
+activate Controller
+Controller -> Service: getNotifications(\nuserId, unreadOnly)
+activate Service
+Service -> DAO: findByUser(userId, unreadOnly)
+activate DAO
+DAO -> DB: SELECT * FROM Notifications\nWHERE userId = ?\nAND (isRead = 0 OR ? = false)\nORDER BY createdAt DESC\nOFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+activate DB
+DB --> DAO: List<Notification>
+deactivate DB
+DAO --> Service: notifications
+deactivate DAO
+Service --> Controller: notifications
+deactivate Service
+Controller --> Browser: JSON {notifications: [...],\nunreadCount: 5}
+deactivate Controller
+Browser --> User: 🔔 Notification dropdown:\n• Event "Summer Music"\n  has been approved ✨\n• Order ORD-A1B2C3\n  payment confirmed ✅\n• New message from\n  organizer 💬\n+ 2 more...
+
+== Part C: Mark as Read ==
+
+User -> Browser: Click on a notification
+Browser -> Controller: POST /api/notifications/read\n{notificationId}
+activate Controller
+Controller -> Service: markAsRead(\nnotificationId, userId)
+activate Service
+Service -> DAO: markRead(notificationId)
+activate DAO
+DAO -> DB: UPDATE Notifications SET\nisRead = 1\nWHERE notificationId = ?\nAND userId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+Service --> Controller: OK
+deactivate Service
+Controller --> Browser: JSON {success: true}
+deactivate Controller
+Browser -> Browser: Update UI:\n- Remove unread indicator\n- Decrease unread count
+
+== Part D: Mark All as Read ==
+
+User -> Browser: Click "Mark all as read"
+Browser -> Controller: POST /api/notifications/read-all
+activate Controller
+Controller -> Service: markAllAsRead(userId)
+activate Service
+Service -> DAO: markAllRead(userId)
+activate DAO
+DAO -> DB: UPDATE Notifications SET\nisRead = 1\nWHERE userId = ?\nAND isRead = 0
+activate DB
+DB --> DAO: Updated (5 rows)
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+Service --> Controller: OK
+deactivate Service
+Controller --> Browser: JSON {success: true,\nmarked: 5}
+deactivate Controller
+Browser --> User: ✅ All notifications\nmarked as read
+
+@enduml

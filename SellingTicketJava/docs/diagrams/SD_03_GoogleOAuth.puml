@@ -1,13 +1,14 @@
 @startuml SD_03_GoogleOAuth
 ' ============================================================
-' SEQUENCE DIAGRAM - Đăng nhập Google OAuth 2.0
-' FR-03: Đăng nhập/Đăng ký 1-click via Google
+' SEQUENCE DIAGRAM - Google OAuth 2.0 Login
+' FR-03: Google Sign-in → Auto-create User → Session
 ' ============================================================
 
-title **SD-03: Đăng nhập Google OAuth 2.0\n(Social Login Flow)**
+title **SD-03: Google OAuth 2.0 Login\n(Google Sign-in → Session)**
 
 skinparam sequenceArrowThickness 2
 skinparam roundcorner 10
+skinparam maxmessagesize 200
 skinparam sequence {
     ParticipantBackgroundColor #E3F2FD
     ParticipantBorderColor #1565C0
@@ -15,78 +16,72 @@ skinparam sequence {
 }
 
 actor "Guest" as User #LightGreen
-participant "Browser" as Browser #LightYellow
-participant "GoogleLoginServlet\n(Controller)" as LoginCtrl #E3F2FD
-participant "GoogleCallbackServlet\n(Controller)" as CallbackCtrl #E3F2FD
-participant "GoogleOAuthService" as OAuthSvc #E8F5E9
+participant "Browser\n(JSP)" as Browser #LightYellow
+participant "GoogleAuthServlet\n(Controller)" as Auth #E3F2FD
+participant "GoogleCallbackServlet\n(Callback)" as Callback #E3F2FD
+participant "GoogleOAuthService" as Service #E8F5E9
 participant "UserService" as UserSvc #E8F5E9
 participant "UserDAO" as DAO #FFF3E0
-box "External Services" #F5F5F5
+box "External" #F5F5F5
     participant "Google\nOAuth 2.0" as Google #FFCDD2
 end box
 database "SQL Server" as DB #F3E5F5
 
-== Bước 1: Initiate OAuth Flow ==
+== Step 1: Initiate Google Login ==
 
-User -> Browser: Click "Đăng nhập bằng Google"
-Browser -> LoginCtrl: GET /auth/google/login
-activate LoginCtrl
+User -> Browser: Click "Sign in with Google"
+Browser -> Auth: GET /auth/google
+activate Auth
 
-LoginCtrl -> OAuthSvc: getAuthorizationUrl()
-activate OAuthSvc
-OAuthSvc -> OAuthSvc: Build URL:\nhttps://accounts.google.com/o/oauth2/v2/auth\n?client_id={CLIENT_ID}\n&redirect_uri={CALLBACK_URL}\n&response_type=code\n&scope=openid email profile\n&state={CSRF_STATE}\n&access_type=offline
-OAuthSvc --> LoginCtrl: authorizationUrl
-deactivate OAuthSvc
+Auth -> Auth: Generate state token:\nstate = UUID.randomUUID()\nsession.setAttribute(\n  "oauth_state", state)
 
-LoginCtrl -> LoginCtrl: session.setAttribute(\n"oauth_state", state)
-LoginCtrl --> Browser: HTTP 302 Redirect\n→ Google Authorization URL
-deactivate LoginCtrl
+Auth -> Auth: Build Auth URL:\nhttps://accounts.google.com/\no/oauth2/v2/auth?\nclient_id={CLIENT_ID}\n&redirect_uri={CALLBACK_URL}\n&response_type=code\n&scope=openid email profile\n&state={state}
 
-Browser -> Google: Redirect to Google Login Page
+Auth --> Browser: Redirect → Google Auth URL
+deactivate Auth
+
+== Step 2: Google Authentication ==
+
+Browser -> Google: Redirect to Google Login
 activate Google
-Google --> Browser: Google Consent Screen\n(Choose Account + Permissions)
-Browser --> User: Chọn tài khoản Google
-
-== Bước 2: User Authorizes ==
-
-User -> Browser: Chọn tài khoản + Allow
-Browser -> Google: Submit authorization
-Google --> Browser: HTTP 302 Redirect\n→ /auth/google/callback\n?code={AUTH_CODE}&state={STATE}
+Google --> User: Display Google\naccount selection screen
+User -> Google: Select account +\nGrant permissions
+Google -> Google: Validate credentials
+Google --> Browser: Redirect →\n{CALLBACK_URL}?\ncode={auth_code}\n&state={state}
 deactivate Google
 
-== Bước 3: Exchange Code for Tokens ==
+== Step 3: Handle Callback ==
 
-Browser -> CallbackCtrl: GET /auth/google/callback\n?code={AUTH_CODE}&state={STATE}
-activate CallbackCtrl
+Browser -> Callback: GET /auth/google/callback\n?code={auth_code}\n&state={state}
+activate Callback
 
-' --- Validate State (CSRF protection) ---
-CallbackCtrl -> CallbackCtrl: Validate state parameter\nvs session oauth_state
+' --- CSRF Verification ---
+Callback -> Callback: Validate state:\nsession.state == param.state?
 
 alt #FFE0E0 State Mismatch (CSRF attack)
-    CallbackCtrl --> Browser: Redirect → /login\n+ "Phiên đăng nhập không hợp lệ"
-    Browser --> User: ⛔ Error page
+    Callback --> Browser: Redirect → /login\n?error=invalid_state
+    Browser --> User: ❌ Login failed\n(security error)
 else #E8F5E9 State Valid
 
-    CallbackCtrl -> OAuthSvc: exchangeCodeForTokens(authCode)
-    activate OAuthSvc
-
-    OAuthSvc -> Google: POST https://oauth2.googleapis.com/token\n{code, client_id, client_secret,\nredirect_uri, grant_type=authorization_code}
+    ' --- Exchange Code for Tokens ---
+    Callback -> Service: exchangeCodeForTokens(code)
+    activate Service
+    Service -> Google: POST /token\n{code, client_id,\nclient_secret,\nredirect_uri,\ngrant_type=authorization_code}
     activate Google
-    Google --> OAuthSvc: {\n  access_token: "ya29...",\n  id_token: "eyJ...",\n  refresh_token: "1//...",\n  expires_in: 3600\n}
+    Google --> Service: {\n  access_token: "ya29...",\n  id_token: "eyJ...",\n  refresh_token: "1//...",\n  expires_in: 3600\n}
     deactivate Google
 
     ' --- Get User Info ---
-    OAuthSvc -> Google: GET https://www.googleapis.com/oauth2/v3/userinfo\nAuthorization: Bearer {access_token}
+    Service -> Google: GET /userinfo\nAuthorization: Bearer {access_token}
     activate Google
-    Google --> OAuthSvc: {\n  sub: "1234567890",\n  email: "user@gmail.com",\n  name: "Nguyễn Văn A",\n  picture: "https://lh3...",\n  email_verified: true\n}
+    Google --> Service: {\n  sub: "118234567890",\n  email: "user@gmail.com",\n  name: "Nguyen Van A",\n  picture: "https://...photo.jpg",\n  email_verified: true\n}
     deactivate Google
 
-    OAuthSvc --> CallbackCtrl: GoogleUserInfo\n{email, name, picture, googleId}
-    deactivate OAuthSvc
+    Service --> Callback: GoogleUserInfo
+    deactivate Service
 
-    == Bước 4: Find or Create User ==
-
-    CallbackCtrl -> UserSvc: findOrCreateGoogleUser(\ngoogleUserInfo)
+    ' --- Find or Create User ---
+    Callback -> UserSvc: findOrCreateOAuthUser(\ngoogleUserInfo)
     activate UserSvc
 
     UserSvc -> DAO: findByEmail(email)
@@ -98,42 +93,38 @@ else #E8F5E9 State Valid
     DAO --> UserSvc: result
     deactivate DAO
 
-    alt User NOT exists
-        UserSvc -> UserSvc: Create new User:\nfullName = googleName\nemail = googleEmail\navatar = googlePicture\nrole = "customer"\noauthProvider = "google"\noauthId = googleSub\nisActive = true\npassword = null (OAuth user)
-
-        UserSvc -> DAO: create(newUser)
+    alt User Not Found (new user)
+        UserSvc -> DAO: create(User)
         activate DAO
-        DAO -> DB: INSERT INTO Users\n(userId, fullName, email, avatar,\nrole, oauthProvider, oauthId,\nisActive, createdAt)
+        DAO -> DB: INSERT INTO Users (\n  userId=NEWID(), email,\n  fullName, avatar=picture,\n  role='customer',\n  oauthUser=1,\n  oauthProvider='google',\n  oauthId=sub, password=NULL,\n  isActive=1, createdAt\n)
         activate DB
-        DB --> DAO: Created
+        DB --> DAO: new userId
         deactivate DB
-        DAO --> UserSvc: User
+        DAO --> UserSvc: New User
         deactivate DAO
-    else User EXISTS
-        UserSvc -> UserSvc: Update OAuth info:\noauthProvider = "google"\noauthId = googleSub\navatar = googlePicture (if newer)
-        UserSvc -> DAO: update(existingUser)
+    else User Exists
+        UserSvc -> UserSvc: Check oauthUser flag:\nif oauthUser=false →\nuser registered via email,\nlink Google account
+        UserSvc -> DAO: updateOAuth(userId,\noauthProvider, oauthId)
         activate DAO
-        DAO -> DB: UPDATE Users SET\noauthProvider=?, oauthId=?\nWHERE userId=?
+        DAO -> DB: UPDATE Users SET\noauthUser=1,\noauthProvider='google',\noauthId=?\nWHERE userId=?
         activate DB
         DB --> DAO: Updated
         deactivate DB
-        DAO --> UserSvc: User
+        DAO --> UserSvc: Updated User
         deactivate DAO
     end
 
-    UserSvc --> CallbackCtrl: User (found or created)
+    UserSvc --> Callback: User
     deactivate UserSvc
 
-    == Bước 5: Create Session & Redirect ==
+    ' --- Create Session ---
+    Callback -> Callback: session.setAttribute("user", user)\nsession.setAttribute("role", role)
 
-    CallbackCtrl -> CallbackCtrl: session.setAttribute("user", user)\nsession.setAttribute("role", role)
-    CallbackCtrl -> DB: INSERT ActivityLogs\n(action='OAUTH_LOGIN', userId)
+    Callback -> DB: INSERT INTO ActivityLogs\n(action='OAUTH_LOGIN',\ndetails='google', userId)
 
-    CallbackCtrl --> Browser: Redirect → Dashboard\n(theo role user)
-    Browser --> User: ✅ Đăng nhập thành công\nvia Google OAuth
-
+    Callback --> Browser: Redirect → /\n+ flash: "Google login\nsuccessful!"
+    deactivate Callback
+    Browser --> User: ✅ Login successful,\nredirect to homepage
 end
-
-deactivate CallbackCtrl
 
 @enduml

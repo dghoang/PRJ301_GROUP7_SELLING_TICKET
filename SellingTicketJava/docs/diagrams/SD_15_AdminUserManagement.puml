@@ -1,10 +1,10 @@
 @startuml SD_15_AdminUserManagement
 ' ============================================================
-' SEQUENCE DIAGRAM - Quản lý Người dùng (Admin)
-' FR-42: Admin xem, tìm kiếm, khóa/mở khóa, xóa user
+' SEQUENCE DIAGRAM - Admin User Management
+' FR-42~FR-44: CRUD Users + Ban/Unban + Search/Filter
 ' ============================================================
 
-title **SD-15: Quản lý Người dùng\n(Admin User Management)**
+title **SD-15: Admin User Management\n(View / Search / Ban / Delete Users)**
 
 skinparam sequenceArrowThickness 2
 skinparam roundcorner 10
@@ -22,17 +22,16 @@ participant "UserDAO" as DAO #FFF3E0
 participant "NotificationService" as NotifSvc #E0F7FA
 database "SQL Server" as DB #F3E5F5
 
-== Xem danh sách Users ==
+== Step 1: View User List ==
 
-Admin -> Browser: Truy cập Users Management
+Admin -> Browser: Open User Management
 Browser -> Controller: GET /admin/users\n?page=1&role=&search=
 activate Controller
-
-Controller -> Service: searchUsers(query,\nrole, page, pageSize)
+Controller -> Service: getUsers(page, role, search)
 activate Service
-Service -> DAO: findAll(query, role, page)
+Service -> DAO: findAll(page, role, search)
 activate DAO
-DAO -> DB: SELECT u.*, \n  COUNT(o.orderId) as orderCount\nFROM Users u\nLEFT JOIN Orders o ON u.userId=o.customerId\nWHERE u.isDeleted = 0\nAND (u.fullName LIKE '%{query}%'\n  OR u.email LIKE '%{query}%')\nAND (u.role = ? OR ? IS NULL)\nGROUP BY u.userId\nORDER BY u.createdAt DESC\nOFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+DAO -> DB: SELECT u.*, \nCOUNT(DISTINCT o.orderId) as orderCount\nFROM Users u\nLEFT JOIN Orders o ON u.userId=o.customerId\nWHERE u.isDeleted = 0\nAND (u.role = ? OR ? IS NULL)\nAND (u.fullName LIKE '%?%'\n  OR u.email LIKE '%?%')\nGROUP BY u.userId\nORDER BY u.createdAt DESC\nOFFSET ? ROWS FETCH NEXT 20 ROWS ONLY
 activate DB
 DB --> DAO: List<User> + totalCount
 deactivate DB
@@ -40,86 +39,65 @@ DAO --> Service: users, total
 deactivate DAO
 Service --> Controller: users, pagination
 deactivate Service
-
-Controller --> Browser: Forward → admin/users.jsp\n(users table, search bar,\nrole filter, pagination)
+Controller --> Browser: Forward → admin/users.jsp
 deactivate Controller
-Browser --> Admin: Danh sách users:\nID, Name, Email, Role,\nStatus, Orders, Actions
+Browser --> Admin: User list table:\nName, Email, Role, Status,\nRegistered Date, Actions
 
-== Khóa tài khoản (Ban) ==
+== Step 2: Ban/Unban User ==
 
-Admin -> Browser: Click "Ban" cho user
-Browser -> Controller: POST /admin/users/toggle-status\n{userId, action: "deactivate"}
+Admin -> Browser: Click "Ban" on user
+Browser -> Controller: POST /admin/users/toggle-status\n{userId, action: "ban"}
 activate Controller
 
-Controller -> Service: deactivateUser(userId)
+Controller -> Service: toggleUserStatus(\nuserId, "ban", adminId)
 activate Service
-Service -> DAO: updateStatus(\nuserId, isActive=false)
+
+Service -> DAO: updateStatus(userId, isActive=false)
 activate DAO
-DAO -> DB: UPDATE Users SET\nisActive = 0,\nupdatedAt = GETDATE()\nWHERE userId = ?
+DAO -> DB: UPDATE Users SET\nisActive = 0\nWHERE userId = ?
 activate DB
 DB --> DAO: Updated
 deactivate DB
 DAO --> Service: OK
 deactivate DAO
 
-Service -> NotifSvc: notify(userId,\n"Tài khoản đã bị khóa",\n'ACCOUNT_BANNED')
-activate NotifSvc
-NotifSvc -> DB: INSERT Notification
-NotifSvc --> Service: OK
-deactivate NotifSvc
+' --- Activity Log ---
+Service -> DB: INSERT INTO ActivityLogs\n(userId=adminId,\naction='BAN_USER',\ndetails='Banned userId={id}')
+
+' --- Notify User ---
+Service -> NotifSvc: notify(userId,\n"Your account has been\nsuspended. Contact\nsupport for details.",\n'ACCOUNT_BANNED')
 
 Service --> Controller: Success
 deactivate Service
-
-Controller -> DB: INSERT ActivityLogs\n(action='BAN_USER',\ndetails='userId={id}')
-
-Controller --> Browser: Redirect + flash:\n"Đã khóa tài khoản"
+Controller --> Browser: Redirect + flash:\n"User has been banned"
 deactivate Controller
-Browser --> Admin: ✅ User bị khóa\n(status badge: Inactive)
+Browser --> Admin: ✅ User banned
 
-== Mở khóa tài khoản (Unban) ==
+== Step 3: Soft-delete User ==
 
-Admin -> Browser: Click "Unban" cho user
-Browser -> Controller: POST /admin/users/toggle-status\n{userId, action: "activate"}
-activate Controller
-Controller -> Service: activateUser(userId)
-activate Service
-Service -> DAO: updateStatus(\nuserId, isActive=true)
-activate DAO
-DAO -> DB: UPDATE Users SET\nisActive = 1
-activate DB
-DB --> DAO: Updated
-deactivate DB
-DAO --> Service: OK
-deactivate DAO
-Service -> NotifSvc: notify(userId,\n"Tài khoản đã được kích hoạt lại")
-Service --> Controller: Success
-deactivate Service
-Controller -> DB: INSERT ActivityLogs\n(action='UNBAN_USER')
-Controller --> Browser: Redirect + flash:\n"Đã mở khóa tài khoản"
-deactivate Controller
-Browser --> Admin: ✅ User đã active
-
-== Xóa tài khoản (Soft Delete) ==
-
-Admin -> Browser: Click "Delete" → Confirm
+Admin -> Browser: Click "Delete" on user
+Browser -> Browser: Confirm dialog:\n"Are you sure you want to\ndelete this user?"
+Admin -> Browser: Confirm
 Browser -> Controller: POST /admin/users/delete\n{userId}
 activate Controller
-Controller -> Service: softDeleteUser(userId)
+
+Controller -> Service: softDelete(userId, adminId)
 activate Service
 Service -> DAO: softDelete(userId)
 activate DAO
-DAO -> DB: UPDATE Users SET\nisDeleted = 1,\nisActive = 0,\ndeletedAt = GETDATE()\nWHERE userId = ?
+DAO -> DB: UPDATE Users SET\nisDeleted = 1,\ndeletedAt = GETDATE()\nWHERE userId = ?
 activate DB
 DB --> DAO: Updated
 deactivate DB
 DAO --> Service: OK
 deactivate DAO
+
+Service -> DB: INSERT ActivityLogs\n(action='DELETE_USER')
+
 Service --> Controller: Success
 deactivate Service
-Controller -> DB: INSERT ActivityLogs\n(action='DELETE_USER')
-Controller --> Browser: Redirect + flash:\n"Đã xóa tài khoản"
+Controller --> Browser: Redirect + flash:\n"User deleted"
 deactivate Controller
-Browser --> Admin: ✅ User đã xóa\n(soft delete, data preserved)
+Browser --> Admin: ✅ User deleted\n(soft-delete)
 
 @enduml

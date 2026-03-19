@@ -1,0 +1,143 @@
+@startuml SD_18_StaffManagement
+' ============================================================
+' SEQUENCE DIAGRAM - Event Staff Management
+' FR-48: Organizer assigns/removes staff for events
+' ============================================================
+
+title **SD-18: Event Staff Management\n(Assign / Remove Staff for Events)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #FFF3E0
+    ParticipantBorderColor #E65100
+    ArrowColor #E65100
+}
+
+actor "Organizer" as Organizer #Gold
+participant "Browser" as Browser #LightYellow
+participant "StaffServlet\n(Controller)" as Controller #FFF3E0
+participant "StaffService" as Service #E8F5E9
+participant "EventStaffDAO" as DAO #FFF3E0
+participant "UserDAO" as UserDAO #FFF3E0
+participant "NotificationService" as NotifSvc #E0F7FA
+database "SQL Server" as DB #F3E5F5
+
+== Step 1: View Event Staff ==
+
+Organizer -> Browser: Open Event Management\n→ Click "Manage Staff"
+Browser -> Controller: GET /organizer/events/{eventId}/staff
+activate Controller
+Controller -> Service: getEventStaff(eventId,\norganizerId)
+activate Service
+
+Service -> Service: Verify organizer owns\nthis event
+
+Service -> DAO: findByEvent(eventId)
+activate DAO
+DAO -> DB: SELECT es.*, u.fullName,\nu.email, u.avatar\nFROM EventStaff es\nJOIN Users u ON es.userId=u.userId\nWHERE es.eventId = ?
+activate DB
+DB --> DAO: List<EventStaff>
+deactivate DB
+DAO --> Service: staffList
+deactivate DAO
+Service --> Controller: staffList
+deactivate Service
+Controller --> Browser: Forward → manage-staff.jsp
+deactivate Controller
+Browser --> Organizer: Staff list:\nName, Email, Role, Actions\n+ "Add Staff" button
+
+== Step 2: Search & Add Staff ==
+
+Organizer -> Browser: Enter staff email to search
+Browser -> Controller: GET /api/users/search\n?email=staff@example.com
+activate Controller
+Controller -> UserDAO: findByEmail("staff@example.com")
+activate UserDAO
+UserDAO -> DB: SELECT userId, fullName,\nemail, avatar FROM Users\nWHERE email LIKE '%?%'\nAND isActive = 1\nAND isDeleted = 0
+activate DB
+DB --> UserDAO: User
+deactivate DB
+UserDAO --> Controller: user
+deactivate UserDAO
+Controller --> Browser: JSON {userId, fullName,\nemail, avatar}
+deactivate Controller
+Browser --> Organizer: Found: Nguyen Van B\n(staff@example.com)
+
+Organizer -> Browser: Click "Add as Staff"
+Browser -> Controller: POST /organizer/events/{eventId}/staff\n{userId, role: "check-in"}
+activate Controller
+Controller -> Service: addStaff(eventId,\nuserId, role, organizerId)
+activate Service
+
+' --- Check duplicates ---
+Service -> DAO: findByEventAndUser(\neventId, userId)
+activate DAO
+DAO -> DB: SELECT * FROM EventStaff\nWHERE eventId = ?\nAND userId = ?
+activate DB
+DB --> DAO: null
+deactivate DB
+DAO --> Service: null (not assigned)
+deactivate DAO
+
+Service -> DAO: create(EventStaff)
+activate DAO
+DAO -> DB: INSERT INTO EventStaff (\n  eventStaffId, eventId,\n  userId, role='check-in',\n  assignedAt\n)
+activate DB
+DB --> DAO: Created
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+
+' --- Update user role if needed ---
+Service -> UserDAO: findById(userId)
+activate UserDAO
+UserDAO -> DB: SELECT role FROM Users\nWHERE userId = ?
+activate DB
+DB --> UserDAO: role='customer'
+deactivate DB
+UserDAO --> Service: user
+deactivate UserDAO
+
+opt User role is 'customer'
+    Service -> UserDAO: updateRole(userId, 'staff')
+    activate UserDAO
+    UserDAO -> DB: UPDATE Users SET role='staff'\nWHERE userId = ?
+    activate DB
+    DB --> UserDAO: Updated
+    deactivate DB
+    UserDAO --> Service: OK
+    deactivate UserDAO
+end
+
+' --- Notify Staff ---
+Service -> NotifSvc: notify(userId,\n"You have been assigned\nas staff for event\n'{title}'")
+
+Service --> Controller: Success
+deactivate Service
+Controller --> Browser: Redirect + flash:\n"Staff added successfully"
+deactivate Controller
+Browser --> Organizer: ✅ Staff assigned
+
+== Step 3: Remove Staff ==
+
+Organizer -> Browser: Click "Remove" on staff
+Browser -> Controller: POST /organizer/events/{eventId}/staff/remove\n{eventStaffId}
+activate Controller
+Controller -> Service: removeStaff(\neventStaffId, organizerId)
+activate Service
+Service -> DAO: delete(eventStaffId)
+activate DAO
+DAO -> DB: DELETE FROM EventStaff\nWHERE eventStaffId = ?
+activate DB
+DB --> DAO: Deleted
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+Service --> Controller: Success
+deactivate Service
+Controller --> Browser: Redirect + flash:\n"Staff removed"
+deactivate Controller
+Browser --> Organizer: ✅ Staff removed
+
+@enduml

@@ -1,0 +1,83 @@
+@startuml UC_06_Voucher
+' ============================================================
+' USE CASE DIAGRAM - MODULE 6: Voucher Management
+' Create + Validate + Apply Voucher/Discount
+' ============================================================
+
+title **Use Case Diagram - Module 6\nVoucher Management**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #FFFDE7
+    BorderColor #F9A825
+    FontSize 12
+    ArrowColor #F9A825
+}
+
+' === ACTORS ===
+actor "Attendee\n(Customer)" as Attendee #LightBlue
+actor "Organizer" as Organizer #Gold
+actor "Admin" as Admin #Orchid
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 6: Voucher Management" {
+
+    usecase "**UC-6.1: Create Voucher\n(Event-specific)**\n---\nOrganizer creates voucher\nfor own event.\nfundSource=ORGANIZER.\nscope=EVENT." as UC_EVENT_V
+
+    usecase "**UC-6.2: Create Voucher\n(System-wide)**\n---\nAdmin creates platform-wide\nvoucher.\nfundSource=PLATFORM.\nscope=SYSTEM." as UC_SYSTEM_V
+
+    usecase "**UC-6.3: Apply Voucher\nat Checkout**\n---\nCustomer enters voucher code.\nReal-time validation.\nDisplay discounted amount." as UC_APPLY
+
+    usecase "**UC-6.4: Manage Vouchers**\n---\nView list, activate/deactivate.\nEdit usage limits,\ndate range." as UC_MANAGE
+
+    ' --- Sub use cases ---
+    usecase "7-Condition\nValidation" as UC_VALID <<include>>
+
+    usecase "Calculate\nDiscount Amount" as UC_CALC <<include>>
+}
+
+' === ASSOCIATIONS ===
+Organizer --> UC_EVENT_V
+Organizer --> UC_MANAGE
+
+Admin --> UC_SYSTEM_V
+Admin --> UC_MANAGE
+
+Attendee --> UC_APPLY
+
+' === INCLUDE ===
+UC_APPLY ..> UC_VALID : <<include>>
+UC_APPLY ..> UC_CALC : <<include>>
+
+' === NOTES ===
+note right of UC_VALID
+  **7 Validation Conditions:**
+  1. ✅ Code exists
+  2. ✅ isActive = true
+  3. ✅ Not before startDate
+  4. ✅ Not after endDate
+  5. ✅ usedCount < usageLimit
+  6. ✅ totalAmount ≥ minOrderAmount
+  7. ✅ scope matches (event/system)
+end note
+
+note right of UC_CALC
+  **Discount Types:**
+  - percentage: total × %
+    (capped at maxDiscount)
+  - fixed_amount: fixed VND off
+  Formula:
+  min(calculated, maxDiscount)
+end note
+
+note right of UC_EVENT_V
+  **FR-33~FR-36**
+  2 Voucher Categories:
+  1. Event voucher (Organizer):
+    organizer bears the cost
+  2. System voucher (Admin):
+    platform bears the cost
+end note
+
+@enduml

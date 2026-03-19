@@ -1,0 +1,129 @@
+@startuml SD_05_AdminApproveEvent
+' ============================================================
+' SEQUENCE DIAGRAM - Admin Approve/Reject Event
+' FR-10: Admin reviews events + Approve/Reject
+' ============================================================
+
+title **SD-05: Admin Approve/Reject Event\n(Review → Approve / Reject + Notification)**
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequence {
+    ParticipantBackgroundColor #E8EAF6
+    ParticipantBorderColor #283593
+    ArrowColor #283593
+}
+
+actor "Admin" as Admin #Orchid
+participant "Browser" as Browser #LightYellow
+participant "AdminEventServlet\n(Controller)" as Controller #E8EAF6
+participant "EventService" as Service #E8F5E9
+participant "EventDAO" as DAO #FFF3E0
+participant "NotificationService" as NotifSvc #E0F7FA
+database "SQL Server" as DB #F3E5F5
+
+== Step 1: View Pending Events ==
+
+Admin -> Browser: Open Event Management
+Browser -> Controller: GET /admin/events\n?status=pending
+activate Controller
+Controller -> Service: getPendingEvents(page)
+activate Service
+Service -> DAO: findByStatus("pending")
+activate DAO
+DAO -> DB: SELECT e.*, u.fullName\nFROM Events e\nJOIN Users u ON e.organizerId=u.userId\nWHERE e.status = 'pending'\nORDER BY e.createdAt DESC
+activate DB
+DB --> DAO: List<Event>
+deactivate DB
+DAO --> Service: events
+deactivate DAO
+Service --> Controller: events
+deactivate Service
+Controller --> Browser: Forward → admin/events.jsp\n(pending events table)
+deactivate Controller
+Browser --> Admin: Pending events list:\nTitle, Organizer, Date, Actions
+
+== Step 2: Review Event Details ==
+
+Admin -> Browser: Click event to review
+Browser -> Controller: GET /admin/events/detail\n?eventId={id}
+activate Controller
+Controller -> Service: getEventDetail(eventId)
+activate Service
+Service -> DAO: findById(eventId)
+activate DAO
+DAO -> DB: SELECT e.*, tt.*, c.name\nFROM Events e\nJOIN TicketTypes tt ON ...\nJOIN Categories c ON ...\nWHERE eventId = ?
+activate DB
+DB --> DAO: Event + TicketTypes
+deactivate DB
+DAO --> Service: eventDetail
+deactivate DAO
+Service --> Controller: eventDetail
+deactivate Service
+Controller --> Browser: Forward → event-detail.jsp
+deactivate Controller
+Browser --> Admin: Full detail:\nBanner, Info, Ticket Types,\nOrganizer Profile
+
+== Step 3A: Approve Event ==
+
+Admin -> Browser: Click "Approve"
+Browser -> Controller: POST /admin/events/approve\n{eventId}
+activate Controller
+Controller -> Service: approveEvent(eventId, adminId)
+activate Service
+Service -> DAO: updateStatus(eventId,\n"approved")
+activate DAO
+DAO -> DB: UPDATE Events SET\nstatus = 'approved',\napprovedBy = ?,\napprovedAt = GETDATE()\nWHERE eventId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+
+Service -> NotifSvc: notify(organizerId,\n"Your event '{title}'\nhas been approved!",\n'EVENT_APPROVED')
+activate NotifSvc
+NotifSvc -> DB: INSERT INTO Notifications\n(userId, type, message,\nrelatedEventId, createdAt)
+NotifSvc --> Service: OK
+deactivate NotifSvc
+
+Service --> Controller: Success
+deactivate Service
+
+Controller -> DB: INSERT ActivityLogs\n(action='APPROVE_EVENT',\ndetails='eventId={id}')
+
+Controller --> Browser: Redirect + flash:\n"Event approved successfully"
+deactivate Controller
+Browser --> Admin: ✅ Event approved
+
+== Step 3B: Reject Event (Alternative) ==
+
+Admin -> Browser: Click "Reject"\n+ Enter rejection reason
+Browser -> Controller: POST /admin/events/reject\n{eventId, rejectionReason}
+activate Controller
+Controller -> Service: rejectEvent(eventId,\nreason, adminId)
+activate Service
+Service -> DAO: updateStatus(eventId,\n"rejected", reason)
+activate DAO
+DAO -> DB: UPDATE Events SET\nstatus = 'rejected',\nrejectionReason = ?,\napprovedBy = ?,\napprovedAt = GETDATE()\nWHERE eventId = ?
+activate DB
+DB --> DAO: Updated
+deactivate DB
+DAO --> Service: OK
+deactivate DAO
+
+Service -> NotifSvc: notify(organizerId,\n"Event '{title}' was rejected.\nReason: {reason}",\n'EVENT_REJECTED')
+activate NotifSvc
+NotifSvc -> DB: INSERT Notification
+NotifSvc --> Service: OK
+deactivate NotifSvc
+
+Service --> Controller: Success
+deactivate Service
+
+Controller -> DB: INSERT ActivityLogs\n(action='REJECT_EVENT')
+
+Controller --> Browser: Redirect + flash:\n"Event rejected"
+deactivate Controller
+Browser --> Admin: 🚫 Event rejected,\norganizer notified
+
+@enduml

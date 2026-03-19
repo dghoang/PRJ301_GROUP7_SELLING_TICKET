@@ -1,10 +1,10 @@
 @startuml SD_01_Registration
 ' ============================================================
-' SEQUENCE DIAGRAM - Đăng ký tài khoản (User Registration)
-' FR-01: Guest có thể tạo tài khoản mới
+' SEQUENCE DIAGRAM - User Registration
+' FR-01: Register new account → BCrypt → Session
 ' ============================================================
 
-title **SD-01: Đăng ký Tài khoản\n(User Registration)**
+title **SD-01: User Registration\n(Sign Up → Session)**
 
 skinparam sequenceArrowThickness 2
 skinparam roundcorner 10
@@ -12,88 +12,84 @@ skinparam maxmessagesize 200
 skinparam sequence {
     ParticipantBackgroundColor #E3F2FD
     ParticipantBorderColor #1565C0
-    LifeLineBorderColor #1565C0
     ArrowColor #1565C0
 }
 
 actor "Guest" as User #LightGreen
 participant "Browser\n(JSP)" as Browser #LightYellow
-participant "RegisterServlet\n(Controller)" as Controller #E3F2FD
+participant "AuthServlet\n(Controller)" as Auth #E3F2FD
 participant "UserService" as Service #E8F5E9
 participant "UserDAO" as DAO #FFF3E0
-database "SQL Server\nDatabase" as DB #F3E5F5
+database "SQL Server" as DB #F3E5F5
 
-== Hiển thị Form Đăng ký ==
+== Step 1: Open Registration Page ==
 
-User -> Browser: Truy cập /register
-activate Browser
-Browser -> Controller: GET /register
-activate Controller
-Controller --> Browser: Forward → register.jsp\n(form + CSRF token)
-deactivate Controller
-Browser --> User: Hiển thị form đăng ký\n(fullName, email, password,\nconfirmPassword, phone, gender)
-deactivate Browser
+User -> Browser: Click "Sign Up"
+Browser -> Auth: GET /register
+activate Auth
+Auth --> Browser: Forward → register.jsp
+deactivate Auth
+Browser --> User: Display sign-up form
 
-== Submit Form Đăng ký ==
+== Step 2: Submit Registration Form ==
 
-User -> Browser: Nhập thông tin + Submit
-activate Browser
-Browser -> Controller: POST /register\n{fullName, email, password,\nconfirmPassword, phone, gender,\ncsrf_token}
-activate Controller
+User -> Browser: Fill in:\nfullName, email, password,\nconfirmPassword, phone
+Browser -> Browser: **Client-side Validation:**\n- Required fields\n- Email format\n- Password ≥ 8 chars\n- password == confirmPassword\n- Phone format
+Browser -> Auth: POST /register\n{fullName, email, password,\nconfirmPassword, phone}
+activate Auth
 
-' --- CSRF Validation ---
-Controller -> Controller: CsrfFilter validates\ncsrf_token (double-submit cookie)
+== Step 3: Server-side Processing ==
 
-' --- Server-side Validation ---
-Controller -> Controller: Validate inputs:\n- fullName not empty\n- email format valid\n- password ≥ 8 chars\n- password == confirmPassword\n- phone format valid
+Auth -> Auth: Parse + Validate input:\n- fullName not blank\n- valid email format\n- password ≥ 8 chars\n- password == confirmPassword
 
 alt #FFE0E0 Validation Failed
-    Controller --> Browser: Forward → register.jsp\n+ error messages\n+ giữ nguyên form data
-    Browser --> User: Hiển thị lỗi validation\n(highlight lỗi từng field)
-else #E8F5E9 Validation OK
+    Auth --> Browser: Forward → register.jsp\n{error: "Password must be\nat least 8 characters"}\n+ preserve input
+    Browser --> User: ❌ Display validation\nerror message
+else #E8F5E9 Input Valid
 
-    Controller -> Service: register(fullName, email,\npassword, phone, gender)
+    Auth -> Service: register(userData)
     activate Service
 
-    ' --- Check email unique ---
+    ' --- Step 3a: Check Duplicate Email ---
     Service -> DAO: findByEmail(email)
     activate DAO
-    DAO -> DB: SELECT * FROM Users\nWHERE email = ?
+    DAO -> DB: SELECT * FROM Users\nWHERE email = ?\nAND isDeleted = 0
     activate DB
-    DB --> DAO: Result (null or User)
+    DB --> DAO: User or null
     deactivate DB
-    DAO --> Service: User or null
+    DAO --> Service: result
     deactivate DAO
 
     alt #FFE0E0 Email Already Exists
-        Service --> Controller: throw DuplicateEmailException
-        Controller --> Browser: Forward → register.jsp\n+ "Email đã được sử dụng"
-        Browser --> User: Hiển thị lỗi email trùng
+        Service --> Auth: throw "Email already registered"
+        Auth --> Browser: Forward → register.jsp\n{error: "Email already in use"}\n+ preserve input
+        Browser --> User: ❌ Email already exists
     else #E8F5E9 Email Available
 
-        ' --- Hash Password ---
-        Service -> Service: BCrypt.hashpw(password, genSalt(12))\n→ hashedPassword
+        ' --- Step 3b: Hash Password ---
+        Service -> Service: hashedPassword =\nBCrypt.hashpw(password,\nBCrypt.gensalt(12))
 
-        ' --- Create User ---
+        ' --- Step 3c: Create User ---
         Service -> DAO: create(User)
         activate DAO
-        DAO -> DB: INSERT INTO Users\n(userId, fullName, email,\npassword, phone, gender,\nrole='customer', isActive=true,\ncreatedAt=GETDATE())
+        DAO -> DB: INSERT INTO Users (\n  userId, email, password,\n  fullName, phone, role,\n  isActive, oauthUser,\n  oauthProvider, createdAt\n) VALUES (\n  NEWID(), ?, hashedPw,\n  ?, ?, 'customer',\n  1, 0, NULL, GETDATE()\n)
         activate DB
-        DB --> DAO: Rows affected = 1
+        DB --> DAO: userId (new)
         deactivate DB
-        DAO --> Service: User created
+        DAO --> Service: User (created)
         deactivate DAO
 
-        Service --> Controller: User object (success)
+        Service --> Auth: User object
         deactivate Service
 
-        Controller --> Browser: Redirect → /login\n+ flash: "Đăng ký thành công!\nVui lòng đăng nhập."
-        Browser --> User: ✅ Hiển thị trang Login\nvới thông báo thành công
+        ' --- Step 4: Create Session ---
+        Auth -> Auth: session = request.getSession(true)\nsession.setAttribute("user", user)\nsession.setAttribute("role", role)
 
+        Auth --> Browser: Redirect → / (homepage)\n+ flash: "Registration successful!"
+        Browser --> User: ✅ Logged in,\nredirect to homepage
     end
 end
 
-deactivate Controller
-deactivate Browser
+deactivate Auth
 
 @enduml

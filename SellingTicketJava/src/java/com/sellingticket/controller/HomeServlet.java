@@ -36,19 +36,15 @@ public class HomeServlet extends HttpServlet {
             request.setAttribute("upcomingEvents", upcomingEvents);
             request.setAttribute("categories", categories);
 
-            // Stats for hero section
-            Map<String, Object> stats = dashboardService.getAdminDashboardStats();
-            request.setAttribute("totalEvents", stats.getOrDefault("totalEvents", 0));
-            request.setAttribute("totalUsers", stats.getOrDefault("totalUsers", 0));
-            request.setAttribute("totalTicketsSold", stats.getOrDefault("paidOrders", 0));
+            // Public stats for hero section (real data)
+            Map<String, Object> publicStats = dashboardService.getPublicStats();
+            request.setAttribute("publicStats", publicStats);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error loading home page data", e);
             request.setAttribute("featuredEvents", Collections.emptyList());
             request.setAttribute("upcomingEvents", Collections.emptyList());
             request.setAttribute("categories", Collections.emptyList());
-            request.setAttribute("totalEvents", 0);
-            request.setAttribute("totalUsers", 0);
-            request.setAttribute("totalTicketsSold", 0);
+            request.setAttribute("publicStats", Collections.emptyMap());
         }
 
         request.getRequestDispatcher("home.jsp").forward(request, response);

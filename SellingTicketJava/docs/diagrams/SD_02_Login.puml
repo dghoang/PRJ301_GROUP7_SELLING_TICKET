@@ -1,13 +1,14 @@
 @startuml SD_02_Login
 ' ============================================================
-' SEQUENCE DIAGRAM - Đăng nhập hệ thống (User Login)
-' FR-02: Đăng nhập email/password với Rate Limiting + Remember Me
+' SEQUENCE DIAGRAM - User Login
+' FR-02: Login → BCrypt Verify → Session + Remember Me
 ' ============================================================
 
-title **SD-02: Đăng nhập Hệ thống\n(User Login + Session Management)**
+title **SD-02: User Login\n(Authenticate → Session + Remember Me)**
 
 skinparam sequenceArrowThickness 2
 skinparam roundcorner 10
+skinparam maxmessagesize 200
 skinparam sequence {
     ParticipantBackgroundColor #E3F2FD
     ParticipantBorderColor #1565C0
@@ -16,125 +17,109 @@ skinparam sequence {
 
 actor "Guest" as User #LightGreen
 participant "Browser\n(JSP)" as Browser #LightYellow
-participant "AuthFilter" as AuthFilter #FFE0B2
-participant "LoginServlet\n(Controller)" as Controller #E3F2FD
-participant "AuthService" as AuthService #E8F5E9
-participant "LoginAttemptTracker" as Tracker #FCE4EC
+participant "AuthServlet\n(Controller)" as Auth #E3F2FD
+participant "UserService" as Service #E8F5E9
+participant "LoginAttemptTracker\n(Rate Limiter)" as Tracker #FFCCBC
 participant "UserDAO" as DAO #FFF3E0
-participant "TokenService" as TokenSvc #E0F7FA
+participant "RefreshTokenDAO" as TokenDAO #FFF3E0
 database "SQL Server" as DB #F3E5F5
 
-== Hiển thị Form Login ==
+== Step 1: Open Login Page ==
 
-User -> Browser: Truy cập /login
-Browser -> Controller: GET /login
-activate Controller
-Controller --> Browser: Forward → login.jsp\n(form + CSRF token + rememberMe checkbox)
-deactivate Controller
-Browser --> User: Hiển thị form đăng nhập
+User -> Browser: Click "Login"
+Browser -> Auth: GET /login
+activate Auth
+Auth --> Browser: Forward → login.jsp\n(+ CSRF token in form)
+deactivate Auth
+Browser --> User: Display login form
 
-== Submit Login ==
+== Step 2: Submit Credentials ==
 
-User -> Browser: Nhập email, password\n+ tick "Ghi nhớ đăng nhập"
-Browser -> Controller: POST /login\n{email, password, rememberMe,\ncsrf_token}
-activate Controller
+User -> Browser: Enter email, password\n(+ optional: rememberMe ☑️)
+Browser -> Auth: POST /login\n{email, password, rememberMe,\ncsrf_token}
+activate Auth
 
-' --- Rate Limiting Check ---
-Controller -> Tracker: isBlocked(email, IP)
+== Step 3: Rate Limiting ==
+
+Auth -> Tracker: checkAllowed(email, IP)
 activate Tracker
-Tracker -> Tracker: Check email+IP attempts\n(tier 1: email-specific)\nCheck IP-only attempts\n(tier 2: brute force scan)
-alt #FFE0E0 Account Locked (Brute Force)
-    Tracker --> Controller: BLOCKED\n(remaining lockout time: X min)
-    Controller --> Browser: Forward → login.jsp\n+ "Tài khoản bị khóa tạm thời.\nVui lòng thử lại sau X phút."
-    Browser --> User: ⛔ Hiển thị lockout message
-else #E8F5E9 Not Blocked
-    Tracker --> Controller: OK (not blocked)
-    deactivate Tracker
+Tracker -> Tracker: Check 2-tier lockout:\n1. email+IP: 5 fails → 15min lock\n2. IP only: 20 fails → 60min lock
+Tracker --> Auth: allowed / blocked
+deactivate Tracker
 
-    ' --- Authenticate ---
-    Controller -> AuthService: authenticate(email, password)
-    activate AuthService
+alt #FFE0E0 Rate Limit: Blocked
+    Auth --> Browser: Forward → login.jsp\n{error: "Too many login attempts.\nPlease wait 15 minutes."}
+    Browser --> User: ⚠️ Temporarily locked
+else #E8F5E9 Allowed
 
-    AuthService -> DAO: findByEmail(email)
+    == Step 4: Authenticate ==
+
+    Auth -> Service: authenticate(email, password)
+    activate Service
+    Service -> DAO: findByEmail(email)
     activate DAO
-    DAO -> DB: SELECT * FROM Users\nWHERE email = ? AND isActive = 1\nAND isDeleted = 0
+    DAO -> DB: SELECT * FROM Users\nWHERE email = ?\nAND isDeleted = 0
     activate DB
-    DB --> DAO: User record or null
+    DB --> DAO: User or null
     deactivate DB
-    DAO --> AuthService: User or null
+    DAO --> Service: User
     deactivate DAO
 
-    alt #FFE0E0 User Not Found OR Inactive
-        AuthService --> Controller: AuthenticationException\n("Email hoặc mật khẩu không đúng")
-        Controller -> Tracker: recordFailedAttempt(email, IP)
-        Tracker -> Tracker: Increment fail count\n(5 fails → lock 15 min email\n20 fails → lock 60 min IP)
-        Controller --> Browser: Forward → login.jsp\n+ error message
-        Browser --> User: ❌ Hiển thị lỗi\n(không tiết lộ email tồn tại)
+    alt #FFE0E0 User Not Found
+        Service --> Auth: null
+        Auth -> Tracker: recordFailure(email, IP)
+        Auth --> Browser: Forward → login.jsp\n{error: "Incorrect email\nor password"}
+        Browser --> User: ❌ Login failed
 
-    else #E8F5E9 User Found
-        AuthService -> AuthService: BCrypt.checkpw(\npassword, user.hashedPassword)
+    else #FFFDE7 Account Deactivated (isActive=false)
+        Service -> Service: Check user.isActive
+        Service --> Auth: throw "Account has been\ndeactivated"
+        Auth --> Browser: Forward → login.jsp\n{error: "Account banned.\nContact support."}
+        Browser --> User: ⛔ Account locked
+
+    else #E8F5E9 User Found & Active
+
+        Service -> Service: BCrypt.checkpw(\npassword, user.getPassword())
 
         alt #FFE0E0 Password Mismatch
-            AuthService --> Controller: AuthenticationException
-            Controller -> Tracker: recordFailedAttempt(email, IP)
-            Controller --> Browser: Forward → login.jsp\n+ error message
-            Browser --> User: ❌ Hiển thị lỗi
-        else #E8F5E9 Password Correct
+            Service --> Auth: null
+            Auth -> Tracker: recordFailure(email, IP)
+            Auth --> Browser: Forward → login.jsp\n{error: "Incorrect email\nor password"}
+            Browser --> User: ❌ Login failed
+        else #E8F5E9 Password Match ✅
 
-            ' --- Clear failed attempts ---
-            AuthService -> Tracker: clearAttempts(email, IP)
-
-            ' --- Update last login ---
-            AuthService -> DAO: updateLastLogin(userId)
-            activate DAO
-            DAO -> DB: UPDATE Users\nSET lastLogin = GETDATE()\nWHERE userId = ?
-            activate DB
-            DB --> DAO: Updated
-            deactivate DB
-            DAO --> AuthService: OK
-            deactivate DAO
-
-            AuthService --> Controller: User (authenticated)
-            deactivate AuthService
+            Auth -> Tracker: clearAttempts(email, IP)
+            Service --> Auth: User object
+            deactivate Service
 
             ' --- Create Session ---
-            Controller -> Controller: HttpSession session = \nrequest.getSession(true)\nsession.setAttribute("user", user)\nsession.setAttribute("role", user.role)
+            Auth -> Auth: session = request.getSession(true)\nsession.setAttribute("user", user)\nsession.setAttribute("role", role)\nsession.setMaxInactiveInterval(1800)
 
-            ' --- Remember Me Token ---
-            alt rememberMe == true
-                Controller -> TokenSvc: createRefreshToken(userId)
-                activate TokenSvc
-                TokenSvc -> DB: INSERT INTO RefreshTokens\n(tokenId, userId, token,\nexpiresAt = NOW+30 days)
+            ' --- Remember Me ---
+            opt rememberMe == true
+                Auth -> Auth: token = UUID.randomUUID()
+                Auth -> TokenDAO: create(RefreshToken)
+                activate TokenDAO
+                TokenDAO -> DB: INSERT INTO RefreshTokens\n(tokenId, userId, token,\nexpiresAt = NOW()+30days,\ncreatedAt, isRevoked=0)
                 activate DB
-                DB --> TokenSvc: Created
+                DB --> TokenDAO: Created
                 deactivate DB
-                TokenSvc --> Controller: refreshToken string
-                deactivate TokenSvc
-                Controller -> Controller: Set Cookie:\nst_refresh = {token}\nHttpOnly, Secure,\nSameSite=Strict,\nMax-Age=30 days
+                TokenDAO --> Auth: OK
+                deactivate TokenDAO
+                Auth -> Browser: Set-Cookie:\nst_refresh={token};\nPath=/; HttpOnly;\nMax-Age=30days
             end
 
-            ' --- Log Activity ---
-            Controller -> DB: INSERT INTO ActivityLogs\n(userId, action='LOGIN',\nipAddress, userAgent)
+            ' --- Activity Log ---
+            Auth -> DB: INSERT INTO ActivityLogs\n(action='LOGIN', userId,\nipAddress, createdAt)
 
             ' --- Redirect by Role ---
-            Controller -> Controller: Determine redirect URL\nby user.role
+            Auth -> Auth: **Route by role:**\nadmin → /admin/dashboard\norganizer → /organizer/dashboard\nstaff → /staff/dashboard\ncustomer → returnUrl or /
 
-            alt user.role == "admin"
-                Controller --> Browser: Redirect → /admin/dashboard
-            else user.role == "organizer"
-                Controller --> Browser: Redirect → /organizer/dashboard
-            else user.role == "staff"
-                Controller --> Browser: Redirect → /staff/dashboard
-            else user.role == "customer"
-                Controller --> Browser: Redirect → /\n(or returnUrl if exists)
-            end
-
-            Browser --> User: ✅ Dashboard theo role
-
+            Auth --> Browser: Redirect → dashboard\n+ flash: "Welcome back, {name}!"
+            deactivate Auth
+            Browser --> User: ✅ Login successful,\nredirect to dashboard
         end
     end
 end
-
-deactivate Controller
 
 @enduml

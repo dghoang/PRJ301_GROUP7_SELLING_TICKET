@@ -60,16 +60,20 @@
                 <!-- Animated Stats (from DB) -->
                 <div class="d-flex justify-content-center gap-4 gap-md-5 flex-wrap">
                     <div class="stat-card animate-on-scroll stagger-1">
-                        <div class="stat-number" data-counter="${totalEvents}">0</div>
+                        <div class="stat-number" data-counter="${publicStats.totalEvents}">0</div>
                         <div class="stat-label" data-i18n="home.stat_events">Sự kiện</div>
                     </div>
                     <div class="stat-card animate-on-scroll stagger-2">
-                        <div class="stat-number" data-counter="${totalUsers}">0</div>
-                        <div class="stat-label" data-i18n="home.stat_users">Người dùng</div>
+                        <div class="stat-number" data-counter="${publicStats.totalTicketsSold}">0</div>
+                        <div class="stat-label" data-i18n="home.stat_tickets">Vé đã bán</div>
                     </div>
                     <div class="stat-card animate-on-scroll stagger-3">
-                        <div class="stat-number" data-counter="${totalTicketsSold}">0</div>
-                        <div class="stat-label" data-i18n="home.stat_tickets">Vé đã bán</div>
+                        <div class="stat-number" data-counter="${publicStats.totalOrganizers}">0</div>
+                        <div class="stat-label" data-i18n="home.stat_organizers">Nhà tổ chức</div>
+                    </div>
+                    <div class="stat-card animate-on-scroll stagger-4">
+                        <div class="stat-number" data-counter="${publicStats.totalCustomers}">0</div>
+                        <div class="stat-label" data-i18n="home.stat_customers">Khách hàng</div>
                     </div>
                 </div>
             </div>
@@ -169,7 +173,7 @@
         </div>
 
         <div class="row g-4" data-stagger-children="0.1">
-            <c:forEach var="event" items="${featuredEvents}" end="3">
+            <c:forEach var="event" items="${featuredEvents}" end="5">
                 <div class="col-md-6 col-lg-3 animate-on-scroll">
                     <div class="event-card-enhanced shadow-sm h-100">
                         <div class="event-img-wrapper position-relative skeleton">
@@ -220,7 +224,7 @@
         </div>
 
         <div class="row g-4">
-            <c:forEach var="event" items="${upcomingEvents}" end="2">
+            <c:forEach var="event" items="${upcomingEvents}" end="5">
                 <div class="col-lg-4 animate-on-scroll">
                     <a href="${pageContext.request.contextPath}/event/${event.slug}" class="text-decoration-none">
                         <div class="glass-strong rounded-4 p-4 h-100 hover-lift">
@@ -257,7 +261,7 @@
             <h2 class="fw-bold mb-2">
                 <i class="fas fa-quote-left text-primary me-2"></i>Khách hàng nói gì
             </h2>
-            <p class="text-muted">Hơn <fmt:formatNumber value="${totalUsers}" pattern="#,###"/>+ người dùng tin tưởng</p>
+            <p class="text-muted">Hơn <fmt:formatNumber value="${publicStats.totalCustomers}" pattern="#,###"/>+ người dùng tin tưởng</p>
         </div>
 
         <div class="row g-4">

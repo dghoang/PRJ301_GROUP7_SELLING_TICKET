@@ -32,6 +32,15 @@ public class DashboardService {
         }
     }
 
+    public Map<String, Object> getPublicStats() {
+        try {
+            return dashboardDAO.getPublicStats();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Service error: getPublicStats", e);
+            return new java.util.HashMap<>();
+        }
+    }
+
     public List<Map<String, Object>> getCategoryDistribution() {
         try {
             return dashboardDAO.getCategoryDistribution();

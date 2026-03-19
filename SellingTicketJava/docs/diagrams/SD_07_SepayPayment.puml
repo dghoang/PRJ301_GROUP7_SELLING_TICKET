@@ -1,183 +1,150 @@
 @startuml SD_07_SepayPayment
 ' ============================================================
-' SEQUENCE DIAGRAM - Thanh toán SePay VietQR + Webhook
-' FR-20, FR-21, FR-22: QR Payment → Webhook → Ticket Generation
+' SEQUENCE DIAGRAM - SePay VietQR Payment
+' FR-20: QR Payment + Webhook Auto-confirm + Ticket Issuance
 ' ============================================================
 
-title **SD-07: Thanh toán VietQR qua SePay\n(Payment + Webhook + Ticket Generation)**
+title **SD-07: SePay VietQR Payment\n(Generate QR → Bank Transfer → Webhook → Confirm → Issue Tickets)**
 
 skinparam sequenceArrowThickness 2
 skinparam roundcorner 10
-skinparam maxmessagesize 180
 skinparam sequence {
-    ParticipantBackgroundColor #E8EAF6
-    ParticipantBorderColor #283593
-    ArrowColor #283593
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ArrowColor #2E7D32
 }
 
-actor "Attendee" as User #LightBlue
-participant "Browser\n(JSP)" as Browser #LightYellow
-participant "PaymentServlet\n(Controller)" as PayCtrl #E8EAF6
+actor "Attendee" as Customer #LightBlue
+participant "Browser\n(JSP + JS)" as Browser #LightYellow
+participant "PaymentServlet\n(Controller)" as Controller #E8F5E9
 participant "PaymentFactory" as Factory #FFF3E0
-participant "SepayPaymentService\n(Strategy)" as SepaySvc #E8F5E9
+participant "SepayPaymentService" as SepaySvc #E8F5E9
 participant "OrderService" as OrderSvc #E8F5E9
-participant "TicketService" as TicketSvc #E0F7FA
-participant "WebhookServlet\n(Callback)" as Webhook #FCE4EC
+participant "TicketService" as TicketSvc #E8F5E9
+participant "OrderDAO" as OrdDAO #FFF3E0
+participant "TicketDAO" as TktDAO #FFF3E0
 box "External" #F5F5F5
-    participant "SePay API\n(Payment Gateway)" as SePay #FFCDD2
-    participant "Ngân hàng\n(User's Bank)" as Bank #FFCDD2
+    participant "SePay\nAPI" as SePay #FFCDD2
+    participant "Bank\n(VietQR)" as Bank #BBDEFB
 end box
 database "SQL Server" as DB #F3E5F5
 
-== Phase 1: Tạo QR Code Thanh toán ==
+== Part A: Display Payment QR ==
 
-User -> Browser: Truy cập trang thanh toán
-Browser -> PayCtrl: GET /checkout/payment\n?orderId={orderId}
-activate PayCtrl
+Customer -> Browser: Proceed to payment
+Browser -> Controller: GET /checkout/payment\n?orderId={id}
+activate Controller
 
-PayCtrl -> OrderSvc: getOrder(orderId)
+Controller -> OrderSvc: getOrder(orderId)
 activate OrderSvc
-OrderSvc -> DB: SELECT * FROM Orders\nWHERE orderId = ?\nAND customerId = ?\nAND status = 'pending'
+OrderSvc -> OrdDAO: findById(orderId)
+activate OrdDAO
+OrdDAO -> DB: SELECT * FROM Orders\nWHERE orderId = ?\nAND customerId = ?
 activate DB
-DB --> OrderSvc: Order
+DB --> OrdDAO: Order
 deactivate DB
-OrderSvc --> PayCtrl: Order
+OrdDAO --> OrderSvc: order
+deactivate OrdDAO
+OrderSvc --> Controller: order
 deactivate OrderSvc
 
-PayCtrl -> Factory: getProvider("sepay")
-activate Factory
-Factory --> PayCtrl: SepayPaymentService
-deactivate Factory
-
-PayCtrl -> SepaySvc: createPayment(order)
+Controller -> Factory: getProvider("sepay")
+Controller -> SepaySvc: createPayment(order)
 activate SepaySvc
-SepaySvc -> SepaySvc: Build transfer info:\nbank = "MBBank"\naccount = "0389966997"\namount = order.totalAmount\ncontent = "ST" + order.orderCode\n(unique payment reference)
-
-SepaySvc -> SepaySvc: Generate VietQR URL:\nhttps://img.vietqr.io/image/\n{bankId}-{account}-compact2.png\n?amount={amount}\n&addInfo={content}\n&accountName={name}
-
-SepaySvc --> PayCtrl: PaymentResult\n{qrUrl, bankInfo, amount,\ncontent, expiresAt=now+15min}
+SepaySvc -> SepaySvc: Build transfer info:\nbankCode, accountNumber,\namount = order.totalAmount,\ncontent = "ST" + order.orderCode\n(identifier for webhook matching)
+SepaySvc -> SepaySvc: Generate VietQR URL:\nhttps://qr.sepay.vn/img?\nacc={account}\n&bank={bank}\n&amount={amount}\n&des={content}
+SepaySvc --> Controller: PaymentResult {\n  qrUrl, bankName,\n  accountNumber, amount,\n  content (transfer note),\n  expiresIn: 15min\n}
 deactivate SepaySvc
 
-PayCtrl -> DB: UPDATE Orders SET\npaymentMethod = 'sepay_qr',\npaymentExpiry = NOW() + 15min
-PayCtrl --> Browser: Forward → payment.jsp\n(QR image, bank info, countdown timer)
-deactivate PayCtrl
-Browser --> User: Hiển thị:\n- QR Code VietQR\n- Thông tin CK (STK, ngân hàng)\n- Nội dung CK: ST{orderCode}\n- Đếm ngược 15 phút
+Controller --> Browser: Forward → payment.jsp\n(QR code, bank info,\n15-minute countdown)
+deactivate Controller
+Browser --> Customer: Payment page:\n- QR Code (large)\n- Bank: MB Bank\n- Account: 0389118xxx\n- Amount: 1,500,000 VND\n- Note: ST-ORD-A1B2C3\n- ⏳ 15:00 countdown
 
-== Phase 2: Khách thanh toán qua ngân hàng ==
+== Part B: Customer Pays ==
 
-User -> Browser: Mở app Banking\nquét QR code
-Browser -> Bank: Quét QR → Điền thông tin CK
+Customer -> Browser: Open banking app\nand scan QR
+Browser -> Bank: Scan QR → Auto-fill\ntransfer details
+Customer -> Bank: Confirm transfer
 activate Bank
-User -> Bank: Xác nhận chuyển khoản
-Bank -> Bank: Xử lý giao dịch
-Bank --> User: ✅ Chuyển khoản thành công
-Bank -> SePay: Notification giao dịch mới
+Bank -> Bank: Process payment
+Bank --> Customer: ✅ Transfer successful
+Bank -> SePay: Transaction notification
 deactivate Bank
 
-== Phase 3: SePay Webhook Callback ==
+== Part C: Webhook Auto-confirm ==
 
-SePay -> Webhook: POST /api/sepay/webhook\nHeaders:\n  Authorization: Apikey {API_KEY}\nBody: {\n  "id": 12345,\n  "transferType": "in",\n  "transferAmount": 500000,\n  "content": "ST ORD-ABC123",\n  "referenceCode": "FT24xxx"\n}
-activate Webhook
+SePay -> Controller: POST /api/payment/sepay-webhook\n{\n  "gateway": "MBBank",\n  "transactionDate": "2025-01-15",\n  "accountNumber": "0389118xxx",\n  "transferType": "in",\n  "transferAmount": 1500000,\n  "content": "ST ORD-A1B2C3",\n  "referenceCode": "FT25015xxx",\n  "description": "ST ORD-A1B2C3"\n}\nHeaders: Authorization: Bearer {API_KEY}
+activate Controller
 
-' --- Security Validation ---
-Webhook -> Webhook: **Security Checks:**\n1. Validate API Key header\n2. Check Content-Type\n3. Validate body size < 10KB\n4. Check IP whitelist (optional)
+Controller -> Controller: **5-Layer Webhook Validation:**\n1. ✅ API Key matches\n2. ✅ transferType == "in"\n3. ✅ Content-Length ≤ 1MB\n4. ✅ Parse orderCode from content\n5. ✅ Amount matches order
 
-alt #FFE0E0 Invalid API Key
-    Webhook --> SePay: HTTP 401 Unauthorized
-else #E8F5E9 Valid Request
+Controller -> OrderSvc: confirmPayment(\n"ORD-A1B2C3", amount, refCode)
+activate OrderSvc
 
-    ' --- Extract Order Code ---
-    Webhook -> Webhook: Parse "content" field:\nExtract orderCode from\n"ST ORD-ABC123"\n→ orderCode = "ORD-ABC123"
+OrderSvc -> OrdDAO: findByOrderCode("ORD-A1B2C3")
+activate OrdDAO
+OrdDAO -> DB: SELECT * FROM Orders\nWHERE orderCode = 'ORD-A1B2C3'\nAND status = 'pending'
+activate DB
+DB --> OrdDAO: Order
+deactivate DB
+OrdDAO --> OrderSvc: order
+deactivate OrdDAO
 
-    ' --- Find Order ---
-    Webhook -> OrderSvc: findByOrderCode(orderCode)
-    activate OrderSvc
-    OrderSvc -> DB: SELECT * FROM Orders\nWHERE orderCode = ?
+OrderSvc -> OrdDAO: updatePayment(orderId)
+activate OrdDAO
+OrdDAO -> DB: UPDATE Orders SET\nstatus = 'confirmed',\npaymentDate = GETDATE(),\ntransactionId = ?\nWHERE orderId = ?
+activate DB
+DB --> OrdDAO: Updated
+deactivate DB
+OrdDAO --> OrderSvc: OK
+deactivate OrdDAO
+
+' --- Issue Tickets ---
+OrderSvc -> TicketSvc: generateTickets(order)
+activate TicketSvc
+
+loop for each OrderItem (qty times)
+    TicketSvc -> TicketSvc: ticketCode = "TKT-" +\ncrypto random 8 chars
+    TicketSvc -> TicketSvc: qrCodeData = JWT.sign({\n  ticketId, ticketCode,\n  eventId, orderId\n}, SECRET)
+    TicketSvc -> TktDAO: create(Ticket)
+    activate TktDAO
+    TktDAO -> DB: INSERT INTO Tickets (\n  ticketId, orderId, orderItemId,\n  ticketCode, qrCodeData,\n  isCheckedIn=0, createdAt\n)
     activate DB
-    DB --> OrderSvc: Order
+    DB --> TktDAO: Created
     deactivate DB
-    OrderSvc --> Webhook: Order
-    deactivate OrderSvc
-
-    alt #FFE0E0 Order Not Found
-        Webhook --> SePay: HTTP 200 OK\n(acknowledge, no action)
-    else #E8F5E9 Order Found
-
-        ' --- Validate Amount ---
-        Webhook -> Webhook: Validate:\ntransferAmount == order.totalAmount?\n(tolerance check)
-
-        alt #FFE0E0 Amount Mismatch
-            Webhook -> DB: INSERT INTO PaymentLogs\n(status='AMOUNT_MISMATCH')
-            Webhook --> SePay: HTTP 200 OK\n(log discrepancy)
-        else #E8F5E9 Amount Matches
-
-            ' --- Idempotency Check ---
-            Webhook -> Webhook: Check order.status\n!= 'confirmed'\n(prevent double processing)
-
-            alt order.status == 'confirmed'
-                Webhook --> SePay: HTTP 200 OK\n(already processed)
-            else order.status == 'pending'
-
-                == Phase 4: Confirm Order + Generate Tickets ==
-
-                Webhook -> OrderSvc: confirmOrder(orderId,\npaymentRef, transactionId)
-                activate OrderSvc
-
-                OrderSvc -> DB: **BEGIN TRANSACTION**
-                activate DB
-
-                OrderSvc -> DB: UPDATE Orders SET\nstatus = 'confirmed',\npaymentDate = GETDATE(),\npaymentRef = ?,\ntransactionId = ?
-
-                ' --- Generate Individual Tickets ---
-                OrderSvc -> TicketSvc: generateTickets(order)
-                activate TicketSvc
-
-                loop for each OrderItem (N tickets)
-                    TicketSvc -> TicketSvc: Generate unique ticketCode:\n"TKT-" + UUID.randomUUID()\n.substring(0, 8).toUpperCase()
-
-                    TicketSvc -> TicketSvc: Create QR payload:\nJWT.create()\n.withClaim("ticketCode", code)\n.withClaim("eventId", eventId)\n.sign(HMAC256(secret))
-
-                    TicketSvc -> DB: INSERT INTO Tickets\n(ticketId, orderId, orderItemId,\nticketTypeId, ticketCode,\nqrCodeData, isCheckedIn=false,\ncreatedAt)
-                end
-
-                TicketSvc --> OrderSvc: List<Ticket> generated
-                deactivate TicketSvc
-
-                OrderSvc -> DB: COMMIT
-                deactivate DB
-
-                ' --- Send Notification ---
-                OrderSvc -> DB: INSERT INTO Notifications\n(userId=customerId,\ntype='ORDER_CONFIRMED',\nmessage='Đơn hàng đã thanh toán\nthành công. Xem vé của bạn.')
-
-                OrderSvc --> Webhook: Success
-                deactivate OrderSvc
-
-                Webhook -> DB: INSERT INTO PaymentLogs\n(orderId, status='SUCCESS',\ntransactionId, amount)
-
-                Webhook --> SePay: HTTP 200 OK\n{"success": true}
-
-            end
-        end
-    end
+    TktDAO --> TicketSvc: OK
+    deactivate TktDAO
 end
 
-deactivate Webhook
+TicketSvc --> OrderSvc: tickets (generated)
+deactivate TicketSvc
 
-== Phase 5: Attendee Kiểm tra kết quả ==
+' --- Send Notification ---
+OrderSvc -> DB: INSERT INTO Notifications\n(userId, type='ORDER_CONFIRMED',\nmessage='Payment confirmed!\n5 tickets issued for\nevent {title}')
 
-User -> Browser: Refresh trang thanh toán
-Browser -> PayCtrl: GET /checkout/payment\n?orderId={orderId}
-activate PayCtrl
-PayCtrl -> OrderSvc: getOrder(orderId)
-activate OrderSvc
-OrderSvc -> DB: SELECT * FROM Orders
-activate DB
-DB --> OrderSvc: Order (status=confirmed)
-deactivate DB
-OrderSvc --> PayCtrl: Order
+OrderSvc --> Controller: PaymentConfirmed
 deactivate OrderSvc
-PayCtrl --> Browser: Redirect → /tickets\n(Order confirmed!)
-deactivate PayCtrl
-Browser --> User: ✅ Thanh toán thành công!\nXem vé QR Code
+
+Controller --> SePay: HTTP 200 OK\n{"success": true}
+deactivate Controller
+
+== Part D: Customer Gets Confirmation ==
+
+Browser -> Controller: GET /api/payment/check-status\n?orderId={id}\n(JS polling every 3s)
+activate Controller
+Controller -> OrdDAO: findById(orderId)
+activate OrdDAO
+OrdDAO -> DB: SELECT status FROM Orders
+activate DB
+DB --> OrdDAO: status = 'confirmed'
+deactivate DB
+OrdDAO --> Controller: confirmed
+deactivate OrdDAO
+Controller --> Browser: JSON {status: "confirmed"}
+deactivate Controller
+
+Browser -> Browser: ✅ Payment confirmed!\nAuto-redirect to tickets page
+
+Browser --> Customer: 🎉 Payment successful!\n5 e-tickets issued.\nView your tickets.
 
 @enduml

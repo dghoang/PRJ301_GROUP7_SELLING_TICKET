@@ -1,0 +1,79 @@
+@startuml UC_08_Administration
+' ============================================================
+' USE CASE DIAGRAM - MODULE 8: System Administration
+' User/Category/Configuration Management
+' ============================================================
+
+title **Use Case Diagram - Module 8\nSystem Administration**
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor #EFEBE9
+    BorderColor #4E342E
+    FontSize 12
+    ArrowColor #4E342E
+}
+
+' === ACTORS ===
+actor "Admin" as Admin #Orchid
+actor "Organizer" as Organizer #Gold
+
+' === SYSTEM BOUNDARY ===
+rectangle "Module 8: System Administration" {
+
+    usecase "**UC-8.1: User Management**\n---\nView/Search/Filter users.\nBan/Unban toggle.\nSoft-delete user.\nFilter: role, status." as UC_USER
+
+    usecase "**UC-8.2: Category Management**\n---\nCRUD event categories.\nFields: name, slug,\ndescription, icon.\nToggle isActive." as UC_CAT
+
+    usecase "**UC-8.3: Staff Assignment**\n---\nOrganizer assigns staff\nto events.\nSearch by email.\nAuto-upgrade role\ncustomer → staff." as UC_STAFF
+
+    usecase "**UC-8.4: Activity Logs**\n---\nView system-wide audit logs.\nFilter: user, action,\ndate range.\nActions: LOGIN, LOGOUT,\nBAN_USER, APPROVE_EVENT..." as UC_LOG
+
+    usecase "**UC-8.5: System Notifications**\n---\nAdmin manages\nsystem notifications.\nCreate/Read/Delete.\nMark as read." as UC_NOTIF
+
+    ' --- Sub use cases ---
+    usecase "Soft Delete\n(isDeleted=1)" as UC_SOFT <<include>>
+    usecase "Toggle Active\n(isActive)" as UC_TOGGLE <<include>>
+}
+
+' === ASSOCIATIONS ===
+Admin --> UC_USER
+Admin --> UC_CAT
+Admin --> UC_LOG
+Admin --> UC_NOTIF
+
+Organizer --> UC_STAFF
+
+' === INCLUDE ===
+UC_USER ..> UC_SOFT : <<include>>
+UC_USER ..> UC_TOGGLE : <<include>>
+UC_CAT ..> UC_TOGGLE : <<include>>
+
+' === NOTES ===
+note right of UC_USER
+  **FR-42~FR-44**
+  Ban = isActive false
+  (user cannot login).
+  Delete = isDeleted true
+  (soft-delete, data retained).
+end note
+
+note right of UC_STAFF
+  **FR-48**
+  Auto role upgrade:
+  If assigned user's role
+  is 'customer',
+  automatically upgrade
+  to 'staff'.
+end note
+
+note right of UC_LOG
+  **FR-49**
+  ActivityLogs table records
+  all admin operations.
+  Not deletable.
+  Compliance ready.
+end note
+
+@enduml

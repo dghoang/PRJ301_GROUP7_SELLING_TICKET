@@ -25,9 +25,10 @@ public class DashboardDAO extends DBContext {
         Map<String, Object> stats = new HashMap<>();
 
         String sql = "SELECT " +
-                "(SELECT COUNT(*) FROM Events) as total_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE status = 'pending') as pending_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE status = 'approved') as approved_events, " +
+                "(SELECT COUNT(*) FROM Events WHERE (is_deleted = 0 OR is_deleted IS NULL)) as total_events, " +
+                "(SELECT COUNT(*) FROM Events WHERE status = 'pending' AND (is_deleted = 0 OR is_deleted IS NULL)) as pending_events, " +
+                "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)) as approved_events, " +
+                "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND (end_date IS NULL OR end_date >= GETDATE())) as active_events, " +
                 "(SELECT COUNT(*) FROM Users) as total_users, " +
                 "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE status = 'paid') as total_revenue, " +
                 "(SELECT COUNT(*) FROM Orders WHERE status = 'pending') as pending_orders, " +
@@ -42,6 +43,7 @@ public class DashboardDAO extends DBContext {
                 stats.put("totalEvents", rs.getInt("total_events"));
                 stats.put("pendingEvents", rs.getInt("pending_events"));
                 stats.put("approvedEvents", rs.getInt("approved_events"));
+                stats.put("activeEvents", rs.getInt("active_events"));
                 stats.put("totalUsers", rs.getInt("total_users"));
                 stats.put("totalRevenue", rs.getDouble("total_revenue"));
                 stats.put("pendingOrders", rs.getInt("pending_orders"));
@@ -53,6 +55,33 @@ public class DashboardDAO extends DBContext {
             LOGGER.log(Level.SEVERE, "Failed to load admin dashboard stats", e);
         }
 
+        return stats;
+    }
+
+    /**
+     * Get public-facing statistics for homepage.
+     * Returns real counts: active events, tickets sold, organizers, customers.
+     */
+    public Map<String, Object> getPublicStats() {
+        Map<String, Object> stats = new HashMap<>();
+        String sql = "SELECT " +
+                "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND (end_date IS NULL OR end_date >= GETDATE())) as total_events, " +
+                "(SELECT ISNULL(SUM(sold_quantity), 0) FROM TicketTypes tt JOIN Events e ON tt.event_id = e.event_id WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL)) as total_tickets_sold, " +
+                "(SELECT COUNT(DISTINCT organizer_id) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)) as total_organizers, " +
+                "(SELECT COUNT(*) FROM Users WHERE role = 'customer') as total_customers";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                stats.put("totalEvents", rs.getInt("total_events"));
+                stats.put("totalTicketsSold", rs.getInt("total_tickets_sold"));
+                stats.put("totalOrganizers", rs.getInt("total_organizers"));
+                stats.put("totalCustomers", rs.getInt("total_customers"));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load public stats", e);
+        }
         return stats;
     }
 

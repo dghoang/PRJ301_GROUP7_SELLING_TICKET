@@ -46,8 +46,8 @@ public class CategoryDAO extends DBContext {
             boolean hasEventSoftDelete = hasColumn(conn, "Events", "is_deleted");
 
             String eventCountExpr = hasEventSoftDelete
-                    ? "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL))"
-                    : "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved')";
+                    ? "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) AND (e.end_date IS NULL OR e.end_date >= GETDATE()))"
+                    : "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()))";
             String orderExpr = hasCategoryDisplayOrder ? "ISNULL(c.display_order, 0)" : "0";
 
             StringBuilder sql = new StringBuilder();
@@ -118,8 +118,8 @@ public class CategoryDAO extends DBContext {
             boolean hasEventSoftDelete = hasColumn(conn, "Events", "is_deleted");
 
             String eventCountExpr = hasEventSoftDelete
-                    ? "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL))"
-                    : "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved')";
+                    ? "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) AND (e.end_date IS NULL OR e.end_date >= GETDATE()))"
+                    : "(SELECT COUNT(*) FROM Events e WHERE e.category_id = c.category_id AND e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()))";
             String orderExpr = hasCategoryDisplayOrder ? "ISNULL(c.display_order, 0)" : "0";
 
             StringBuilder sql = new StringBuilder();
