@@ -218,7 +218,7 @@
                     <div class="text-center mb-4 animate-fadeInUp">
                         <h2 class="fw-bold mb-2" data-i18n="auth.create_account">Tạo tài khoản mới</h2>
                         <p class="text-muted">
-                            <span data-i18n="auth.have_account">Đã có tài khoản?</span> <a href="login.jsp" class="text-primary fw-medium text-decoration-none" data-i18n="auth.login_link">Đăng nhập</a>
+                            <span data-i18n="auth.have_account">Đã có tài khoản?</span> <a href="${pageContext.request.contextPath}/login" class="text-primary fw-medium text-decoration-none" data-i18n="auth.login_link">Đăng nhập</a>
                         </p>
                     </div>
                     

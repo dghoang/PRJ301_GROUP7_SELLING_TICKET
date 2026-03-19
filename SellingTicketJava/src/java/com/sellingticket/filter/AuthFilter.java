@@ -34,27 +34,8 @@ import jakarta.servlet.http.HttpSession;
 public class AuthFilter implements Filter {
 
     private static final Logger LOGGER = Logger.getLogger(AuthFilter.class.getName());
-    private static final Set<String> PROTECTED_ROOT_JSP = Set.of(
-            "/checkout.jsp",
-            "/my-support-tickets.jsp",
-            "/my-tickets.jsp",
-            "/notifications.jsp",
-            "/order-confirmation.jsp",
-            "/payment-pending.jsp",
-            "/profile.jsp",
-            "/support-ticket.jsp",
-            "/support-ticket-detail.jsp",
-            "/ticket-selection.jsp"
-    );
-
-    /** Public root JSPs that do NOT require authentication. */
-    private static final Set<String> PUBLIC_ROOT_JSP = Set.of(
-            "/index.jsp", "/home.jsp", "/events.jsp", "/event-detail.jsp",
-            "/categories.jsp", "/about.jsp", "/faq.jsp", "/terms.jsp",
-            "/login.jsp", "/register.jsp",
-            "/header.jsp", "/footer.jsp",
-            "/404.jsp", "/500.jsp"
-    );
+    // Note: Direct .jsp access is blocked globally by SecurityHeadersFilter.
+    // AuthFilter only handles clean URL authorization.
 
     private static final Set<String> PUBLIC_EXACT_PATHS = Set.of(
             "/", "/home", "/events", "/event-detail",
@@ -87,15 +68,8 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // Hardening: protected JSPs must never be accessed directly via URL.
-        if (isProtectedJsp(path)) {
-            LOGGER.log(Level.WARNING, "Blocked direct access to protected JSP: {0}", path);
-            httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        // Public pages/routes (home, events, event detail, static pages, auth pages).
-        if (isPublicJsp(path) || isPublicRoute(path)) {
+        // Public routes (home, events, event detail, static pages, auth pages).
+        if (isPublicRoute(path)) {
             chain.doFilter(request, response);
             return;
         }
@@ -255,19 +229,7 @@ public class AuthFilter implements Filter {
     @Override
     public void destroy() {}
 
-    private boolean isProtectedJsp(String path) {
-        if (!path.endsWith(".jsp")) {
-            return false;
-        }
-        if (path.startsWith("/admin/") || path.startsWith("/organizer/")) {
-            return true;
-        }
-        return PROTECTED_ROOT_JSP.contains(path);
-    }
 
-    private boolean isPublicJsp(String path) {
-        return path.endsWith(".jsp") && PUBLIC_ROOT_JSP.contains(path);
-    }
 
     private boolean isPublicRoute(String path) {
         if (PUBLIC_EXACT_PATHS.contains(path)) {

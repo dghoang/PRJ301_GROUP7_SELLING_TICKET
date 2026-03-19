@@ -1,7 +1,7 @@
 package com.sellingticket.filter;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.Map;
 import java.util.logging.Logger;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -14,33 +14,55 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * SecurityHeadersFilter - Adds security response headers to every response.
- * 
- * <p>Protects against:
+ * SecurityHeadersFilter — Adds security response headers + blocks direct JSP access.
+ *
+ * <p>Security headers protect against:
  * <ul>
- *   <li>XSS (X-XSS-Protection, Content-Security-Policy)</li>
+ *   <li>XSS (X-XSS-Protection)</li>
  *   <li>Clickjacking (X-Frame-Options)</li>
  *   <li>MIME sniffing (X-Content-Type-Options)</li>
+ * </ul>
+ *
+ * <p>JSP access hardening:
+ * <ul>
+ *   <li>ALL .jsp files are blocked from direct browser access</li>
+ *   <li>Only internal forwards/includes from servlets can render JSPs</li>
+ *   <li>Known JSPs with servlet mappings redirect to their clean URL</li>
+ *   <li>Exception: index.jsp (Tomcat welcome file)</li>
  * </ul>
  */
 public class SecurityHeadersFilter implements Filter {
 
     private static final Logger LOGGER = Logger.getLogger(SecurityHeadersFilter.class.getName());
-    private static final Set<String> PROTECTED_ROOT_JSP = Set.of(
-            "/checkout.jsp",
-            "/my-support-tickets.jsp",
-            "/my-tickets.jsp",
-            "/order-confirmation.jsp",
-            "/payment-pending.jsp",
-            "/profile.jsp",
-            "/support-ticket.jsp",
-            "/support-ticket-detail.jsp",
-            "/ticket-selection.jsp"
+
+    /**
+     * JSPs that have a servlet mapping — redirect to clean URL instead of 404.
+     * This ensures bookmarks and old links still work gracefully.
+     */
+    private static final Map<String, String> JSP_REDIRECT_MAP = Map.ofEntries(
+            // Public pages
+            Map.entry("/home.jsp", "/home"),
+            Map.entry("/events.jsp", "/events"),
+            Map.entry("/event-detail.jsp", "/event-detail"),
+            Map.entry("/categories.jsp", "/categories"),
+            Map.entry("/about.jsp", "/about"),
+            Map.entry("/faq.jsp", "/faq"),
+            Map.entry("/terms.jsp", "/terms"),
+            Map.entry("/login.jsp", "/login"),
+            Map.entry("/register.jsp", "/register"),
+            // Protected user pages
+            Map.entry("/checkout.jsp", "/checkout"),
+            Map.entry("/my-tickets.jsp", "/my-tickets"),
+            Map.entry("/my-support-tickets.jsp", "/my-support-tickets"),
+            Map.entry("/profile.jsp", "/profile"),
+            Map.entry("/notifications.jsp", "/notifications"),
+            Map.entry("/order-confirmation.jsp", "/order-confirmation"),
+            Map.entry("/ticket-selection.jsp", "/tickets")
     );
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        LOGGER.info("SecurityHeadersFilter initialized");
+        LOGGER.info("SecurityHeadersFilter initialized — all direct .jsp access blocked");
     }
 
     @Override
@@ -53,16 +75,28 @@ public class SecurityHeadersFilter implements Filter {
         String uri = httpReq.getRequestURI();
         String path = uri.startsWith(contextPath) ? uri.substring(contextPath.length()) : uri;
 
-        // Hardening: block direct browser access to protected JSPs.
-        if (isProtectedJsp(path)) {
+        // === BLOCK ALL DIRECT .JSP ACCESS ===
+        // Only internal forwards/includes from servlets may render JSPs.
+        // Exception: /index.jsp is allowed as Tomcat welcome file (it just forwards to /home).
+        if (path.endsWith(".jsp") && !"/index.jsp".equals(path)) {
             boolean isForwarded = httpReq.getAttribute(RequestDispatcher.FORWARD_REQUEST_URI) != null;
             boolean isIncluded = httpReq.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null;
+
             if (!isForwarded && !isIncluded) {
-                LOGGER.warning("Blocked direct access to protected JSP: " + path + " from " + httpReq.getRemoteAddr());
+                // Try redirect to clean URL first (graceful handling)
+                String redirectUrl = JSP_REDIRECT_MAP.get(path);
+                if (redirectUrl != null) {
+                    response.sendRedirect(contextPath + redirectUrl);
+                    return;
+                }
+                // No known mapping → 404
+                LOGGER.warning("Blocked direct JSP access: " + path + " from " + httpReq.getRemoteAddr());
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
         }
+
+        // === SECURITY RESPONSE HEADERS ===
 
         // Prevent MIME type sniffing
         response.setHeader("X-Content-Type-Options", "nosniff");
@@ -83,23 +117,11 @@ public class SecurityHeadersFilter implements Filter {
             response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
         }
 
-        // HSTS is removed for local development to allow HTTP access via LAN IP
-        
         chain.doFilter(req, res);
     }
 
     @Override
     public void destroy() {
         // No cleanup needed
-    }
-
-    private boolean isProtectedJsp(String path) {
-        if (!path.endsWith(".jsp")) {
-            return false;
-        }
-        if (path.startsWith("/admin/") || path.startsWith("/organizer/")) {
-            return true;
-        }
-        return PROTECTED_ROOT_JSP.contains(path);
     }
 }

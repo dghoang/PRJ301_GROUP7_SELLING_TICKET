@@ -179,7 +179,7 @@
                         <h2 class="fw-bold mb-2" data-i18n="auth.login_heading">Đăng nhập</h2>
                         <p class="text-muted">
                             <span data-i18n="auth.no_account">Chưa có tài khoản?</span> 
-                            <a href="register.jsp" class="text-primary fw-medium text-decoration-none hover-underline" data-i18n="auth.register_now">Đăng ký ngay</a>
+                            <a href="${pageContext.request.contextPath}/register" class="text-primary fw-medium text-decoration-none hover-underline" data-i18n="auth.register_now">Đăng ký ngay</a>
                         </p>
                     </div>
 
