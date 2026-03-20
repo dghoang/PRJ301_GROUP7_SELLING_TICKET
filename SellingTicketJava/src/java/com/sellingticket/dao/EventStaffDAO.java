@@ -125,10 +125,10 @@ public class EventStaffDAO extends DBContext {
      */
     public List<java.util.Map<String, Object>> getAssignedEventsWithDetails(int userId) {
         List<java.util.Map<String, Object>> list = new ArrayList<>();
-        String sql = "SELECT e.event_id, e.event_name, e.start_date, e.end_date, e.venue, e.status, " +
+        String sql = "SELECT e.event_id, e.title AS event_name, e.start_date, e.end_date, e.location AS venue, e.status, " +
                      "es.role AS staff_role, " +
-                     "(SELECT COUNT(*) FROM OrderDetails od JOIN TicketTypes tt ON od.ticket_type_id = tt.ticket_type_id WHERE tt.event_id = e.event_id) AS tickets_sold, " +
-                     "(SELECT COUNT(*) FROM OrderDetails od JOIN TicketTypes tt ON od.ticket_type_id = tt.ticket_type_id WHERE tt.event_id = e.event_id AND od.checked_in = 1) AS tickets_checked " +
+                     "(SELECT COUNT(*) FROM OrderItems oi JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id WHERE tt.event_id = e.event_id) AS tickets_sold, " +
+                     "(SELECT COUNT(*) FROM Tickets tk JOIN OrderItems oi2 ON tk.order_item_id = oi2.order_item_id JOIN TicketTypes tt2 ON oi2.ticket_type_id = tt2.ticket_type_id WHERE tt2.event_id = e.event_id AND tk.is_checked_in = 1) AS tickets_checked " +
                      "FROM EventStaff es JOIN Events e ON es.event_id = e.event_id " +
                      "WHERE es.user_id = ? ORDER BY e.start_date DESC";
         try (Connection conn = getConnection();

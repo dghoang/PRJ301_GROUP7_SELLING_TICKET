@@ -33,6 +33,23 @@
 .stat-mini-card .stat-label { font-size: 0.75rem; color: #6b7280; }
 /* Copy toast */
 .copy-toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+/* Order group header */
+.order-group-header { border-bottom: 1px solid rgba(0,0,0,0.06); }
+.order-group-header .order-ticket-count {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(59,130,246,0.08); color: #3b82f6;
+    font-size: 0.75rem; font-weight: 600; padding: 2px 10px;
+    border-radius: 20px;
+}
+/* Ticket mini card inside order group */
+.ticket-mini-card {
+    background: linear-gradient(135deg, rgba(16,185,129,0.03), rgba(6,182,212,0.03));
+    border: 2px dashed rgba(16,185,129,0.2);
+    border-radius: 16px; padding: 16px; transition: all 0.3s;
+}
+.ticket-mini-card:hover { border-color: #10b981; box-shadow: 0 6px 20px rgba(16,185,129,0.12); transform: translateY(-2px); }
+.ticket-mini-card.checked-in { background: rgba(139,92,246,0.03); border-color: rgba(139,92,246,0.2); }
+.ticket-mini-card.pending-ticket { background: rgba(245,158,11,0.03); border-color: rgba(245,158,11,0.2); }
 </style>
 
 <div class="container py-5">
@@ -206,16 +223,128 @@
         return '<span class="badge rounded-pill status-pulse" style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.7rem;"><i class="fas fa-bolt me-1"></i>Còn ' + hours + ' giờ</span>';
     }
 
-    function statusBadge(ticket) {
-        if (ticket.orderStatus === 'pending') return '<span class="badge rounded-pill px-3 py-2 status-pulse" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"><i class="fas fa-clock me-1"></i>' + i18n.t('mytickets.status_pending') + '</span>';
-        if (ticket.isCheckedIn) return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;"><i class="fas fa-door-open me-1"></i>' + i18n.t('mytickets.status_checked_in') + '</span>';
-        return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;"><i class="fas fa-check-circle me-1"></i>' + i18n.t('mytickets.status_valid') + '</span>';
+    function orderStatusBadgeTicket(status) {
+        switch (status) {
+            case 'pending': return '<span class="badge rounded-pill px-3 py-2 status-pulse" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-size:0.8rem;"><i class="fas fa-clock me-1"></i>Chờ thanh toán</span>';
+            case 'paid': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;font-size:0.8rem;"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span>';
+            default: return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;font-size:0.8rem;"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span>';
+        }
     }
 
-    function statusIcon(ticket) {
-        if (ticket.orderStatus === 'pending') return {gradient: '#f59e0b,#d97706', icon: 'fa-clock'};
-        if (ticket.isCheckedIn) return {gradient: '#8b5cf6,#6366f1', icon: 'fa-door-open'};
+    function ticketStatusBadge(t) {
+        if (t.isCheckedIn) return '<span class="badge rounded-pill px-2 py-1" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;font-size:0.7rem;"><i class="fas fa-door-open me-1"></i>Đã check-in</span>';
+        if (t.orderStatus === 'pending') return '<span class="badge rounded-pill px-2 py-1 status-pulse" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-size:0.7rem;"><i class="fas fa-clock me-1"></i>Chờ TT</span>';
+        return '<span class="badge rounded-pill px-2 py-1" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:white;font-size:0.7rem;"><i class="fas fa-check-circle me-1"></i>Hợp lệ</span>';
+    }
+
+    function orderStatusIcon(status) {
+        if (status === 'pending') return {gradient: '#f59e0b,#d97706', icon: 'fa-clock'};
         return {gradient: '#10b981,#06b6d4', icon: 'fa-check-circle'};
+    }
+
+    // Group tickets by orderCode
+    function groupByOrder(items) {
+        var groups = {}, order = [];
+        (items || []).forEach(function(t) {
+            var key = t.orderCode || ('no_order_' + t.ticketId);
+            if (!groups[key]) { groups[key] = []; order.push(key); }
+            groups[key].push(t);
+        });
+        return order.map(function(k) { return { orderCode: k, tickets: groups[k] }; });
+    }
+
+    // Render a single ticket mini-card
+    function renderTicketMini(t) {
+        var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(t.qrCode || '');
+        var extraClass = t.isCheckedIn ? ' checked-in' : (t.orderStatus === 'pending' ? ' pending-ticket' : '');
+        var h = '<div class="ticket-mini-card' + extraClass + '">';
+        // Top: ticket code + status
+        h += '<div class="d-flex justify-content-between align-items-start mb-2">';
+        h += '<div><span class="font-monospace fw-bold small">' + esc(t.ticketCode) + '</span><br><small class="text-muted">' + esc(t.ticketTypeName) + '</small></div>';
+        h += ticketStatusBadge(t);
+        h += '</div>';
+        // QR code
+        h += '<div class="text-center mb-2"><div class="qr-box d-inline-block"><img src="' + qrUrl + '" alt="QR ' + esc(t.ticketCode) + '" width="140" height="140"' + (t.isCheckedIn ? ' style="filter:grayscale(100%) opacity(0.5);"' : '') + '></div></div>';
+        // Attendee
+        if (t.attendeeName) h += '<div class="text-center mb-2"><small class="text-muted"><i class="fas fa-user me-1"></i>' + esc(t.attendeeName) + '</small></div>';
+        // Check-in info
+        if (t.isCheckedIn && t.checkedInAt) {
+            h += '<div class="text-center"><span class="badge rounded-pill" style="background:rgba(139,92,246,0.1);color:#7c3aed;font-size:0.65rem;"><i class="fas fa-check-double me-1"></i>Check-in: ' + fmtDate(t.checkedInAt) + '</span></div>';
+        }
+        // Action buttons
+        if (!t.isCheckedIn) {
+            h += '<div class="d-flex gap-1 justify-content-center mt-2 flex-wrap">';
+            h += '<button class="btn btn-sm glass rounded-pill px-2 download-btn" style="font-size:0.7rem;" onclick="event.stopPropagation();downloadQR(\'' + esc(t.ticketCode) + '\')"><i class="fas fa-download me-1 text-primary"></i>Tải QR</button>';
+            h += '<button class="btn btn-sm glass rounded-pill px-2 download-btn" style="font-size:0.7rem;" onclick="event.stopPropagation();copyTicketCode(\'' + esc(t.ticketCode) + '\')"><i class="fas fa-copy me-1" style="color:#6366f1;"></i>Copy</button>';
+            h += '</div>';
+        }
+        h += '</div>';
+        return h;
+    }
+
+    // Render an order group card
+    function renderOrderGroup(group) {
+        var first = group.tickets[0];
+        var si = orderStatusIcon(first.orderStatus);
+        var groupId = 'orderGrp_' + (first.orderId || first.ticketId);
+
+        var card = '<div class="card glass-strong border-0 rounded-4 order-card mb-3" id="' + groupId + '" style="border:2px solid transparent !important;">';
+        // Order header
+        card += '<div class="card-body p-4 order-group-header" onclick="toggleTicket(\'' + groupId + '\')" style="cursor:pointer">';
+        card += '<div class="row align-items-center">';
+        // Left: event info
+        card += '<div class="col-md-5"><div class="d-flex align-items-center gap-3">';
+        card += '<div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:52px;height:52px;background:linear-gradient(135deg,' + si.gradient + ');">';
+        card += '<i class="fas ' + si.icon + ' text-white fa-lg"></i></div>';
+        card += '<div class="min-w-0"><h6 class="fw-bold mb-1 text-truncate">' + esc(first.eventTitle) + '</h6>';
+        card += '<div class="d-flex align-items-center gap-2 flex-wrap">';
+        card += '<span class="text-muted small font-monospace">' + esc(first.orderCode) + '</span>';
+        card += '<span class="order-ticket-count"><i class="fas fa-ticket-alt"></i>' + group.tickets.length + ' vé</span>';
+        card += '</div>';
+        if (first.eventStartDate || first.venue) {
+            card += '<div class="d-flex align-items-center gap-2 flex-wrap mt-1">';
+            if (first.eventStartDate) card += '<span class="small" style="color:#6b7280;"><i class="fas fa-calendar-day me-1" style="color:#3b82f6;"></i>' + fmtDateShort(first.eventStartDate) + '</span>';
+            if (first.venue) card += '<span class="small text-truncate" style="color:#6b7280;max-width:180px;" title="' + esc(first.venue) + '"><i class="fas fa-map-marker-alt me-1" style="color:#ef4444;"></i>' + esc(first.venue) + '</span>';
+            card += '</div>';
+        }
+        card += '</div></div></div>';
+        // Center: order status
+        card += '<div class="col-md-3 text-md-center mt-3 mt-md-0">';
+        card += orderStatusBadgeTicket(first.orderStatus);
+        if (first.eventStartDate && first.orderStatus !== 'pending') card += '<div class="mt-1">' + countdown(first.eventStartDate) + '</div>';
+        card += '</div>';
+        // Right: date + expand
+        card += '<div class="col-md-4 text-md-end mt-3 mt-md-0">';
+        card += '<div class="d-flex align-items-center justify-content-md-end gap-3">';
+        card += '<span class="text-muted small"><i class="fas fa-clock me-1"></i>' + fmtDate(first.createdAt) + '</span>';
+        card += '<i class="fas fa-chevron-down expand-icon text-muted"></i>';
+        card += '</div></div>';
+        card += '</div></div>';
+
+        // Expandable detail: ticket grid
+        card += '<div class="ticket-grid flex-column" id="ticketDetail_' + groupId + '">';
+        card += '<div class="px-4 pb-4"><div class="border-top pt-4">';
+        card += '<div class="d-flex align-items-center justify-content-between mb-3">';
+        card += '<h6 class="fw-bold mb-0"><i class="fas fa-qrcode text-primary me-2"></i>Vé điện tử (' + group.tickets.length + ')</h6>';
+        card += '<small class="text-muted"><i class="fas fa-shield-alt text-success me-1"></i>Chống giả mạo</small></div>';
+        // Grid of ticket mini cards
+        card += '<div class="row g-3">';
+        group.tickets.forEach(function(t) {
+            card += '<div class="col-sm-6 col-lg-' + (group.tickets.length === 1 ? '6' : '6') + '">' + renderTicketMini(t) + '</div>';
+        });
+        card += '</div>';
+        // Action buttons
+        card += '<div class="mt-3 d-flex flex-wrap gap-2">';
+        if (first.orderStatus === 'pending') {
+            card += '<a href="' + ctxPath + '/resume-payment?orderId=' + (first.orderId || '') + '" class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-2"></i>Thanh toán ngay</a>';
+        }
+        if (first.eventId) {
+            card += '<button class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();if(typeof openEventChat===\'function\')openEventChat('+first.eventId+',\''+esc(first.eventTitle).replace(/'/g,"\\'")+'\');else alert(\'Vui lòng tải lại trang\');" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;"><i class="fas fa-comments me-2"></i>Chat hỗ trợ</button>';
+        }
+        card += '</div>';
+        card += '</div></div></div>';
+        card += '</div>';
+        return card;
     }
 
     var myTickets;
@@ -226,7 +355,7 @@
         paginationContainer: '#myTicketsPagination',
         searchInput: '#myTicketSearch',
         filterScope: '#ticketsView',
-        pageSize: 10,
+        pageSize: 20,
         skeletonCount: 3,
         skeletonHtml: '<div class="card glass-strong border-0 rounded-4 mb-3 skeleton-card" style="height:120px;"><div class="skeleton-body p-4"><div class="skeleton-line w-50"></div><div class="skeleton-line w-75"></div><div class="skeleton-line w-25"></div></div></div>',
         renderEmpty: function() {
@@ -240,97 +369,16 @@
                 '</div></div>';
         },
         renderCard: function(t) {
-            var si = statusIcon(t);
-            var ticketId = 'ticket_' + t.ticketId;
-            var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(t.qrCode || '');
-
-            var card = '<div class="card glass-strong border-0 rounded-4 order-card" id="' + ticketId + '" style="border:2px solid transparent !important;">';
-
-            // Header row (clickable to expand)
-            card += '<div class="card-body p-4" onclick="toggleTicket(\'' + ticketId + '\')" style="cursor:pointer">';
-            card += '<div class="row align-items-center">';
-            card += '<div class="col-md-5"><div class="d-flex align-items-center gap-3">';
-            card += '<div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:52px;height:52px;background:linear-gradient(135deg,' + si.gradient + ');">';
-            card += '<i class="fas ' + si.icon + ' text-white fa-lg"></i></div>';
-            card += '<div class="min-w-0"><h6 class="fw-bold mb-1 text-truncate">' + esc(t.eventTitle) + '</h6>';
-            card += '<div class="d-flex align-items-center gap-2 flex-wrap">';
-            card += '<span class="text-muted small font-monospace">' + esc(t.ticketCode) + '</span>';
-            card += '<span class="text-muted small">&bull;</span>';
-            card += '<span class="text-muted small">' + esc(t.ticketTypeName) + '</span>';
-            card += '</div>';
-            // Event date & venue info row
-            if (t.eventStartDate || t.venue) {
-                card += '<div class="d-flex align-items-center gap-2 flex-wrap mt-1">';
-                if (t.eventStartDate) card += '<span class="small" style="color:#6b7280;"><i class="fas fa-calendar-day me-1" style="color:#3b82f6;"></i>' + fmtDateShort(t.eventStartDate) + '</span>';
-                if (t.venue) card += '<span class="small text-truncate" style="color:#6b7280;max-width:180px;" title="' + esc(t.venue) + '"><i class="fas fa-map-marker-alt me-1" style="color:#ef4444;"></i>' + esc(t.venue) + '</span>';
-                card += '</div>';
-            }
-            card += '</div></div></div>';
-
-            card += '<div class="col-md-3 text-md-center mt-3 mt-md-0">';
-            card += statusBadge(t);
-            if (t.eventStartDate && !t.isCheckedIn && t.orderStatus !== 'pending') card += '<div class="mt-1">' + countdown(t.eventStartDate) + '</div>';
-            card += '</div>';
-
-            card += '<div class="col-md-4 text-md-end mt-3 mt-md-0">';
-            card += '<div class="d-flex align-items-center justify-content-md-end gap-3">';
-            card += '<span class="text-muted small"><i class="fas fa-clock me-1"></i>' + fmtDate(t.createdAt) + '</span>';
-            card += '<i class="fas fa-chevron-down expand-icon text-muted"></i>';
-            card += '</div></div>';
-            card += '</div></div>';
-
-            // Expandable detail
-            card += '<div class="ticket-grid flex-column" id="ticketDetail_' + ticketId + '">';
-            card += '<div class="px-4 pb-4"><div class="border-top pt-4">';
-
-            // QR section
-            card += '<div class="d-flex align-items-center justify-content-between mb-3">';
-            card += '<h6 class="fw-bold mb-0"><i class="fas fa-qrcode text-primary me-2"></i>' + i18n.t('mytickets.eticket') + '</h6>';
-            card += '<small class="text-muted"><i class="fas fa-shield-alt text-success me-1"></i>' + i18n.t('mytickets.anti_fraud') + '</small></div>';
-
-            card += '<div class="row g-3"><div class="col-sm-6 col-lg-4">';
-            card += '<div class="ticket-qr-card ' + (t.isCheckedIn ? 'used' : '') + ' rounded-4 p-3 text-center h-100">';
-            card += '<div class="d-flex justify-content-between align-items-start mb-2">';
-            card += '<div class="text-start"><span class="font-monospace fw-bold small">' + esc(t.ticketCode) + '</span><br><small class="text-muted">' + esc(t.ticketTypeName) + '</small></div>';
-            card += t.isCheckedIn
-                ? '<span class="badge bg-danger rounded-pill" style="font-size:10px;">' + i18n.t('mytickets.badge_used') + '</span>'
-                : (t.orderStatus === 'pending'
-                    ? '<span class="badge rounded-pill" style="font-size:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;">' + i18n.t('mytickets.badge_pending') + '</span>'
-                    : '<span class="badge rounded-pill" style="font-size:10px;background:linear-gradient(135deg,#10b981,#06b6d4);color:white;">' + i18n.t('mytickets.badge_valid') + '</span>');
-            card += '</div>';
-            card += '<div class="qr-box mb-2"><img src="' + qrUrl + '" alt="QR ' + esc(t.ticketCode) + '" width="160" height="160"' + (t.isCheckedIn ? ' style="filter:grayscale(100%) opacity(0.5);"' : '') + '></div>';
-            card += '<small class="text-muted d-block mb-2">' + esc(t.attendeeName) + '</small>';
-            if (!t.isCheckedIn) {
-                card += '<div class="d-flex gap-2 justify-content-center flex-wrap">';
-                card += '<button class="btn btn-sm glass rounded-pill px-3 download-btn" onclick="event.stopPropagation();downloadQR(\'' + esc(t.ticketCode) + '\')"><i class="fas fa-download me-1 text-primary"></i>' + i18n.t('mytickets.download_qr') + '</button>';
-                card += '<button class="btn btn-sm glass rounded-pill px-3 download-btn" onclick="event.stopPropagation();copyTicketCode(\'' + esc(t.ticketCode) + '\')"><i class="fas fa-copy me-1" style="color:#6366f1;"></i>Copy mã</button>';
-                card += '</div>';
-            }
-            if (t.isCheckedIn && t.checkedInAt) {
-                card += '<div class="mt-2 px-2 py-1 rounded-3" style="background:rgba(239,68,68,0.08);display:inline-block;">';
-                card += '<small style="color:#dc2626;"><i class="fas fa-check-double me-1"></i>Check-in lúc ' + fmtDate(t.checkedInAt) + '</small>';
-                card += '</div>';
-            }
-            card += '</div></div></div>';
-
-            // Chat with event organizer button + Resume payment for pending orders
-            card += '<div class="px-4 pb-3 d-flex flex-wrap gap-2">';
-            if (t.orderStatus === 'pending') {
-                card += '<a href="' + ctxPath + '/resume-payment?orderId=' + (t.orderId || '') + '" class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;"><i class="fas fa-credit-card me-2"></i>' + i18n.t('mytickets.pay_now') + '</a>';
-            }
-            if (t.eventId) {
-                card += '<button class="btn btn-sm rounded-pill px-3" onclick="event.stopPropagation();if(typeof openEventChat===\'function\')openEventChat('+t.eventId+',\''+esc(t.eventTitle).replace(/'/g,"\\'")+'\');else alert(i18n.t(\'mytickets.reload_page\'));" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border:none;"><i class="fas fa-comments me-2"></i>' + i18n.t('mytickets.chat_support') + '</button>';
-            }
-            card += '</div>';
-
-            card += '</div></div></div>';
-            card += '</div>';
-
-            return card;
+            // This won't be called directly - we override rendering below
+            return '';
+        },
+        renderAll: function(items) {
+            // Group tickets by order and render grouped cards
+            var groups = groupByOrder(items);
+            return groups.map(function(g) { return renderOrderGroup(g); }).join('');
         }
     });
         myTickets.init();
-        // Populate stats after first successful data load
         var origOnData = myTickets.onDataLoaded;
         myTickets.onDataLoaded = function(data) {
             if (origOnData) origOnData(data);
@@ -339,7 +387,7 @@
     } catch(e) {
         console.error('MyTickets init error:', e);
         document.getElementById('myTicketsContainer').innerHTML =
-            '<div class="alert alert-danger rounded-4 m-3"><i class="fas fa-exclamation-triangle me-2"></i>' + i18n.t('mytickets.error_init_tickets') + ': ' + e.message + '</div>';
+            '<div class="alert alert-danger rounded-4 m-3"><i class="fas fa-exclamation-triangle me-2"></i>Lỗi khởi tạo vé: ' + e.message + '</div>';
     }
 
     // Toggle ticket expand/collapse
@@ -347,16 +395,15 @@
         var card = document.getElementById(ticketId);
         var grid = document.getElementById('ticketDetail_' + ticketId);
         if (!card || !grid) return;
-
         if (grid.classList.contains('show')) {
             grid.classList.remove('show');
             card.classList.remove('expanded');
             card.style.borderColor = 'transparent';
         } else {
-            document.querySelectorAll('.ticket-grid.show').forEach(function(g) {
+            document.querySelectorAll('#ticketsView .ticket-grid.show').forEach(function(g) {
                 g.classList.remove('show');
-                g.closest('.order-card').classList.remove('expanded');
-                g.closest('.order-card').style.borderColor = 'transparent';
+                var oc = g.closest('.order-card');
+                if (oc) { oc.classList.remove('expanded'); oc.style.borderColor = 'transparent'; }
             });
             grid.classList.add('show');
             card.classList.add('expanded');
@@ -365,7 +412,6 @@
         }
     };
 
-    // Copy ticket code
     window.copyTicketCode = function(code) {
         navigator.clipboard.writeText(code).then(function() {
             var toast = document.createElement('div');
@@ -376,16 +422,12 @@
         });
     };
 
-    // Update stats from API response
     function updateTicketStats(data) {
         if (!data || !data.totalCount) return;
         var row = document.getElementById('ticketStatsRow');
         if (row) row.style.display = '';
-        var total = data.totalCount || 0;
+        document.getElementById('statTotalTickets').textContent = data.totalCount || 0;
         var items = data.items || data.data || [];
-        // Count from full totalCount (server-side), approximate from page data
-        document.getElementById('statTotalTickets').textContent = total;
-        // For detailed stats, count from loaded items if totalCount small enough
         var checked = 0, pending = 0, valid = 0;
         items.forEach(function(t) {
             if (t.isCheckedIn) checked++;
@@ -397,7 +439,6 @@
         document.getElementById('statValidTickets').textContent = valid;
     }
 
-    // Download QR (reuse existing logic)
     window.downloadQR = function(ticketCode) {
         var qrImgs = document.querySelectorAll('img[alt="QR ' + ticketCode + '"]');
         if (!qrImgs.length) return;
@@ -414,25 +455,21 @@
             grad.addColorStop(0,'#10b981'); grad.addColorStop(1,'#06b6d4');
             ctx.fillStyle = grad;
             ctx.beginPath(); ctx.roundRect(0,0,w,60,[16,16,0,0]); ctx.fill();
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 18px Inter, sans-serif';
-            ctx.fillText(i18n.t('mytickets.canvas_eticket'), 20, 38);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px Inter, sans-serif';
+            ctx.fillText('VÉ ĐIỆN TỬ', 20, 38);
             ctx.font = '12px Inter, sans-serif';
             ctx.fillText(ticketCode, w - ctx.measureText(ticketCode).width - 20, 38);
             var qrSize = 240, qrX = (w - qrSize) / 2;
             ctx.drawImage(img, qrX, 80, qrSize, qrSize);
-            ctx.fillStyle = '#1f2937';
-            ctx.font = 'bold 16px monospace';
+            ctx.fillStyle = '#1f2937'; ctx.font = 'bold 16px monospace';
             ctx.fillText(ticketCode, (w - ctx.measureText(ticketCode).width) / 2, 345);
             ctx.strokeStyle = '#e5e7eb'; ctx.setLineDash([5,5]);
             ctx.beginPath(); ctx.moveTo(20,370); ctx.lineTo(w-20,370); ctx.stroke();
             ctx.setLineDash([]);
             ctx.fillStyle = '#6b7280'; ctx.font = '11px Inter, sans-serif';
-            var t1 = i18n.t('mytickets.canvas_show_qr');
-            ctx.fillText(t1, (w-ctx.measureText(t1).width)/2, 400);
+            var t1 = 'Xuất trình mã QR tại cổng vào'; ctx.fillText(t1, (w-ctx.measureText(t1).width)/2, 400);
             ctx.fillStyle = '#10b981'; ctx.font = 'bold 12px Inter, sans-serif';
-            var t2 = i18n.t('mytickets.canvas_anti_fraud');
-            ctx.fillText(t2, (w-ctx.measureText(t2).width)/2, 420);
+            var t2 = 'Chống giả mạo'; ctx.fillText(t2, (w-ctx.measureText(t2).width)/2, 420);
             ctx.fillStyle = '#d1d5db'; ctx.font = '10px Inter, sans-serif';
             ctx.fillText('SellingTicket.vn', (w-ctx.measureText('SellingTicket.vn').width)/2, 460);
             var link = document.createElement('a');

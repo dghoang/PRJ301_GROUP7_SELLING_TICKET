@@ -31,6 +31,7 @@ class AjaxCards {
         this.searchInput = document.querySelector(config.searchInput);
         this.filterScope = config.filterScope ? document.querySelector(config.filterScope) : document;
         this.renderCard = config.renderCard;
+        this.renderAll = config.renderAll || null;
         this.renderEmpty = config.renderEmpty || this._defaultEmpty;
         this.onDataLoaded = config.onDataLoaded || null;
         this.pageSize = config.pageSize || 12;
@@ -356,7 +357,11 @@ class AjaxCards {
             this.container.innerHTML = this.renderEmpty();
             return;
         }
-        this.container.innerHTML = items.map(item => this.renderCard(item)).join('');
+        if (this.renderAll) {
+            this.container.innerHTML = this.renderAll(items);
+        } else {
+            this.container.innerHTML = items.map(item => this.renderCard(item)).join('');
+        }
 
         // Cards may be inserted after animations.js observer is initialized.
         // Force reveal to prevent hidden cards (opacity:0) from staying invisible.
