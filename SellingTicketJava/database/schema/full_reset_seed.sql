@@ -1098,16 +1098,16 @@ GO
 DECLARE @now DATETIME = GETDATE();
 
 -- === CUSTOMER 9 (An) — VIP buyer: 6 paid orders, 1 pending = ~15.5M total ===
-INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
-VALUES ('ORD-2026-0001', 9, 1, 7500000, 0, 7500000, 'paid', 'seepay', DATEADD(DAY,-30,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-30,@now));
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at, voucher_scope, event_discount_amount, platform_fee_amount, organizer_payout_amount)
+VALUES ('ORD-2026-0001', 9, 1, 7500000, 0, 7500000, 'paid', 'seepay', DATEADD(DAY,-30,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-30,@now), 'NONE', 0, 375000, 7125000);
 INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (1, 2, 2, 3000000, 6000000),(1, 3, 1, 1500000, 1500000);
 
-INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
-VALUES ('ORD-2026-0002', 9, 3, 4000000, 0, 4000000, 'paid', 'seepay', DATEADD(DAY,-25,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-25,@now));
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at, platform_fee_amount, organizer_payout_amount)
+VALUES ('ORD-2026-0002', 9, 3, 4000000, 0, 4000000, 'paid', 'seepay', DATEADD(DAY,-25,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-25,@now), 200000, 3800000);
 INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (2, 10, 2, 2000000, 4000000);
 
-INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
-VALUES ('ORD-2026-0003', 9, 17, 500000, 0, 500000, 'paid', 'seepay', DATEADD(DAY,-22,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-22,@now));
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at, platform_fee_amount, organizer_payout_amount)
+VALUES ('ORD-2026-0003', 9, 17, 500000, 0, 500000, 'paid', 'seepay', DATEADD(DAY,-22,@now), N'Nguyễn Văn An', 'customer@ticketbox.vn', '0912345678', DATEADD(DAY,-22,@now), 25000, 475000);
 INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (3, 41, 2, 250000, 500000);
 
 INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
@@ -1139,8 +1139,8 @@ INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount
 VALUES ('ORD-2026-0010', 10, 23, 200000, 0, 200000, 'paid', 'seepay', DATEADD(DAY,-12,@now), N'Trần Thị Bình', 'binh.tran@gmail.com', '0987654321', DATEADD(DAY,-12,@now));
 INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (10, 50, 1, 200000, 200000);
 
-INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at)
-VALUES ('ORD-2026-0011', 10, 20, 600000, 90000, 510000, 'paid', 'seepay', DATEADD(DAY,-7,@now), N'Trần Thị Bình', 'binh.tran@gmail.com', '0987654321', DATEADD(DAY,-7,@now));
+INSERT INTO Orders (order_code, user_id, event_id, total_amount, discount_amount, final_amount, status, payment_method, payment_date, buyer_name, buyer_email, buyer_phone, created_at, voucher_id, voucher_scope, voucher_fund_source, event_discount_amount, platform_fee_amount, organizer_payout_amount)
+VALUES ('ORD-2026-0011', 10, 20, 600000, 90000, 510000, 'paid', 'seepay', DATEADD(DAY,-7,@now), N'Trần Thị Bình', 'binh.tran@gmail.com', '0987654321', DATEADD(DAY,-7,@now), 2, 'EVENT', 'ORGANIZER', 90000, 30000, 480000);
 INSERT INTO OrderItems (order_id, ticket_type_id, quantity, unit_price, subtotal) VALUES (11, 44, 2, 300000, 600000);
 
 -- === CUSTOMER 11 (Cường) — has cancelled + paid ===

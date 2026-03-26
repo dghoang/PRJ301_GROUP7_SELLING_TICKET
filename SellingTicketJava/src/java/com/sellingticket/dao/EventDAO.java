@@ -210,6 +210,17 @@ public class EventDAO extends BaseDAO {
         });
     }
 
+    public int countApprovedEventsForUser(int userId) {
+        String sql = "SELECT COUNT(*) FROM Events WHERE " +
+                     "(organizer_id = ? OR event_id IN (SELECT event_id FROM EventStaff WHERE user_id = ?)) " +
+                     "AND status IN ('approved', 'ended', 'completed', 'cancelled') " +
+                     "AND (is_deleted = 0 OR is_deleted IS NULL)";
+        return queryScalar(sql, ps -> {
+            ps.setInt(1, userId);
+            ps.setInt(2, userId);
+        }, 0);
+    }
+
     public List<Event> getAllEventsWithStats() {
         String sql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
                      "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +

@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadRevenueChart(days) {
-    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    const basePath = document.body.dataset.contextPath || '';
     fetch(basePath + '/admin/dashboard/chart-data?type=revenue&days=' + days)
         .then(r => r.json())
         .then(data => {
@@ -498,7 +498,7 @@ function loadRevenueChart(days) {
 }
 
 function loadCategoryChart() {
-    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    const basePath = document.body.dataset.contextPath || '';
     fetch(basePath + '/admin/dashboard/chart-data?type=category')
         .then(r => r.json())
         .then(data => {
@@ -519,7 +519,7 @@ function updateChart(period) {
 
 // Dashboard 2.0: Event Status Doughnut
 function loadEventStatusChart() {
-    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    const basePath = document.body.dataset.contextPath || '';
     fetch(basePath + '/admin/dashboard/chart-data?type=event-status')
         .then(r => r.json())
         .then(data => {
@@ -551,7 +551,7 @@ function loadEventStatusChart() {
 
 // Dashboard 2.0: Hourly Orders Bar Chart
 function loadHourlyOrdersChart() {
-    const basePath = document.querySelector('meta[name="ctx"]')?.content || '';
+    const basePath = document.body.dataset.contextPath || '';
     fetch(basePath + '/admin/dashboard/chart-data?type=hourly-orders')
         .then(r => r.json())
         .then(data => {

@@ -246,13 +246,6 @@ public class OrganizerVoucherController extends HttpServlet {
      * Prevents selecting unrelated events in UI.
      */
     private List<Event> getVoucherManageableEvents(User user) {
-        List<Event> candidates = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
-        List<Event> allowed = new ArrayList<>();
-        for (Event e : candidates) {
-            if (eventService.hasVoucherPermission(e.getEventId(), user.getUserId(), user.getRole())) {
-                allowed.add(e);
-            }
-        }
-        return allowed;
+        return eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "voucher");
     }
 }

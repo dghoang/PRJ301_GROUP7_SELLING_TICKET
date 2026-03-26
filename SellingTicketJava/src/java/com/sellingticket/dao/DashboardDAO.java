@@ -142,89 +142,88 @@ public class DashboardDAO extends DBContext {
     }
 
     /**
-     * Get organizer-specific dashboard stats.
+     * Get dashboard stats for a list of specific events.
      */
-    public Map<String, Object> getOrganizerDashboardStats(int organizerId) {
+    public Map<String, Object> getDashboardStatsForEvents(List<Integer> eventIds) {
         Map<String, Object> stats = new HashMap<>();
+        if (eventIds == null || eventIds.isEmpty()) return stats;
+
+        String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
 
         String sql = "SELECT " +
-                "(SELECT COUNT(*) FROM Events WHERE organizer_id = ?) as my_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'approved') as approved_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'pending') as pending_events, " +
-                "(SELECT ISNULL(SUM(o.final_amount), 0) FROM Orders o JOIN Events e ON o.event_id = e.event_id " +
-                "   WHERE e.organizer_id = ? AND o.status = 'paid') as my_revenue, " +
-                "(SELECT COUNT(*) FROM Orders o JOIN Events e ON o.event_id = e.event_id " +
-                "   WHERE e.organizer_id = ?) as my_total_orders";
+                "(SELECT COUNT(*) FROM Events WHERE event_id IN (" + inClause + ")) as my_events, " +
+                "(SELECT COUNT(*) FROM Events WHERE event_id IN (" + inClause + ") AND status = 'approved') as approved_events, " +
+                "(SELECT COUNT(*) FROM Events WHERE event_id IN (" + inClause + ") AND status = 'pending') as pending_events, " +
+                "(SELECT ISNULL(SUM(o.final_amount), 0) FROM Orders o WHERE o.event_id IN (" + inClause + ") AND o.status = 'paid') as my_revenue, " +
+                "(SELECT COUNT(*) FROM Orders o WHERE o.event_id IN (" + inClause + ")) as my_total_orders";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 1; i <= 5; i++) {
-                ps.setInt(i, organizerId);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    stats.put("myEvents", rs.getInt("my_events"));
-                    stats.put("approvedEvents", rs.getInt("approved_events"));
-                    stats.put("pendingEvents", rs.getInt("pending_events"));
-                    stats.put("myRevenue", rs.getDouble("my_revenue"));
-                    stats.put("myTotalOrders", rs.getInt("my_total_orders"));
-                }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                stats.put("myEvents", rs.getInt("my_events"));
+                stats.put("approvedEvents", rs.getInt("approved_events"));
+                stats.put("pendingEvents", rs.getInt("pending_events"));
+                stats.put("myRevenue", rs.getDouble("my_revenue"));
+                stats.put("myTotalOrders", rs.getInt("my_total_orders"));
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load organizer dashboard stats for id=" + organizerId, e);
+            LOGGER.log(Level.SEVERE, "Failed to load dashboard stats for eventIds", e);
         }
 
         return stats;
     }
 
     /**
-     * Get per-event stats for an organizer.
+     * Get per-event stats for a list of events.
      */
-    public List<Map<String, Object>> getOrganizerEventStats(int organizerId) {
+    public List<Map<String, Object>> getEventStatsForEvents(List<Integer> eventIds) {
         List<Map<String, Object>> result = new ArrayList<>();
+        if (eventIds == null || eventIds.isEmpty()) return result;
 
+        String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT e.event_id, " +
                 "COUNT(o.order_id) as order_count, " +
                 "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue " +
                 "FROM Events e LEFT JOIN Orders o ON e.event_id = o.event_id " +
-                "WHERE e.organizer_id = ? GROUP BY e.event_id";
+                "WHERE e.event_id IN (" + inClause + ") GROUP BY e.event_id";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("eventId", rs.getInt("event_id"));
-                    row.put("orderCount", rs.getInt("order_count"));
-                    row.put("revenue", rs.getDouble("revenue"));
-                    result.add(row);
-                }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("eventId", rs.getInt("event_id"));
+                row.put("orderCount", rs.getInt("order_count"));
+                row.put("revenue", rs.getDouble("revenue"));
+                result.add(row);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load organizer event stats for id=" + organizerId, e);
+            LOGGER.log(Level.SEVERE, "Failed to load event stats for eventIds", e);
         }
 
         return result;
     }
 
     /**
-     * Get daily revenue for a specific organizer (for organizer revenue chart).
+     * Get daily revenue for a list of specific events (for revenue chart).
      */
-    public List<Map<String, Object>> getOrganizerRevenueByDays(int organizerId, int days) {
+    public List<Map<String, Object>> getRevenueByDaysForEvents(List<Integer> eventIds, int days) {
         List<Map<String, Object>> result = new ArrayList<>();
+        if (eventIds == null || eventIds.isEmpty()) return result;
+
+        String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT CONVERT(date, o.created_at) as order_date, " +
                 "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue, " +
                 "COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as ticket_count " +
-                "FROM Orders o JOIN Events e ON o.event_id = e.event_id " +
-                "WHERE e.organizer_id = ? AND o.created_at >= DATEADD(day, -?, GETDATE()) " +
+                "FROM Orders o " +
+                "WHERE o.event_id IN (" + inClause + ") AND o.created_at >= DATEADD(day, -?, GETDATE()) " +
                 "GROUP BY CONVERT(date, o.created_at) " +
                 "ORDER BY order_date";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            ps.setInt(2, days);
+            ps.setInt(1, days);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> row = new HashMap<>();
@@ -235,7 +234,7 @@ public class DashboardDAO extends DBContext {
                 }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load organizer revenue by days", e);
+            LOGGER.log(Level.SEVERE, "Failed to load revenue by days for eventIds", e);
         }
         return result;
     }
@@ -291,58 +290,59 @@ public class DashboardDAO extends DBContext {
     }
 
     /**
-     * Get ticket type distribution for a specific organizer.
+     * Get ticket type distribution for a list of events.
      */
-    public List<Map<String, Object>> getOrganizerTicketDistribution(int organizerId) {
+    public List<Map<String, Object>> getTicketDistributionForEvents(List<Integer> eventIds) {
         List<Map<String, Object>> result = new ArrayList<>();
+        if (eventIds == null || eventIds.isEmpty()) return result;
+
+        String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT tt.name, COUNT(oi.order_item_id) as sold_count " +
                 "FROM TicketTypes tt " +
                 "JOIN OrderItems oi ON tt.ticket_type_id = oi.ticket_type_id " +
-                "JOIN Events e ON tt.event_id = e.event_id " +
-                "WHERE e.organizer_id = ? " +
+                "WHERE tt.event_id IN (" + inClause + ") " +
                 "GROUP BY tt.name ORDER BY sold_count DESC";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("name", rs.getString("name"));
-                    row.put("count", rs.getInt("sold_count"));
-                    result.add(row);
-                }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("name", rs.getString("name"));
+                row.put("count", rs.getInt("sold_count"));
+                result.add(row);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load organizer ticket distribution", e);
+            LOGGER.log(Level.SEVERE, "Failed to load ticket distribution for eventIds", e);
         }
         return result;
     }
 
     /**
-     * Get hourly order distribution for a specific organizer.
+     * Get hourly order distribution for a list of events.
      * Returns order counts grouped by hour of day (0-23).
      */
-    public List<Map<String, Object>> getOrganizerHourlyDistribution(int organizerId) {
+    public List<Map<String, Object>> getHourlyDistributionForEvents(List<Integer> eventIds) {
         List<Map<String, Object>> result = new ArrayList<>();
+        if (eventIds == null || eventIds.isEmpty()) return result;
+
+        String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT DATEPART(hour, o.created_at) as order_hour, COUNT(*) as order_count " +
-                "FROM Orders o JOIN Events e ON o.event_id = e.event_id " +
-                "WHERE e.organizer_id = ? AND o.status = 'paid' " +
+                "FROM Orders o " +
+                "WHERE o.event_id IN (" + inClause + ") AND o.status = 'paid' " +
                 "GROUP BY DATEPART(hour, o.created_at) ORDER BY order_hour";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("hour", rs.getInt("order_hour"));
-                    row.put("count", rs.getInt("order_count"));
-                    result.add(row);
-                }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("hour", rs.getInt("order_hour"));
+                row.put("count", rs.getInt("order_count"));
+                result.add(row);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load organizer hourly distribution", e);
+            LOGGER.log(Level.SEVERE, "Failed to load hourly distribution for eventIds", e);
         }
         return result;
     }
@@ -538,34 +538,35 @@ public class DashboardDAO extends DBContext {
     }
 
     /**
-     * Organizer: get settlement breakdown for a specific organizer's events.
+     * Get settlement breakdown for a list of events.
      * Shows face-value revenue, event discounts, system discounts, payout.
      */
-    public Map<String, Object> getOrganizerSettlementStats(int organizerId) {
+    public Map<String, Object> getSettlementStatsForEvents(List<Integer> eventIds) {
         Map<String, Object> stats = new HashMap<>();
+        if (eventIds == null || eventIds.isEmpty()) return stats;
+
+        String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT " +
             "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.total_amount ELSE 0 END), 0) as total_face_value, " +
             "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
             "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.system_discount_amount ELSE 0 END), 0) as total_system_discount, " +
             "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
             "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.organizer_payout_amount ELSE 0 END), 0) as total_payout " +
-            "FROM Orders o JOIN Events e ON o.event_id = e.event_id " +
-            "WHERE e.organizer_id = ?";
+            "FROM Orders o " +
+            "WHERE o.event_id IN (" + inClause + ")";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    stats.put("totalFaceValue", rs.getDouble("total_face_value"));
-                    stats.put("totalEventDiscount", rs.getDouble("total_event_discount"));
-                    stats.put("totalSystemDiscount", rs.getDouble("total_system_discount"));
-                    stats.put("totalPlatformFee", rs.getDouble("total_platform_fee"));
-                    stats.put("totalPayout", rs.getDouble("total_payout"));
-                }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                stats.put("totalFaceValue", rs.getDouble("total_face_value"));
+                stats.put("totalEventDiscount", rs.getDouble("total_event_discount"));
+                stats.put("totalSystemDiscount", rs.getDouble("total_system_discount"));
+                stats.put("totalPlatformFee", rs.getDouble("total_platform_fee"));
+                stats.put("totalPayout", rs.getDouble("total_payout"));
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load organizer settlement stats for id=" + organizerId, e);
+            LOGGER.log(Level.SEVERE, "Failed to load settlement stats for eventIds", e);
         }
         return stats;
     }

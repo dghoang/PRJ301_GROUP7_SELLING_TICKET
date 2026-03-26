@@ -209,6 +209,7 @@ public class EventService {
 
     public String getUserEventRole(int eventId, int userId, String userRole) {
         if ("admin".equals(userRole)) return "admin";
+        if ("support_agent".equals(userRole)) return "scanner"; // Treat support as scanner for check-in access
 
         Event event = eventDAO.getEventById(eventId);
         if (event == null) return null;
@@ -239,6 +240,7 @@ public class EventService {
     }
 
     public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
+        if ("support_agent".equals(userRole)) return true; // Support has global check-in capability
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role)
@@ -266,18 +268,11 @@ public class EventService {
 
     public boolean hasApprovedEvents(int userId, String role) {
         if ("admin".equals(role)) return true;
-        List<Event> accessibleEvents = getAccessibleEvents(userId, role);
-        for (Event event : accessibleEvents) {
-            String s = event.getStatus();
-            if ("approved".equals(s) || "ended".equals(s) || "completed".equals(s) || "cancelled".equals(s)) {
-                return true;
-            }
-        }
-        return false;
+        return eventDAO.countApprovedEventsForUser(userId) > 0;
     }
 
     public List<Event> getAccessibleEvents(int userId, String userRole) {
-        if ("admin".equals(userRole)) {
+        if ("admin".equals(userRole) || "support_agent".equals(userRole)) {
             return eventDAO.getAllEventsWithStats();
         }
 
@@ -316,5 +311,33 @@ public class EventService {
 
     public boolean removeEventStaff(int eventId, int userId) {
         return eventStaffDAO.removeStaff(eventId, userId);
+    }
+
+    // ========================
+    // PERMISSION FILTERING
+    // ========================
+
+    /**
+     * Filters accessible events down to only those where the user holds a specific permission.
+     * Allowed permission types: "stats", "manager", "edit", "voucher", "checkin"
+     */
+    public List<Event> getEventsWithPermission(int userId, String userRole, String permissionType) {
+        List<Event> all = getAccessibleEvents(userId, userRole);
+        if ("admin".equals(userRole)) return all;
+
+        List<Event> filtered = new java.util.ArrayList<>();
+        for (Event e : all) {
+            boolean hasAccess = false;
+            switch(permissionType) {
+                case "stats" -> hasAccess = hasStatsPermission(e.getEventId(), userId, userRole);
+                case "manager" -> hasAccess = hasManagerPermission(e.getEventId(), userId, userRole);
+                case "edit" -> hasAccess = hasEditPermission(e.getEventId(), userId, userRole);
+                case "voucher" -> hasAccess = hasVoucherPermission(e.getEventId(), userId, userRole);
+                case "checkin" -> hasAccess = hasCheckInPermission(e.getEventId(), userId, userRole);
+                default -> hasAccess = false;
+            }
+            if (hasAccess) filtered.add(e);
+        }
+        return filtered;
     }
 }

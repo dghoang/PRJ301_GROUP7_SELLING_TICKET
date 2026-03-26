@@ -40,7 +40,7 @@ public class OrganizerTeamController extends HttpServlet {
 
         try {
             // Load organizer's events for event picker
-            List<Event> events = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
+            List<Event> events = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
             request.setAttribute("events", events);
 
             // If an event is selected, load its staff
@@ -91,7 +91,7 @@ public class OrganizerTeamController extends HttpServlet {
 
         try {
             // Permission check
-            List<Event> events = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
+            List<Event> events = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
             if (!hasManagerAccess(user, eventId, events)) {
                 setToast(request, "Không có quyền", "error");
                 response.sendRedirect(request.getContextPath() + "/organizer/team?eventId=" + eventId);

@@ -64,39 +64,43 @@ public class DashboardService {
     // ORGANIZER STATS
     // ========================
 
-    public Map<String, Object> getOrganizerDashboardStats(int organizerId) {
+    public Map<String, Object> getDashboardStatsForEvents(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new java.util.HashMap<>();
         try {
-            return dashboardDAO.getOrganizerDashboardStats(organizerId);
+            return dashboardDAO.getDashboardStatsForEvents(eventIds);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Service error: getOrganizerDashboardStats", e);
+            LOGGER.log(Level.SEVERE, "Service error: getDashboardStatsForEvents", e);
             throw new ServiceException("DASHBOARD_ERROR", "Failed to load organizer stats", e);
         }
     }
 
-    public List<Map<String, Object>> getOrganizerEventStats(int organizerId) {
+    public List<Map<String, Object>> getEventStatsForEvents(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new java.util.ArrayList<>();
         try {
-            return dashboardDAO.getOrganizerEventStats(organizerId);
+            return dashboardDAO.getEventStatsForEvents(eventIds);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Service error: getOrganizerEventStats", e);
+            LOGGER.log(Level.SEVERE, "Service error: getEventStatsForEvents", e);
             throw new ServiceException("DASHBOARD_ERROR", "Failed to load organizer event stats", e);
         }
     }
 
-    public List<Map<String, Object>> getOrganizerRevenueByDays(int organizerId, int days) {
+    public List<Map<String, Object>> getRevenueByDaysForEvents(List<Integer> eventIds, int days) {
+        if (eventIds == null || eventIds.isEmpty()) return new java.util.ArrayList<>();
         if (days <= 0 || days > 365) days = 7;
         try {
-            return dashboardDAO.getOrganizerRevenueByDays(organizerId, days);
+            return dashboardDAO.getRevenueByDaysForEvents(eventIds, days);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Service error: getOrganizerRevenueByDays", e);
+            LOGGER.log(Level.SEVERE, "Service error: getRevenueByDaysForEvents", e);
             throw new ServiceException("DASHBOARD_ERROR", "Failed to load organizer revenue data", e);
         }
     }
 
-    public List<Map<String, Object>> getOrganizerTicketDistribution(int organizerId) {
+    public List<Map<String, Object>> getTicketDistributionForEvents(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new java.util.ArrayList<>();
         try {
-            return dashboardDAO.getOrganizerTicketDistribution(organizerId);
+            return dashboardDAO.getTicketDistributionForEvents(eventIds);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Service error: getOrganizerTicketDistribution", e);
+            LOGGER.log(Level.SEVERE, "Service error: getTicketDistributionForEvents", e);
             throw new ServiceException("DASHBOARD_ERROR", "Failed to load organizer ticket distribution", e);
         }
     }
@@ -119,11 +123,12 @@ public class DashboardService {
         }
     }
 
-    public List<Map<String, Object>> getOrganizerHourlyDistribution(int organizerId) {
+    public List<Map<String, Object>> getHourlyDistributionForEvents(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new java.util.ArrayList<>();
         try {
-            return dashboardDAO.getOrganizerHourlyDistribution(organizerId);
+            return dashboardDAO.getHourlyDistributionForEvents(eventIds);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Service error: getOrganizerHourlyDistribution", e);
+            LOGGER.log(Level.SEVERE, "Service error: getHourlyDistributionForEvents", e);
             return new java.util.ArrayList<>();
         }
     }
@@ -204,11 +209,12 @@ public class DashboardService {
         }
     }
 
-    public Map<String, Object> getOrganizerSettlementStats(int organizerId) {
+    public Map<String, Object> getSettlementStatsForEvents(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new java.util.HashMap<>();
         try {
-            return dashboardDAO.getOrganizerSettlementStats(organizerId);
+            return dashboardDAO.getSettlementStatsForEvents(eventIds);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Service error: getOrganizerSettlementStats", e);
+            LOGGER.log(Level.SEVERE, "Service error: getSettlementStatsForEvents", e);
             return new java.util.HashMap<>();
         }
     }

@@ -51,7 +51,7 @@ public class OrganizerStatisticsController extends HttpServlet {
         String pathInfo = request.getPathInfo();
 
         if ("/api".equals(pathInfo)) {
-            serveJsonSummary(response, user);
+            serveJsonSummary(request, response, user);
         } else if ("/chart-data".equals(pathInfo)) {
             serveChartData(request, response, user);
         } else if ("/event-stats".equals(pathInfo)) {
@@ -61,12 +61,13 @@ public class OrganizerStatisticsController extends HttpServlet {
         }
     }
 
-    /** Serve statistics page via JSP. */
     private void serveJsp(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         try {
-            StatsData data = buildStatsData(user);
+            StatsData data = buildStatsData(request, user);
 
+            request.setAttribute("myEvents", data.myEvents);
+            request.setAttribute("selectedEventId", data.selectedEventId);
             request.setAttribute("events", data.events);
             request.setAttribute("eventStats", data.eventStats);
             request.setAttribute("totalRevenue", data.totalRevenue);
@@ -88,9 +89,9 @@ public class OrganizerStatisticsController extends HttpServlet {
     }
 
     /** Serve JSON summary for AJAX. */
-    private void serveJsonSummary(HttpServletResponse response, User user) throws IOException {
+    private void serveJsonSummary(HttpServletRequest request, HttpServletResponse response, User user) throws IOException {
         try {
-            StatsData data = buildStatsData(user);
+            StatsData data = buildStatsData(request, user);
             StringBuilder json = new StringBuilder("{");
             json.append("\"totalRevenue\":").append(data.totalRevenue).append(",");
             json.append("\"totalOrders\":").append(data.totalOrders).append(",");
@@ -119,34 +120,39 @@ public class OrganizerStatisticsController extends HttpServlet {
             throws IOException {
         String type = request.getParameter("type");
         if (type == null) type = "revenue";
-        int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
 
-        // SECURITY: Verify organizer has access to the requested event
-        if (eventId > 0 && !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
-            sendJson(response, 403, "{\"error\":\"Access denied\"}");
-            return;
+        // Security & Isolation: build allowed eventIds
+        List<Event> myEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "stats");
+        int selectedEventId = parseIntOrDefault(request.getParameter("eventId"), 0);
+        List<Integer> eventIds = new ArrayList<>();
+        
+        for (Event e : myEvents) {
+            if (selectedEventId <= 0 || e.getEventId() == selectedEventId) {
+                eventIds.add(e.getEventId());
+            }
+        }
+        if (selectedEventId > 0 && eventIds.isEmpty()) {
+            selectedEventId = 0;
+            for (Event e : myEvents) {
+                eventIds.add(e.getEventId());
+            }
         }
 
         try {
             switch (type) {
                 case "revenue": {
                     int days = parseIntOrDefault(request.getParameter("days"), 7);
-                    List<Map<String, Object>> data;
-                    if (eventId > 0) {
-                        data = dashboardService.getEventRevenueByDays(eventId, days);
-                    } else {
-                        data = dashboardService.getOrganizerRevenueByDays(user.getUserId(), days);
-                    }
+                    List<Map<String, Object>> data = dashboardService.getRevenueByDaysForEvents(eventIds, days);
                     sendJson(response, buildJsonArray(data));
                     break;
                 }
                 case "tickets": {
-                    List<Map<String, Object>> data = dashboardService.getOrganizerTicketDistribution(user.getUserId());
+                    List<Map<String, Object>> data = dashboardService.getTicketDistributionForEvents(eventIds);
                     sendJson(response, buildJsonArray(data));
                     break;
                 }
                 case "hourly": {
-                    List<Map<String, Object>> data = dashboardService.getOrganizerHourlyDistribution(user.getUserId());
+                    List<Map<String, Object>> data = dashboardService.getHourlyDistributionForEvents(eventIds);
                     sendJson(response, buildJsonArray(data));
                     break;
                 }
@@ -189,22 +195,40 @@ public class OrganizerStatisticsController extends HttpServlet {
     }
 
     /** Build statistics data shared by JSP and JSON. */
-    private StatsData buildStatsData(User user) {
-        Map<String, Object> stats = dashboardService.getOrganizerDashboardStats(user.getUserId());
-        List<Map<String, Object>> perEventStats = dashboardService.getOrganizerEventStats(user.getUserId());
+    private StatsData buildStatsData(HttpServletRequest request, User user) {
+        List<Event> myEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "stats");
+        
+        int selectedEventId = parseIntOrDefault(request.getParameter("eventId"), 0);
+        List<Integer> eventIds = new ArrayList<>();
+        
+        for (Event e : myEvents) {
+            if (selectedEventId <= 0 || e.getEventId() == selectedEventId) {
+                eventIds.add(e.getEventId());
+            }
+        }
+        
+        if (selectedEventId > 0 && eventIds.isEmpty()) {
+            selectedEventId = 0;
+            for (Event e : myEvents) {
+                eventIds.add(e.getEventId());
+            }
+        }
 
-        // Settlement breakdown for organizer
-        Map<String, Object> settlement = dashboardService.getOrganizerSettlementStats(user.getUserId());
+        Map<String, Object> stats = dashboardService.getDashboardStatsForEvents(eventIds);
+        List<Map<String, Object>> perEventStats = dashboardService.getEventStatsForEvents(eventIds);
+        Map<String, Object> settlement = dashboardService.getSettlementStatsForEvents(eventIds);
 
         Map<Integer, Map<String, Object>> statsLookup = new HashMap<>();
         for (Map<String, Object> row : perEventStats) {
             statsLookup.put((Integer) row.get("eventId"), row);
         }
 
-        List<Event> events = eventService.getEventsByOrganizer(user.getUserId());
+        List<Event> filteredEvents = new ArrayList<>();
         List<Map<String, Object>> eventStats = new ArrayList<>();
 
-        for (Event event : events) {
+        for (Event event : myEvents) {
+            if (selectedEventId > 0 && event.getEventId() != selectedEventId) continue;
+            filteredEvents.add(event);
             Map<String, Object> lookup = statsLookup.getOrDefault(event.getEventId(), Map.of());
             Map<String, Object> stat = new HashMap<>();
             stat.put("event", event);
@@ -214,7 +238,9 @@ public class OrganizerStatisticsController extends HttpServlet {
         }
 
         StatsData data = new StatsData();
-        data.events = events;
+        data.myEvents = myEvents;
+        data.selectedEventId = selectedEventId;
+        data.events = filteredEvents;
         data.eventStats = eventStats;
         data.totalRevenue = ((Number) stats.getOrDefault("myRevenue", 0.0)).doubleValue();
         data.totalOrders = ((Number) stats.getOrDefault("myTotalOrders", 0)).intValue();
@@ -251,6 +277,8 @@ public class OrganizerStatisticsController extends HttpServlet {
     }
 
     private static class StatsData {
+        List<Event> myEvents;
+        int selectedEventId;
         List<Event> events;
         List<Map<String, Object>> eventStats;
         double totalRevenue;

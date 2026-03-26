@@ -19,8 +19,8 @@
                     <select class="form-select rounded-pill px-3 glass-strong border-0 fw-medium" id="eventFilter"
                             style="min-width: 240px;" onchange="onEventFilterChange()">
                         <option value="0">📊 Tất cả sự kiện</option>
-                        <c:forEach var="ev" items="${events}">
-                            <option value="${ev.eventId}">${ev.title}</option>
+                        <c:forEach var="ev" items="${myEvents}">
+                            <option value="${ev.eventId}" ${selectedEventId == ev.eventId ? 'selected' : ''}>${ev.title}</option>
                         </c:forEach>
                     </select>
                     <button class="btn glass rounded-pill px-4 hover-lift fw-medium">
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========== REVENUE CHART ==========
-var currentEventId = 0;
+var currentEventId = Number('<c:out value="${selectedEventId != null ? selectedEventId : 0}" />');
 
 function loadRevenueChart(days) {
     var url = API_BASE + '?type=revenue&days=' + days;
@@ -472,9 +472,9 @@ function updateStatsChart(range) {
 }
 
 // ========== EVENT FILTER ==========
-var origRevenue = ${totalRevenue != null ? totalRevenue : 0};
-var origOrders = ${totalOrders != null ? totalOrders : 0};
-var origEvents = ${totalEvents != null ? totalEvents : 0};
+var origRevenue = Number('<c:out value="${totalRevenue != null ? totalRevenue : 0}" />');
+var origOrders = Number('<c:out value="${totalOrders != null ? totalOrders : 0}" />');
+var origEvents = Number('<c:out value="${totalEvents != null ? totalEvents : 0}" />');
 var origAvg = origOrders > 0 ? origRevenue / origOrders : 0;
 
 function onEventFilterChange() {

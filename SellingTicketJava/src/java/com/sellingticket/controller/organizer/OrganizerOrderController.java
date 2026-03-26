@@ -66,7 +66,7 @@ public class OrganizerOrderController extends HttpServlet {
     private void listAllOrders(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         try {
-            List<Event> myEvents = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
+            List<Event> myEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
             request.setAttribute("myEvents", myEvents);
 
             int totalPaid = 0;

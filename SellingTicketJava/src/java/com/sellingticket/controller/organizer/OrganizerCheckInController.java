@@ -1,10 +1,11 @@
 package com.sellingticket.controller.organizer;
 
-import com.sellingticket.dao.TicketDAO;
+import com.sellingticket.dto.CheckInResult;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.Order;
 import com.sellingticket.model.Ticket;
 import com.sellingticket.model.User;
+import com.sellingticket.service.CheckInService;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
 import com.sellingticket.util.JwtUtil;
@@ -39,6 +40,7 @@ public class OrganizerCheckInController extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(OrganizerCheckInController.class.getName());
     private final EventService eventService = new EventService();
     private final OrderService orderService = new OrderService();
+    private final CheckInService checkInService = new CheckInService();
     private final TicketDAO ticketDAO = new TicketDAO();
 
     @Override
@@ -49,7 +51,7 @@ public class OrganizerCheckInController extends HttpServlet {
         if (user == null) { redirectToLogin(request, response); return; }
 
         try {
-            List<Event> allEvents = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
+            List<Event> allEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "checkin");
             // Filter: only show upcoming/active events for check-in (not expired)
             java.util.Date now = new java.util.Date();
             List<Event> events = new ArrayList<>();
@@ -112,233 +114,70 @@ public class OrganizerCheckInController extends HttpServlet {
         String action = request.getParameter("action");
         int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
 
-        // PATH 1: QR Scan — always uses qrToken param
-        if (qrToken != null && !qrToken.isEmpty()) {
-            // Compatibility: some old QR payloads contain raw order/ticket codes instead of JWT token.
-            if (looksLikeOrderCode(qrToken) || looksLikeTicketCode(qrToken)) {
-                handleOrderLookup(response, user, qrToken, eventId, csrfField);
-                return;
-            }
-            handleQrCheckIn(response, user, qrToken, eventId, csrfField);
-            return;
-        }
-
-        // PATH 2: Manual Order Code
-        if (orderCode != null && !orderCode.isEmpty()) {
-            if ("checkin".equals(action)) {
-                // Check-in a specific ticket by ID
-                int ticketId = parseIntOrDefault(request.getParameter("ticketId"), 0);
-                handleSingleTicketCheckIn(response, user, orderCode, ticketId, eventId, csrfField);
-            } else {
-                // Default: lookup tickets for this order
-                handleOrderLookup(response, user, orderCode, eventId, csrfField);
-            }
-            return;
-        }
-
-        sendJson(response, "{\"success\":false,\"message\":\"Mã vé hoặc QR không được để trống\"" + csrfField + "}");
-    }
-
-    /**
-     * QR-based check-in: verify token, validate event, mark ticket as checked-in.
-     */
-    private void handleQrCheckIn(HttpServletResponse response, User user, String token, int eventId, String csrfField)
-            throws IOException {
-
-        LOGGER.log(Level.INFO, "QR Check-in attempt: token length={0}, starts={1}",
-                new Object[]{token.length(), token.substring(0, Math.min(20, token.length()))});
-
-        Map<String, Object> claims = JwtUtil.verifyTicketToken(token);
-        if (claims == null) {
-            LOGGER.log(Level.WARNING, "QR verification failed for token (len={0}): {1}...",
-                    new Object[]{token.length(), token.substring(0, Math.min(40, token.length()))});
-            sendJson(response, "{\"success\":false,\"message\":\"QR không hợp lệ hoặc đã hết hạn\"" + csrfField + "}");
-            return;
-        }
-
-        String ticketCode = (String) claims.get("sub");
-        int tokenEventId = ((Number) claims.get("eid")).intValue();
-        int ticketId = ((Number) claims.get("tid")).intValue();
-
-        // Cross-event check — DOES NOT cancel or modify the ticket
-        if (eventId > 0 && tokenEventId != eventId) {
-            sendJson(response, "{\"success\":false,\"ticketCode\":\"" + escapeJson(ticketCode) + "\",\"message\":\"Vé không thuộc sự kiện này! Vé vẫn còn hiệu lực.\"" + csrfField + "}");
-            return;
-        }
+        CheckInResult result = null;
 
         // Permission check
-        if (!eventService.hasCheckInPermission(tokenEventId, user.getUserId(), user.getRole())) {
+        if (eventId > 0 && !eventService.hasCheckInPermission(eventId, user.getUserId(), user.getRole())) {
             sendJson(response, "{\"success\":false,\"message\":\"Bạn không có quyền check-in cho sự kiện này!\"" + csrfField + "}");
             return;
         }
 
-        // Load ticket from DB to verify it exists and get current state
-        Ticket ticket = ticketDAO.getTicketById(ticketId);
-        if (ticket == null || !ticket.getTicketCode().equals(ticketCode)) {
-            sendJson(response, "{\"success\":false,\"message\":\"Vé không tồn tại trong hệ thống\"" + csrfField + "}");
-            return;
-        }
-
-        // Verify parent order state from joined ticket query (avoids extra DB round-trip).
-        String orderStatus = ticket.getOrderStatus();
-        if ("cancelled".equals(orderStatus) || "refunded".equals(orderStatus)) {
-            sendJson(response, "{\"success\":false,\"ticketCode\":\"" + escapeJson(ticketCode)
-                    + "\",\"message\":\"Đơn hàng đã bị huỷ/hoàn tiền — vé không hợp lệ\"" + csrfField + "}");
-            return;
-        }
-        if (!("paid".equals(orderStatus) || "checked_in".equals(orderStatus))) {
-            sendJson(response, "{\"success\":false,\"ticketCode\":\"" + escapeJson(ticketCode)
-                    + "\",\"message\":\"Đơn hàng chưa thanh toán — không thể check-in\"" + csrfField + "}");
-            return;
-        }
-
-        if (ticket.isCheckedIn()) {
-            sendJson(response, "{\"success\":false,\"alreadyCheckedIn\":true,\"ticketCode\":\""
-                    + escapeJson(ticketCode) + "\",\"customerName\":\""
-                    + escapeJson(ticket.getAttendeeName()) + "\",\"message\":\"Vé đã được sử dụng trước đó!\"" + csrfField + "}");
-            return;
-        }
-
-        // Check if event is expired
-        Event event = eventService.getEventDetails(tokenEventId);
-        boolean isExpired = (event != null && event.getEndDate() != null && event.getEndDate().before(new java.util.Date()));
-        String warnMsg = isExpired ? " (Sự kiện đã kết thúc)" : "";
-
-        // Execute check-in
-        if (ticketDAO.checkInTicket(ticketId, user.getUserId())) {
-            LOGGER.log(Level.INFO, "QR Check-in OK: ticket={0} by user {1}", new Object[]{ticketCode, user.getUserId()});
-            sendJson(response, "{\"success\":true,\"ticketCode\":\"" + escapeJson(ticketCode)
-                    + "\",\"customerName\":\"" + escapeJson(ticket.getAttendeeName())
-                    + "\",\"ticketType\":\"" + escapeJson(ticket.getTicketTypeName() + warnMsg)
-                    + "\",\"method\":\"qr\"" + csrfField + "}");
-        } else {
-            sendJson(response, "{\"success\":false,\"message\":\"Lỗi hệ thống khi check-in\"" + csrfField + "}");
-        }
-    }
-
-    /**
-     * Lookup tickets for an order code. Returns ticket list with statuses.
-     */
-    private void handleOrderLookup(HttpServletResponse response, User user, String orderCode, int eventId, String csrfField)
-            throws IOException {
-
-        Order order = orderService.getOrderByCode(orderCode);
-        if (order == null && looksLikeTicketCode(orderCode)) {
-            // Reverse lookup: allow entering/scanning ticket code (TIX-...) in manual flow.
-            Ticket ticket = ticketDAO.getTicketByCode(orderCode);
-            if (ticket != null && ticket.getOrderCode() != null) {
-                order = orderService.getOrderByCode(ticket.getOrderCode());
-                if (order != null) {
-                    orderCode = order.getOrderCode();
-                }
+        // PATH 1: QR Scan
+        if (qrToken != null && !qrToken.isEmpty()) {
+            if (looksLikeOrderCode(qrToken) || looksLikeTicketCode(qrToken)) {
+                result = checkInService.handleOrderLookup(eventId, qrToken, user);
+            } else {
+                result = checkInService.handleQrCheckIn(eventId, qrToken, user);
+            }
+        } 
+        // PATH 2: Manual Order Code
+        else if (orderCode != null && !orderCode.isEmpty()) {
+            if ("checkin".equals(action)) {
+                int ticketId = parseIntOrDefault(request.getParameter("ticketId"), 0);
+                result = checkInService.handleSingleTicketCheckIn(eventId, orderCode, ticketId, user);
+            } else {
+                result = checkInService.handleOrderLookup(eventId, orderCode, user);
             }
         }
-        if (order == null) {
-            sendJson(response, "{\"success\":false,\"message\":\"Không tìm thấy đơn hàng\"" + csrfField + "}");
-            return;
-        }
 
-        if (eventId > 0 && order.getEventId() != eventId) {
-            sendJson(response, "{\"success\":false,\"message\":\"Mã không thuộc sự kiện này! Vé vẫn còn hiệu lực.\"" + csrfField + "}");
-            return;
+        if (result != null) {
+            String jsonResult = toJson(result);
+            if (jsonResult.endsWith("}")) {
+                jsonResult = jsonResult.substring(0, jsonResult.length() - 1) + csrfField + "}";
+            }
+            sendJson(response, jsonResult);
+        } else {
+            sendJson(response, "{\"success\":false,\"message\":\"Mã vé hoặc QR không được để trống\"" + csrfField + "}");
         }
-
-        if (!eventService.hasCheckInPermission(order.getEventId(), user.getUserId(), user.getRole())) {
-            sendJson(response, "{\"success\":false,\"message\":\"Bạn không có quyền check-in cho sự kiện này!\"" + csrfField + "}");
-            return;
-        }
-
-        if ("cancelled".equals(order.getStatus()) || "refunded".equals(order.getStatus())) {
-            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng đã bị huỷ/hoàn tiền — không thể check-in\"" + csrfField + "}");
-            return;
-        }
-
-        if (!("paid".equals(order.getStatus()) || "checked_in".equals(order.getStatus()))) {
-            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng chưa thanh toán (trạng thái: "
-                    + escapeJson(order.getStatus()) + ")\"" + csrfField + "}");
-            return;
-        }
-
-        List<Ticket> tickets = ticketDAO.getTicketsByOrder(order.getOrderId());
-        if (tickets.isEmpty()) {
-            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng chưa được phát vé\"" + csrfField + "}");
-            return;
-        }
-
-        // Build JSON ticket array
-        StringBuilder json = new StringBuilder("{\"success\":true,\"action\":\"lookup\",\"customerName\":\"");
-        json.append(escapeJson(order.getBuyerName())).append("\",\"orderCode\":\"").append(escapeJson(orderCode));
-        json.append("\",\"tickets\":[");
-        for (int i = 0; i < tickets.size(); i++) {
-            Ticket t = tickets.get(i);
-            if (i > 0) json.append(",");
-            json.append("{\"ticketId\":").append(t.getTicketId());
-            json.append(",\"ticketCode\":\"").append(escapeJson(t.getTicketCode())).append("\"");
-            json.append(",\"ticketType\":\"").append(escapeJson(t.getTicketTypeName())).append("\"");
-            json.append(",\"attendeeName\":\"").append(escapeJson(t.getAttendeeName())).append("\"");
-            json.append(",\"checkedIn\":").append(t.isCheckedIn()).append("}");
-        }
-        json.append("]").append(csrfField).append("}");
-        sendJson(response, json.toString());
     }
 
-    /**
-     * Check in a single ticket by ID (from the ticket picker UI).
-     */
-    private void handleSingleTicketCheckIn(HttpServletResponse response, User user, String orderCode, int ticketId, int eventId, String csrfField)
-            throws IOException {
-
-        if (ticketId <= 0) {
-            sendJson(response, "{\"success\":false,\"message\":\"Vui lòng chọn vé cần check-in\"" + csrfField + "}");
-            return;
+    private String toJson(CheckInResult res) {
+        StringBuilder sb = new StringBuilder("{");
+        sb.append("\"success\":").append(res.isSuccess());
+        if (res.getMessage() != null) sb.append(",\"message\":\"").append(escapeJson(res.getMessage())).append("\"");
+        if (res.getError() != null) sb.append(",\"message\":\"").append(escapeJson(res.getError())).append("\"");
+        if (res.isAlreadyCheckedIn()) sb.append(",\"alreadyCheckedIn\":true");
+        if (res.getCustomerName() != null) sb.append(",\"customerName\":\"").append(escapeJson(res.getCustomerName())).append("\"");
+        if (res.getTicketCode() != null) sb.append(",\"ticketCode\":\"").append(escapeJson(res.getTicketCode())).append("\"");
+        if (res.getTicketType() != null) sb.append(",\"ticketType\":\"").append(escapeJson(res.getTicketType())).append("\"");
+        if (res.getAction() != null) sb.append(",\"action\":\"").append(escapeJson(res.getAction())).append("\"");
+        if (res.getOrderCode() != null) sb.append(",\"orderCode\":\"").append(escapeJson(res.getOrderCode())).append("\"");
+        
+        if (res.getTickets() != null) {
+            sb.append(",\"tickets\":[");
+            for (int i = 0; i < res.getTickets().size(); i++) {
+                Map<String, Object> t = res.getTickets().get(i);
+                if (i > 0) sb.append(",");
+                sb.append("{\"ticketId\":").append(t.get("ticketId"));
+                sb.append(",\"ticketCode\":\"").append(escapeJson((String)t.get("ticketCode"))).append("\"");
+                sb.append(",\"ticketType\":\"").append(escapeJson((String)t.get("ticketType"))).append("\"");
+                sb.append(",\"attendeeName\":\"").append(escapeJson((String)t.get("attendeeName"))).append("\"");
+                sb.append(",\"checkedIn\":").append(t.get("checkedIn")).append("}");
+            }
+            sb.append("]");
         }
-
-        Ticket ticket = ticketDAO.getTicketById(ticketId);
-        if (ticket == null || !orderCode.equals(ticket.getOrderCode())) {
-            sendJson(response, "{\"success\":false,\"message\":\"Vé không hợp lệ\"" + csrfField + "}");
-            return;
-        }
-
-        if (eventId > 0 && ticket.getEventId() != eventId) {
-            sendJson(response, "{\"success\":false,\"message\":\"Vé không thuộc sự kiện này!\"" + csrfField + "}");
-            return;
-        }
-
-        if (!eventService.hasCheckInPermission(ticket.getEventId(), user.getUserId(), user.getRole())) {
-            sendJson(response, "{\"success\":false,\"message\":\"Bạn không có quyền check-in!\"" + csrfField + "}");
-            return;
-        }
-
-        if (ticket.isCheckedIn()) {
-            sendJson(response, "{\"success\":false,\"alreadyCheckedIn\":true,\"customerName\":\""
-                    + escapeJson(ticket.getAttendeeName()) + "\",\"message\":\"Vé đã check-in rồi\"" + csrfField + "}");
-            return;
-        }
-
-        String orderStatus = ticket.getOrderStatus();
-        if ("cancelled".equals(orderStatus) || "refunded".equals(orderStatus)) {
-            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng đã bị huỷ/hoàn tiền — không thể check-in\"" + csrfField + "}");
-            return;
-        }
-        if (!("paid".equals(orderStatus) || "checked_in".equals(orderStatus))) {
-            sendJson(response, "{\"success\":false,\"message\":\"Đơn hàng chưa thanh toán — không thể check-in\"" + csrfField + "}");
-            return;
-        }
-
-        // Check if event is expired
-        Event eventObj = eventService.getEventDetails(ticket.getEventId());
-        boolean isExpired = (eventObj != null && eventObj.getEndDate() != null && eventObj.getEndDate().before(new java.util.Date()));
-        String warnMsg = isExpired ? " (Sự kiện đã kết thúc)" : "";
-
-        if (ticketDAO.checkInTicket(ticketId, user.getUserId())) {
-            LOGGER.log(Level.INFO, "Ticket Check-in OK: ticket={0} order={1} by user {2}",
-                    new Object[]{ticket.getTicketCode(), orderCode, user.getUserId()});
-            sendJson(response, "{\"success\":true,\"customerName\":\"" + escapeJson(ticket.getAttendeeName())
-                    + "\",\"ticketType\":\"" + escapeJson(ticket.getTicketTypeName() + warnMsg)
-                    + "\",\"method\":\"manual\"" + csrfField + "}");
-        } else {
-            sendJson(response, "{\"success\":false,\"message\":\"Lỗi hệ thống khi check-in\"" + csrfField + "}");
-        }
+        sb.append("}");
+        return sb.toString();
     }
 
     /** Escape double quotes and backslashes for safe JSON string embedding. */

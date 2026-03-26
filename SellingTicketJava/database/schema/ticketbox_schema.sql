@@ -152,6 +152,7 @@ BEGIN
         published_at DATETIME,
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
+        is_deleted BIT DEFAULT 0,
         FOREIGN KEY (organizer_id) REFERENCES Users(user_id),
         FOREIGN KEY (category_id) REFERENCES Categories(category_id)
     );
@@ -209,6 +210,11 @@ BEGIN
         buyer_email NVARCHAR(255),
         buyer_phone NVARCHAR(20),
         notes NVARCHAR(500),
+        system_discount_amount DECIMAL(18,2) DEFAULT 0,
+        event_discount_amount DECIMAL(18,2) DEFAULT 0,
+        platform_fee_amount DECIMAL(18,2) DEFAULT 0,
+        organizer_payout_amount DECIMAL(18,2) DEFAULT 0,
+        voucher_scope NVARCHAR(10),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (user_id) REFERENCES Users(user_id),

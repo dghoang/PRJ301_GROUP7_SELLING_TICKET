@@ -48,7 +48,7 @@ public class OrganizerTicketController extends HttpServlet {
         if (user == null) { redirectToLogin(request, response); return; }
 
         try {
-            List<Event> events = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
+            List<Event> events = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "edit");
 
             List<Integer> eventIds = new ArrayList<>();
             for (Event e : events) { eventIds.add(e.getEventId()); }
