@@ -75,28 +75,44 @@ public class OrganizerOrderController extends HttpServlet {
             double totalRevenueStr = 0;
 
             String eventIdStr = request.getParameter("eventId");
+            int page = parseIntOrDefault(request.getParameter("page"), 1);
+
+            List<Order> allOrders = new java.util.ArrayList<>();
+            List<Order> displayOrders = new java.util.ArrayList<>();
+
             if (eventIdStr != null && !eventIdStr.isEmpty()) {
                 int eventId = parseIntOrDefault(eventIdStr, -1);
                 boolean ownsEvent = myEvents.stream().anyMatch(e -> e.getEventId() == eventId);
                 if (ownsEvent) {
-                    int page = parseIntOrDefault(request.getParameter("page"), 1);
-
-                    List<Order> allOrders = orderService.getOrdersByEvent(eventId, 1, 9999);
-                    for (Order o : allOrders) {
-                        if (AppConstants.OrderStatus.PAID.getValue().equals(o.getStatus())) {
-                            totalPaid++;
-                            totalRevenueStr += o.getFinalAmount();
-                        } else if (AppConstants.OrderStatus.PENDING.getValue().equals(o.getStatus())) {
-                            totalPending++;
-                        } else if (AppConstants.OrderStatus.CANCELLED.getValue().equals(o.getStatus())) {
-                            totalCanceled++;
-                        }
-                    }
-
-                    request.setAttribute("orders", orderService.getOrdersByEvent(eventId, page, 50));
+                    allOrders = orderService.getOrdersByEvent(eventId, 1, 9999);
+                    displayOrders = orderService.getOrdersByEvent(eventId, page, 50);
                     request.setAttribute("selectedEventId", eventId);
                 }
+            } else {
+                for (Event e : myEvents) {
+                    allOrders.addAll(orderService.getOrdersByEvent(e.getEventId(), 1, 9999));
+                }
+                // Sort allOrders descending by created_at since it's merged
+                allOrders.sort((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt()));
+                int start = (page - 1) * 50;
+                int end = Math.min(start + 50, allOrders.size());
+                if (start < allOrders.size()) {
+                    displayOrders = allOrders.subList(start, end);
+                }
             }
+
+            for (Order o : allOrders) {
+                if (AppConstants.OrderStatus.PAID.getValue().equals(o.getStatus())) {
+                    totalPaid++;
+                    totalRevenueStr += o.getFinalAmount();
+                } else if (AppConstants.OrderStatus.PENDING.getValue().equals(o.getStatus())) {
+                    totalPending++;
+                } else if (AppConstants.OrderStatus.CANCELLED.getValue().equals(o.getStatus())) {
+                    totalCanceled++;
+                }
+            }
+
+            request.setAttribute("orders", displayOrders);
 
             request.setAttribute("totalPaid", totalPaid);
             request.setAttribute("totalPending", totalPending);

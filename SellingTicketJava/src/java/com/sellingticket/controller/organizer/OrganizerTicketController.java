@@ -57,8 +57,21 @@ public class OrganizerTicketController extends HttpServlet {
                     ? Collections.emptyMap()
                     : ticketService.getTicketsByEventIds(eventIds);
 
+            List<TicketType> allTicketTypes = new ArrayList<>();
+            int filterEventId = parseIntOrDefault(request.getParameter("eventId"), 0);
+            if (filterEventId > 0) {
+                if (ticketMap.containsKey(filterEventId)) {
+                    allTicketTypes.addAll(ticketMap.get(filterEventId));
+                }
+            } else {
+                for (List<TicketType> list : ticketMap.values()) {
+                    allTicketTypes.addAll(list);
+                }
+            }
+
             request.setAttribute("events", events);
             request.setAttribute("ticketMap", ticketMap);
+            request.setAttribute("ticketTypes", allTicketTypes);
             request.getRequestDispatcher("/organizer/tickets.jsp").forward(request, response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load organizer tickets", e);
