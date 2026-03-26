@@ -398,7 +398,7 @@ CREATE TABLE Notifications (
 );
 GO
 
-PRINT '=== All 24 tables created ===';
+PRINT '=== All 23 tables created ===';
 GO
 
 -- =============================================

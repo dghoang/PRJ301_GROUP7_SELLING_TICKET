@@ -268,7 +268,8 @@ public class EventService {
         if ("admin".equals(role)) return true;
         List<Event> accessibleEvents = getAccessibleEvents(userId, role);
         for (Event event : accessibleEvents) {
-            if ("approved".equals(event.getStatus())) {
+            String s = event.getStatus();
+            if ("approved".equals(s) || "ended".equals(s) || "completed".equals(s) || "cancelled".equals(s)) {
                 return true;
             }
         }

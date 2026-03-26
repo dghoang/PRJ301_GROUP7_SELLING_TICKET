@@ -42,7 +42,7 @@ public class OrganizerDashboardController extends HttpServlet {
         }
 
         try {
-            List<Event> myEvents = eventService.getEventsByOrganizer(user.getUserId());
+            List<Event> myEvents = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
 
             // Dashboard Lockout: redirect to events page when user has 0 events
             if (myEvents.isEmpty()) {

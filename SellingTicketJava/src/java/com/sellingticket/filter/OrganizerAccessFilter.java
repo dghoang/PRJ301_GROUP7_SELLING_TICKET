@@ -46,7 +46,7 @@ public class OrganizerAccessFilter implements Filter {
 
         String pathInfo = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
         
-        int totalEvents = eventService.getEventsByOrganizer(user.getUserId()).size();
+        int totalEvents = eventService.getAccessibleEvents(user.getUserId(), user.getRole()).size();
         boolean hasApproved = eventService.hasApprovedEvents(user.getUserId(), user.getRole());
 
         // Expose sidebar visibility flags to JSP
