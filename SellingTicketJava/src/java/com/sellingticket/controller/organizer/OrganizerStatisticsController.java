@@ -174,7 +174,7 @@ public class OrganizerStatisticsController extends HttpServlet {
             return;
         }
         // SECURITY: Verify organizer has access to the requested event
-        if (!eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
+        if (!eventService.hasStatsPermission(eventId, user.getUserId(), user.getRole())) {
             sendJson(response, 403, "{\"error\":\"Access denied\"}");
             return;
         }

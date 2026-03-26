@@ -689,7 +689,7 @@ GO
 
 -- =============================================
 -- =============================================
-INSERT INTO Events (organizer_id, category_id, title, slug, short_description, description, banner_image, location, address, start_date, end_date, status, is_featured, views, pin_order, display_priority, max_tickets_per_order, max_total_tickets) VALUES
+INSERT INTO Events (organizer_id, category_id, title, slug, short_description, description, banner_image, location, address, start_date, end_date, status, is_featured, views, pin_order, display_priority, max_tickets_per_order, max_total_tickets, is_deleted) VALUES
 -- ============ ÂM NHẠC (category_id=1) — 7 events ============
 (4, 1,
  N'Hà Anh Tuấn — Truyện Ngắn Concert 2026',
@@ -702,7 +702,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
 <p>Vé đã mua không hoàn lại. Check-in bằng QR code từ 17:00.</p>',
  'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800',
  N'SVĐ Quốc gia Mỹ Đình', N'Đường Lê Đức Thọ, Nam Từ Liêm, Hà Nội',
- '2026-04-20 19:00', '2026-04-20 22:30', 'approved', 1, 15800, 5, 100, 4, 1750),
+ '2026-04-20 19:00', '2026-04-20 22:30', 'approved', 1, 15800, 5, 100, 4, 1750, 0),
 
 (4, 1,
  N'Mỹ Tâm — My Soul 1981 Liveshow',
@@ -711,7 +711,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>My Soul 1981 — Kỷ niệm 25 năm</h2><p>Mỹ Tâm mang đến đêm nhạc xúc động với hơn 40 ca khúc xuyên suốt sự nghiệp.</p>',
  'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800',
  N'Nhà hát Hòa Bình', N'240 Đường 3/2, Quận 10, TP.HCM',
- '2026-05-10 19:30', '2026-05-10 23:00', 'approved', 1, 9200, 4, 95, 4, 900),
+ '2026-05-10 19:30', '2026-05-10 23:00', 'approved', 1, 9200, 4, 95, 4, 900, 0),
 
 (4, 1,
  N'Sơn Tùng M-TP — Sky Tour 2026',
@@ -720,7 +720,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Sky Tour 2026</h2><p>Sơn Tùng M-TP cùng ban nhạc trở lại sân khấu sau 2 năm vắng bóng. Sân khấu hoành tráng, hiệu ứng laser & pyro.</p>',
  'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
  N'Phú Thọ Stadium', N'1 Lý Thường Kiệt, Quận 11, TP.HCM',
- '2026-06-15 19:00', '2026-06-15 22:00', 'approved', 1, 26000, 3, 90, 4, 4330),
+ '2026-06-15 19:00', '2026-06-15 22:00', 'approved', 1, 26000, 3, 90, 4, 4330, 0),
 
 (4, 1,
  N'Đêm nhạc Acoustic — Bên Nhau Trọn Đời',
@@ -729,7 +729,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Acoustic Night</h2><p>Không gian ấm cúng với guitar, piano. Guest: Bùi Anh Tuấn, Văn Mai Hương, Vũ.</p>',
  'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
  N'Saigon Opera House', N'7 Lam Sơn, Quận 1, TP.HCM',
- '2026-03-28 20:00', '2026-03-28 22:30', 'approved', 0, 3800, 0, 70, 2, 350),
+ '2026-03-28 20:00', '2026-03-28 22:30', 'approved', 0, 3800, 0, 70, 2, 350, 0),
 
 (8, 1,
  N'EDM Rave — Neon Jungle Festival',
@@ -738,7 +738,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Neon Jungle Festival 2026</h2><p>Festival EDM lớn nhất Đông Nam Á lần đầu tại Việt Nam!</p><ul><li>Tiësto</li><li>Martin Garrix</li><li>DJ Snake</li><li>Hoaprox</li></ul>',
  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800',
  N'Đại Nam Wonderland', N'Bình Dương',
- '2026-07-04 17:00', '2026-07-05 02:00', 'pending', 0, 0, 0, 0, 6, 5700),
+ '2026-07-04 17:00', '2026-07-05 02:00', 'pending', 0, 0, 0, 0, 6, 5700, 0),
 
 (8, 1,
  N'Indie Sunset Sessions Vol.3',
@@ -747,7 +747,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Indie Sunset Sessions</h2><p>Tận hưởng nhạc indie với hoàng hôn biển. Line-up: Ngọt, Cá Hồi Hoang, Chillies, Da LAB.</p>',
  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800',
  N'Bãi Sau, Vũng Tàu', N'Đường Thùy Vân, TP Vũng Tàu',
- '2026-04-12 16:00', '2026-04-12 22:00', 'approved', 0, 4200, 0, 65, 4, 2000),
+ '2026-04-12 16:00', '2026-04-12 22:00', 'approved', 0, 4200, 0, 65, 4, 2000, 0),
 
 (8, 1,
  N'Karaoke Đại Hội — Event Test',
@@ -756,7 +756,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<p>Nội dung không phù hợp.</p>',
  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800',
  N'Quán Karaoke ABC', N'123 Nguyễn Trãi, Quận 5, TP.HCM',
- '2026-03-01 20:00', '2026-03-01 23:00', 'rejected', 0, 50, 0, 0, 0, 0),
+ '2026-03-01 20:00', '2026-03-01 23:00', 'rejected', 0, 50, 0, 0, 0, 0, 0),
 
 -- ============ THỂ THAO (category_id=2) — 5 events ============
 (7, 2,
@@ -766,7 +766,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Vietnam Marathon 2026</h2><p>Chạy dọc bờ biển Mỹ Khê. Cự ly: 5K, 21K Half, 42K Full.</p><p>Huy chương finisher, bib cá nhân hóa, tiệc bia sau race.</p>',
  'https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?w=800',
  N'Biển Mỹ Khê, Đà Nẵng', N'Đường Võ Nguyên Giáp, Sơn Trà, Đà Nẵng',
- '2026-05-03 04:30', '2026-05-03 12:00', 'approved', 1, 7800, 2, 85, 2, 10000),
+ '2026-05-03 04:30', '2026-05-03 12:00', 'approved', 1, 7800, 2, 85, 2, 10000, 0),
 
 (7, 2,
  N'Giải bóng rổ 3x3 Saigon Open',
@@ -775,7 +775,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Bóng rổ 3x3 Saigon Open</h2><p>64 đội tranh tài, giải thưởng 200 triệu đồng. Luật FIBA 3x3.</p>',
  'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800',
  N'Nhà thi đấu Phú Thọ', N'1 Lý Thường Kiệt, Quận 11, TP.HCM',
- '2026-04-12 08:00', '2026-04-13 18:00', 'approved', 0, 2500, 0, 60, 0, 564),
+ '2026-04-12 08:00', '2026-04-13 18:00', 'approved', 0, 2500, 0, 60, 0, 564, 0),
 
 (7, 2,
  N'Saigon Night Run 10K',
@@ -784,7 +784,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Saigon Night Run 10K</h2><p>Chạy bộ 10km xuyên trung tâm TP.HCM vào ban đêm. Áo chạy phát quang đặc biệt.</p>',
  'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800',
  N'Phố đi bộ Nguyễn Huệ', N'Nguyễn Huệ, Quận 1, TP.HCM',
- '2026-03-22 19:00', '2026-03-22 22:00', 'approved', 0, 5100, 0, 65, 2, 3000),
+ '2026-03-22 19:00', '2026-03-22 22:00', 'approved', 0, 5100, 0, 65, 2, 3000, 0),
 
 (7, 2,
  N'Giải Bơi Lội TP.HCM Mùa Hè 2026',
@@ -793,7 +793,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Giải Bơi Lội TP.HCM</h2><p>Thi đấu tự do, ếch, bướm theo nhóm tuổi.</p>',
  'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=800',
  N'CLB Bơi Lội Yết Kiêu', N'1 Nguyễn Thị Minh Khai, Quận 1, TP.HCM',
- '2026-07-19 07:00', '2026-07-19 17:00', 'pending', 0, 0, 0, 0, 0, 1900),
+ '2026-07-19 07:00', '2026-07-19 17:00', 'pending', 0, 0, 0, 0, 0, 1900, 0),
 
 (7, 2,
  N'Saigon Fun Run 5K 2025',
@@ -802,7 +802,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<p>Sự kiện đã kết thúc tháng 11/2025.</p>',
  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
  N'Công viên Gia Định', N'Quận Gò Vấp, TP.HCM',
- '2025-11-15 06:00', '2025-11-15 10:00', 'approved', 0, 2200, 0, 30, 2, 1000),
+ '2025-11-15 06:00', '2025-11-15 10:00', 'approved', 0, 2200, 0, 30, 2, 1000, 0),
 
 -- ============ WORKSHOP (category_id=3) — 4 events ============
 (6, 3,
@@ -812,7 +812,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>UI/UX Workshop: Zero → Portfolio</h2><p>Mentor: Nguyễn Quốc Huy (Ex-Google), Trần Minh Anh (Grab Design Lead)</p>',
  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
  N'Dreamplex Coworking', N'21 Nguyễn Trung Ngạn, Quận 1, TP.HCM',
- '2026-04-05 09:00', '2026-04-06 17:00', 'approved', 1, 4100, 0, 80, 2, 100),
+ '2026-04-05 09:00', '2026-04-06 17:00', 'approved', 1, 4100, 0, 80, 2, 100, 0),
 
 (6, 3,
  N'Data Science Bootcamp — Python cho người mới',
@@ -821,7 +821,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Data Science Bootcamp</h2><p>Dành cho người mới bắt đầu. Bao gồm tài liệu và certificate.</p>',
  'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800',
  N'Campus Landmark', N'Vinhomes Central Park, Bình Thạnh, TP.HCM',
- '2026-04-15 18:30', '2026-04-17 21:00', 'approved', 0, 2100, 0, 55, 2, 100),
+ '2026-04-15 18:30', '2026-04-17 21:00', 'approved', 0, 2100, 0, 55, 2, 100, 0),
 
 (6, 3,
  N'AI for Business Workshop Draft 2026',
@@ -829,7 +829,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'Workshop ứng dụng AI cho doanh nghiệp — đang chuẩn bị.',
  N'<p>Đang xây dựng giáo trình và danh sách diễn giả.</p>',
  NULL, N'TBD', N'TBD',
- '2026-09-15 09:00', '2026-09-15 17:00', 'draft', 0, 0, 0, 0, 0, 0),
+ '2026-09-15 09:00', '2026-09-15 17:00', 'draft', 0, 0, 0, 0, 0, 0, 0),
 
 (6, 3,
  N'Khoá học Digital Marketing Intensive',
@@ -838,7 +838,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Digital Marketing Intensive</h2><p>Từ chiến lược đến thực thi. Phù hợp cho startups và SMEs.</p>',
  'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=800',
  N'WeWork Landmark 81', N'Landmark 81, Bình Thạnh, TP.HCM',
- '2026-05-20 09:00', '2026-05-24 17:00', 'approved', 0, 1500, 0, 50, 2, 60),
+ '2026-05-20 09:00', '2026-05-24 17:00', 'approved', 0, 1500, 0, 50, 2, 60, 0),
 
 -- ============ ẨM THỰC (category_id=4) — 3 events ============
 (5, 4,
@@ -848,7 +848,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Street Food Festival Saigon 2026</h2><p>Hơn 100 gian hàng Bắc-Trung-Nam + quốc tế. Sân khấu acoustic mỗi tối. Thi ăn nhanh.</p>',
  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
  N'Công viên 23/9', N'Phạm Ngũ Lão, Quận 1, TP.HCM',
- '2026-05-01 10:00', '2026-05-04 22:00', 'approved', 1, 11500, 0, 88, 6, 10500),
+ '2026-05-01 10:00', '2026-05-04 22:00', 'approved', 1, 11500, 0, 88, 6, 10500, 0),
 
 (5, 4,
  N'Cooking Class — Phở Bò Hà Nội Truyền Thống',
@@ -857,7 +857,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Cooking Class: Phở Bò</h2><p>3 tiếng, bao gồm nguyên liệu và thưởng thức tại chỗ.</p>',
  'https://images.unsplash.com/photo-1503764654157-72d979d9af2f?w=800',
  N'Cooking Studio Saigon', N'15 Lý Tự Trọng, Quận 1, TP.HCM',
- '2026-03-30 09:00', '2026-03-30 12:00', 'approved', 0, 1600, 0, 45, 2, 20),
+ '2026-03-30 09:00', '2026-03-30 12:00', 'approved', 0, 1600, 0, 45, 2, 20, 0),
 
 (5, 4,
  N'Food Truck Weekend Draft 2026',
@@ -865,7 +865,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'Sự kiện food truck cuối tuần — đang chuẩn bị.',
  N'<p>Đang hoàn thiện line-up gian hàng.</p>',
  NULL, N'TBD', N'TBD',
- '2026-09-05 10:00', '2026-09-06 22:00', 'draft', 0, 0, 0, 0, 0, 0),
+ '2026-09-05 10:00', '2026-09-06 22:00', 'draft', 0, 0, 0, 0, 0, 0, 0),
 
 -- ============ NGHỆ THUẬT (category_id=5) — 3 events ============
 (4, 5,
@@ -875,7 +875,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Beyond Borders</h2><p>Triển lãm kết hợp truyền thống VN và hiện đại quốc tế. Main Gallery + Digital Room + Workshop Zone.</p>',
  'https://images.unsplash.com/photo-1531243269054-5ebf6f34081e?w=800',
  N'Bảo tàng Mỹ thuật TP.HCM', N'97A Phó Đức Chính, Quận 1, TP.HCM',
- '2026-04-01 09:00', '2026-04-30 18:00', 'approved', 0, 6200, 0, 72, 4, 3200),
+ '2026-04-01 09:00', '2026-04-30 18:00', 'approved', 0, 6200, 0, 72, 4, 3200, 0),
 
 (4, 5,
  N'Tấm Cám: The Musical',
@@ -884,7 +884,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Tấm Cám: The Musical</h2><p>Cổ tích Việt Nam qua nhạc kịch hiện đại với dàn 50 diễn viên.</p>',
  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
  N'Nhà hát Lớn Hà Nội', N'1 Tràng Tiền, Hoàn Kiếm, Hà Nội',
- '2026-05-20 19:30', '2026-05-20 21:30', 'approved', 0, 3200, 0, 68, 4, 510),
+ '2026-05-20 19:30', '2026-05-20 21:30', 'approved', 0, 3200, 0, 68, 4, 510, 0),
 
 (8, 5,
  N'Triển lãm Ảnh Không Phép 2026',
@@ -893,7 +893,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<p>Thiếu giấy phép từ Sở VHTTDL.</p>',
  'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800',
  N'Galerie ABC', N'Quận 3, TP.HCM',
- '2026-06-01 10:00', '2026-06-15 18:00', 'rejected', 0, 0, 0, 0, 0, 0),
+ '2026-06-01 10:00', '2026-06-15 18:00', 'rejected', 0, 0, 0, 0, 0, 0, 0),
 
 -- ============ KINH DOANH (category_id=6) — 3 events ============
 (6, 6,
@@ -903,7 +903,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Vietnam Founders Summit</h2><p>Kết nối startup — nhà đầu tư. Keynote + Pitches + Networking Cocktail.</p>',
  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800',
  N'GEM Center', N'8 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM',
- '2026-05-15 09:00', '2026-05-15 18:00', 'approved', 0, 4700, 0, 75, 5, 370),
+ '2026-05-15 09:00', '2026-05-15 18:00', 'approved', 0, 4700, 0, 75, 5, 370, 0),
 
 (5, 6,
  N'Hội nghị Du lịch & Hospitality Vietnam 2026',
@@ -912,7 +912,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Tourism & Hospitality Conference</h2><p>Diễn giả từ Marriott, Accor, Vinpearl.</p>',
  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
  N'Vinpearl Luxury Landmark 81', N'Landmark 81, Bình Thạnh, TP.HCM',
- '2026-06-10 08:30', '2026-06-11 17:00', 'pending', 0, 0, 0, 0, 2, 300),
+ '2026-06-10 08:30', '2026-06-11 17:00', 'pending', 0, 0, 0, 0, 2, 300, 0),
 
 (6, 6,
  N'Crypto Investment Night 2026',
@@ -921,7 +921,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<p>Chưa cung cấp đủ cảnh báo rủi ro theo quy định.</p>',
  'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800',
  N'Khách sạn Rex', N'141 Nguyễn Huệ, Quận 1, TP.HCM',
- '2026-04-18 18:30', '2026-04-18 21:30', 'rejected', 0, 0, 0, 0, 0, 0),
+ '2026-04-18 18:30', '2026-04-18 21:30', 'rejected', 0, 0, 0, 0, 0, 0, 0),
 
 -- ============ CÔNG NGHỆ (category_id=7) — 5 events ============
 (6, 7,
@@ -931,7 +931,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Vietnam AI Summit</h2><p>Topics: LLM, AI Healthcare, FinTech, Responsible AI. Hands-on workshop.</p>',
  'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800',
  N'Trung tâm Hội nghị GEM', N'8 Nguyễn Bỉnh Khiêm, Quận 1, TP.HCM',
- '2026-06-20 08:00', '2026-06-21 17:00', 'approved', 1, 8900, 1, 92, 3, 700),
+ '2026-06-20 08:00', '2026-06-21 17:00', 'approved', 1, 8900, 1, 92, 3, 700, 0),
 
 (6, 7,
  N'Hackathon — Build for Vietnam 2026',
@@ -940,7 +940,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Build for Vietnam Hackathon</h2><p>Tracks: FinTech, HealthTech, EdTech, Open.</p>',
  'https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?w=800',
  N'VNG Campus', N'182 Lê Đại Hành, Quận 11, TP.HCM',
- '2026-05-24 09:00', '2026-05-26 17:00', 'approved', 0, 4500, 0, 78, 5, 130),
+ '2026-05-24 09:00', '2026-05-26 17:00', 'approved', 0, 4500, 0, 78, 5, 130, 0),
 
 (6, 7,
  N'Tech Career Fair 2026',
@@ -949,7 +949,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<h2>Tech Career Fair</h2><p>50+ doanh nghiệp tuyển dụng. Student & Professional passes.</p>',
  'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800',
  N'TT Hội nghị Quốc gia', N'57 Phạm Hùng, Nam Từ Liêm, Hà Nội',
- '2026-08-12 08:00', '2026-08-12 18:00', 'pending', 0, 0, 0, 0, 3, 1500),
+ '2026-08-12 08:00', '2026-08-12 18:00', 'pending', 0, 0, 0, 0, 3, 1500, 0),
 
 (6, 7,
  N'Cloud Computing Workshop 2026 (Draft)',
@@ -957,7 +957,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'Workshop về AWS, GCP, Azure — đang soạn nội dung.',
  N'<p>Đang lên giáo trình.</p>',
  NULL, N'TBD', N'TBD',
- '2026-10-01 09:00', '2026-10-01 17:00', 'draft', 0, 0, 0, 0, 0, 0),
+ '2026-10-01 09:00', '2026-10-01 17:00', 'draft', 0, 0, 0, 0, 0, 0, 0),
 
 (4, 1,
  N'Beach Countdown Party 2026 Cancelled',
@@ -966,7 +966,7 @@ INSERT INTO Events (organizer_id, category_id, title, slug, short_description, d
  N'<p>BTC hủy để đảm bảo an toàn.</p>',
  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800',
  N'Bãi biển Cửa Đại', N'Hội An, Quảng Nam',
- '2026-12-31 20:00', '2027-01-01 01:00', 'cancelled', 0, 300, 0, 0, 4, 2000);
+ '2026-12-31 20:00', '2027-01-01 01:00', 'cancelled', 0, 300, 0, 0, 4, 2000, 0);
 GO
 
 UPDATE Events SET rejection_reason = N'Nội dung sự kiện không đủ thông tin. Bổ sung mô tả chi tiết và hình ảnh chất lượng.',
