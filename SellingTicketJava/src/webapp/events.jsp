@@ -317,6 +317,7 @@
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     min-height: 2.8rem;
@@ -366,6 +367,7 @@
     font-size: 4rem;
     background: linear-gradient(135deg, #9333ea, #db2777);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -509,12 +511,12 @@
 <!-- Category Pills -->
 <section class="category-section">
     <div class="container">
-        <div class="d-flex flex-wrap gap-2" data-pill-group="category">
-            <a href="#" class="category-pill active" data-pill-value="">
+        <div class="d-flex flex-wrap gap-2" id="category-pills">
+            <a href="#" class="category-pill active" data-value="">
                 <i class="fas fa-border-all"></i><span data-i18n="events.all">Tất cả</span>
             </a>
             <c:forEach var="cat" items="${categories}">
-                <a href="#" class="category-pill" data-pill-value="${cat.slug}">
+                <a href="#" class="category-pill" data-value="${cat.slug}">
                     <i class="fas ${cat.icon}"></i>${cat.name}
                 </a>
             </c:forEach>
@@ -635,17 +637,30 @@ const ajaxCards = new AjaxCards({
 });
 
 // Sync pill clicks with category dropdown
-document.querySelectorAll('[data-pill-group="category"] [data-pill-value]').forEach(function(pill) {
-    pill.addEventListener('click', function() {
-        document.getElementById('filter-category').value = pill.dataset.pillValue;
+document.querySelectorAll('#category-pills .category-pill').forEach(function(pill) {
+    pill.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Update Pill UI
+        document.querySelectorAll('#category-pills .category-pill').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Sync Dropdown
+        document.getElementById('filter-category').value = this.dataset.value;
+        
+        // Trigger Search
+        if (window.ajaxCards) {
+            ajaxCards.currentPage = 1;
+            ajaxCards.load();
+        }
     });
 });
 
 // Sync category dropdown with pills
 document.getElementById('filter-category').addEventListener('change', function() {
     const val = this.value;
-    document.querySelectorAll('[data-pill-group="category"] [data-pill-value]').forEach(function(p) {
-        p.classList.toggle('active', p.dataset.pillValue === val);
+    document.querySelectorAll('#category-pills .category-pill').forEach(function(p) {
+        p.classList.toggle('active', p.dataset.value === val);
     });
 });
 

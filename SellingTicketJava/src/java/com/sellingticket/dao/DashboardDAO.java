@@ -24,32 +24,36 @@ public class DashboardDAO extends DBContext {
     public Map<String, Object> getAdminDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        String sql = "SELECT " +
-                "(SELECT COUNT(*) FROM Events WHERE (is_deleted = 0 OR is_deleted IS NULL)) as total_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE status = 'pending' AND (is_deleted = 0 OR is_deleted IS NULL)) as pending_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)) as approved_events, " +
-                "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND (end_date IS NULL OR end_date >= GETDATE())) as active_events, " +
-                "(SELECT COUNT(*) FROM Users) as total_users, " +
-                "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE status IN ('paid', 'checked_in')) as total_revenue, " +
-                "(SELECT COUNT(*) FROM Orders WHERE status = 'pending') as pending_orders, " +
-                "(SELECT COUNT(*) FROM Orders WHERE status IN ('paid', 'checked_in')) as paid_orders, " +
-                "(SELECT COUNT(*) FROM Orders WHERE status = 'cancelled') as cancelled_orders, " +
-                "(SELECT COUNT(*) FROM Orders) as total_orders";
+        try (Connection conn = getConnection()) {
+            boolean hasEventSoftDelete = hasColumn(conn, "Events", "is_deleted");
+            String eventSoftDeleteFilter = hasEventSoftDelete ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                stats.put("totalEvents", rs.getInt("total_events"));
-                stats.put("pendingEvents", rs.getInt("pending_events"));
-                stats.put("approvedEvents", rs.getInt("approved_events"));
-                stats.put("activeEvents", rs.getInt("active_events"));
-                stats.put("totalUsers", rs.getInt("total_users"));
-                stats.put("totalRevenue", rs.getDouble("total_revenue"));
-                stats.put("pendingOrders", rs.getInt("pending_orders"));
-                stats.put("paidOrders", rs.getInt("paid_orders"));
-                stats.put("cancelledOrders", rs.getInt("cancelled_orders"));
-                stats.put("totalOrders", rs.getInt("total_orders"));
+            String sql = "SELECT " +
+                    "(SELECT COUNT(*) FROM Events WHERE 1=1 " + eventSoftDeleteFilter + ") as total_events, " +
+                    "(SELECT COUNT(*) FROM Events WHERE status = 'pending' " + eventSoftDeleteFilter + ") as pending_events, " +
+                    "(SELECT COUNT(*) FROM Events WHERE status = 'approved' " + eventSoftDeleteFilter + ") as approved_events, " +
+                    "(SELECT COUNT(*) FROM Events WHERE status = 'approved' " + eventSoftDeleteFilter + " AND (end_date IS NULL OR end_date >= GETDATE())) as active_events, " +
+                    "(SELECT COUNT(*) FROM Users) as total_users, " +
+                    "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE status IN ('paid', 'checked_in')) as total_revenue, " +
+                    "(SELECT COUNT(*) FROM Orders WHERE status = 'pending') as pending_orders, " +
+                    "(SELECT COUNT(*) FROM Orders WHERE status IN ('paid', 'checked_in')) as paid_orders, " +
+                    "(SELECT COUNT(*) FROM Orders WHERE status = 'cancelled') as cancelled_orders, " +
+                    "(SELECT COUNT(*) FROM Orders) as total_orders";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    stats.put("totalEvents", rs.getInt("total_events"));
+                    stats.put("pendingEvents", rs.getInt("pending_events"));
+                    stats.put("approvedEvents", rs.getInt("approved_events"));
+                    stats.put("activeEvents", rs.getInt("active_events"));
+                    stats.put("totalUsers", rs.getInt("total_users"));
+                    stats.put("totalRevenue", rs.getDouble("total_revenue"));
+                    stats.put("pendingOrders", rs.getInt("pending_orders"));
+                    stats.put("paidOrders", rs.getInt("paid_orders"));
+                    stats.put("cancelledOrders", rs.getInt("cancelled_orders"));
+                    stats.put("totalOrders", rs.getInt("total_orders"));
+                }
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load admin dashboard stats", e);
@@ -64,20 +68,26 @@ public class DashboardDAO extends DBContext {
      */
     public Map<String, Object> getPublicStats() {
         Map<String, Object> stats = new HashMap<>();
-        String sql = "SELECT " +
-                "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND (end_date IS NULL OR end_date >= GETDATE())) as total_events, " +
-                "(SELECT ISNULL(SUM(sold_quantity), 0) FROM TicketTypes tt JOIN Events e ON tt.event_id = e.event_id WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL)) as total_tickets_sold, " +
-                "(SELECT COUNT(DISTINCT organizer_id) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)) as total_organizers, " +
-                "(SELECT COUNT(*) FROM Users WHERE role = 'customer') as total_customers";
+        
+        try (Connection conn = getConnection()) {
+            boolean hasEventSoftDelete = hasColumn(conn, "Events", "is_deleted");
+            String eventSoftDeleteFilter = hasEventSoftDelete ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                stats.put("totalEvents", rs.getInt("total_events"));
-                stats.put("totalTicketsSold", rs.getInt("total_tickets_sold"));
-                stats.put("totalOrganizers", rs.getInt("total_organizers"));
-                stats.put("totalCustomers", rs.getInt("total_customers"));
+            String sql = "SELECT " +
+                    "(SELECT COUNT(*) FROM Events WHERE status = 'approved' " + eventSoftDeleteFilter + " AND (end_date IS NULL OR end_date >= GETDATE())) as total_events, " +
+                    "(SELECT ISNULL(SUM(sold_quantity), 0) FROM TicketTypes tt JOIN Events e ON tt.event_id = e.event_id WHERE e.status = 'approved' " +
+                    (hasEventSoftDelete ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL)" : "") + ") as total_tickets_sold, " +
+                    "(SELECT COUNT(DISTINCT organizer_id) FROM Events WHERE status = 'approved' " + eventSoftDeleteFilter + ") as total_organizers, " +
+                    "(SELECT COUNT(*) FROM Users WHERE role = 'customer') as total_customers";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    stats.put("totalEvents", rs.getInt("total_events"));
+                    stats.put("totalTicketsSold", rs.getInt("total_tickets_sold"));
+                    stats.put("totalOrganizers", rs.getInt("total_organizers"));
+                    stats.put("totalCustomers", rs.getInt("total_customers"));
+                }
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load public stats", e);

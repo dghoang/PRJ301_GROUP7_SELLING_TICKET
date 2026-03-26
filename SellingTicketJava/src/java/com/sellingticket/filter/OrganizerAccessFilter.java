@@ -86,7 +86,6 @@ public class OrganizerAccessFilter implements Filter {
                 boolean isCheckInPath = pathInfo.startsWith("/organizer/check-in");
                 boolean isManagerPath = pathInfo.startsWith("/organizer/team") ||
                                         pathInfo.startsWith("/organizer/settings") ||
-                                        pathInfo.startsWith("/organizer/chat") ||
                                         pathInfo.startsWith("/organizer/support");
 
                 boolean hasAccess;
@@ -111,6 +110,10 @@ public class OrganizerAccessFilter implements Filter {
     /**
      * Extract eventId from URL path (e.g. /organizer/events/5/edit)
      * or from query parameters (e.g. ?eventId=5).
+     * 
+     * Note: For multipart/form-data POST requests, getParameter() might return null
+     * if the container hasn't parsed the parts yet. In such cases, the controller
+     * MUST perform the ownership check internally (which OrganizerEventController already does).
      */
     private int extractEventId(String pathInfo, HttpServletRequest request) {
         // Try URL path: /organizer/events/{id}/...
@@ -121,6 +124,14 @@ public class OrganizerAccessFilter implements Filter {
                 try { return Integer.parseInt(parts[0]); } catch (NumberFormatException ignored) {}
             }
         }
+        
+        // If this is a multipart request, do not attempt to read parameters here,
+        // as it might consume the stream and break the servlet's getParts() call.
+        String contentType = request.getContentType();
+        if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
+            return 0; // Defer authorization check to the specific Servlet Controller
+        }
+
         // Try query parameter
         String param = request.getParameter("eventId");
         if (param != null) {

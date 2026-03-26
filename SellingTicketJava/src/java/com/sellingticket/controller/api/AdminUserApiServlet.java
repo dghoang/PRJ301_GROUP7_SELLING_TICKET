@@ -4,6 +4,7 @@ import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import com.sellingticket.service.UserService;
 import com.sellingticket.util.JsonResponse;
+import com.sellingticket.util.JsonUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -63,11 +64,11 @@ public class AdminUserApiServlet extends HttpServlet {
         for (User u : result.getItems()) {
             StringBuilder item = new StringBuilder("{");
             item.append("\"userId\":").append(u.getUserId()).append(",");
-            item.append("\"email\":\"").append(esc(u.getEmail())).append("\",");
-            item.append("\"fullName\":\"").append(esc(u.getFullName())).append("\",");
-            item.append("\"phone\":\"").append(esc(u.getPhone())).append("\",");
-            item.append("\"role\":\"").append(esc(u.getRole())).append("\",");
-            item.append("\"avatar\":\"").append(esc(u.getAvatar())).append("\",");
+            item.append("\"email\":\"").append(JsonUtil.esc(u.getEmail())).append("\",");
+            item.append("\"fullName\":\"").append(JsonUtil.esc(u.getFullName())).append("\",");
+            item.append("\"phone\":\"").append(JsonUtil.esc(u.getPhone())).append("\",");
+            item.append("\"role\":\"").append(JsonUtil.esc(u.getRole())).append("\",");
+            item.append("\"avatar\":\"").append(JsonUtil.esc(u.getAvatar())).append("\",");
             item.append("\"isActive\":").append(u.isActive()).append(",");
             item.append("\"isDeleted\":").append(u.isDeleted()).append(",");
             item.append("\"createdAt\":\"").append(u.getCreatedAt() != null ? sdf.format(u.getCreatedAt()) : "").append("\"");
@@ -78,9 +79,5 @@ public class AdminUserApiServlet extends HttpServlet {
         json.send(response);
     }
 
-    private static String esc(String v) {
-        if (v == null) return "";
-        return v.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r");
-    }
+
 }

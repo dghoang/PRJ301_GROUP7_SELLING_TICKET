@@ -54,6 +54,14 @@ public class SupportTicketService {
         return dao.getByEvent(eventId);
     }
 
+    /**
+     * Get support tickets for events managed by a staff member.
+     * Enables staff-level support routing instead of admin-only.
+     */
+    public List<SupportTicket> getTicketsForStaffEvents(List<Integer> eventIds) {
+        return dao.getByEventIds(eventIds);
+    }
+
     public List<SupportTicket> getAll(String status, String category, int page, int pageSize) {
         return dao.getAll(status, category, page, pageSize);
     }
@@ -89,5 +97,15 @@ public class SupportTicketService {
 
     public int countOpen() {
         return dao.countByStatus("open");
+    }
+
+    /** Status distribution for dashboard chart. */
+    public java.util.List<java.util.Map<String, Object>> getStatusDistribution() {
+        return dao.getStatusDistribution();
+    }
+
+    /** Agent workload for dashboard chart. */
+    public java.util.List<java.util.Map<String, Object>> getAgentWorkload() {
+        return dao.getAgentWorkload();
     }
 }

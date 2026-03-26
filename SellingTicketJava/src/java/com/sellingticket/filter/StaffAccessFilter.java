@@ -50,15 +50,24 @@ public class StaffAccessFilter implements Filter {
             return;
         }
 
-        // Check if user is assigned to any event as staff
+        // Check if user is assigned to any event as staff OR owns any event
         List<Integer> assignedEvents = eventStaffDAO.getEventsWhereStaff(user.getUserId());
-        if (assignedEvents.isEmpty()) {
+
+        // Also check if user is an event owner (organizer_id)
+        com.sellingticket.dao.EventDAO eventDAO = new com.sellingticket.dao.EventDAO();
+        List<com.sellingticket.model.Event> ownedEvents = eventDAO.getEventsByOrganizer(user.getUserId());
+        java.util.Set<Integer> allEventIds = new java.util.LinkedHashSet<>(assignedEvents);
+        for (com.sellingticket.model.Event e : ownedEvents) {
+            allEventIds.add(e.getEventId());
+        }
+
+        if (allEventIds.isEmpty()) {
             com.sellingticket.util.ServletUtil.setToast(httpReq, "Tài khoản của bạn chưa được phân công sự kiện nào!", "error");
             httpRes.sendRedirect(httpReq.getContextPath() + "/home");
             return;
         }
 
-        httpReq.setAttribute("staffAssignedEvents", assignedEvents);
+        httpReq.setAttribute("staffAssignedEvents", new java.util.ArrayList<>(allEventIds));
         chain.doFilter(request, response);
     }
 

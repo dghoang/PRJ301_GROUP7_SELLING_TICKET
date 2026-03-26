@@ -59,9 +59,24 @@ public class OrganizerSupportController extends HttpServlet {
                 request.setAttribute("currentUserId", user.getUserId());
                 request.getRequestDispatcher("/organizer/support-detail.jsp").forward(request, response);
             } else {
-                // List organizer's tickets
-                List<SupportTicket> tickets = ticketService.getByUser(user.getUserId());
-                request.setAttribute("tickets", tickets);
+                // List organizer's tickets with in-memory pagination
+                List<SupportTicket> allTickets = ticketService.getByUser(user.getUserId());
+                int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+                int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
+                int totalRecords = allTickets.size();
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+                page = Math.min(page, totalPages);
+                int fromIndex = (page - 1) * size;
+                int toIndex = Math.min(fromIndex + size, totalRecords);
+                List<SupportTicket> pagedTickets = (fromIndex < totalRecords)
+                        ? allTickets.subList(fromIndex, toIndex)
+                        : java.util.Collections.emptyList();
+
+                request.setAttribute("tickets", pagedTickets);
+                request.setAttribute("currentPage", page);
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", size);
+                request.setAttribute("totalRecords", totalRecords);
                 request.getRequestDispatcher("/organizer/support.jsp").forward(request, response);
             }
         } catch (Exception e) {

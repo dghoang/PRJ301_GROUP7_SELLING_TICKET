@@ -70,9 +70,10 @@ public class AdminEventController extends HttpServlet {
 
         try {
             String status = request.getParameter("status");
-            int page = parseIntOrDefault(request.getParameter("page"), 1);
+            int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+            int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
 
-            List<Event> events = eventService.getAllEvents(status, page, 20);
+            List<Event> events = eventService.getAllEvents(status, page, size);
 
             request.setAttribute("events", events);
             request.setAttribute("currentPage", page);
@@ -80,6 +81,7 @@ public class AdminEventController extends HttpServlet {
             request.setAttribute("categories", categoryService.getAllCategories());
 
             // Single query for all counts — wrapped in try-catch to prevent page crash
+            int totalRecords = 0;
             try {
                 Map<String, Object> stats = dashboardDAO.getAdminDashboardStats();
                 int approved = ((Number) stats.getOrDefault("approvedEvents", 0)).intValue();
@@ -88,11 +90,23 @@ public class AdminEventController extends HttpServlet {
                 request.setAttribute("approvedCount", approved);
                 request.setAttribute("pendingCount", pending);
                 request.setAttribute("rejectedCount", total - approved - pending);
+
+                // Compute totalRecords based on filter
+                if ("approved".equals(status)) totalRecords = approved;
+                else if ("pending".equals(status)) totalRecords = pending;
+                else if ("rejected".equals(status)) totalRecords = total - approved - pending;
+                else totalRecords = total;
             } catch (Exception e) {
                 request.setAttribute("approvedCount", 0);
                 request.setAttribute("pendingCount", 0);
                 request.setAttribute("rejectedCount", 0);
             }
+
+            // Pagination attributes
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("pageSize", size);
+            request.setAttribute("totalRecords", totalRecords);
         } catch (Exception e) {
             request.setAttribute("events", new java.util.ArrayList<>());
             request.setAttribute("currentPage", 1);
@@ -107,8 +121,24 @@ public class AdminEventController extends HttpServlet {
     private void listPendingEvents(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        request.setAttribute("pendingEvents", eventService.getPendingEvents());
+        List<Event> allPending = eventService.getPendingEvents();
+        int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+        int size = parseIntOrDefault(request.getParameter("size"), 20);
+        if (size < 1 || size > 200) size = 20;
+
+        int totalRecords = allPending.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+        if (page > totalPages) page = totalPages;
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, totalRecords);
+
+        request.setAttribute("allPendingEvents", allPending);
+        request.setAttribute("pendingEvents", allPending.subList(fromIndex, toIndex));
         request.setAttribute("statusFilter", "pending");
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", size);
+        request.setAttribute("totalRecords", totalRecords);
         request.getRequestDispatcher("/admin/event-approval.jsp").forward(request, response);
     }
 

@@ -1,0 +1,31 @@
+
+[UX AUDIT] 55 files checked
+--------------------------------------------------
+[!] ISSUES (9):
+  - [Color] main.css: PURPLE DETECTED ('#A855F7'). Banned by Maestro rules. Use Teal/Cyan/Emerald instead.
+  - [Color] main.css: PURPLE DETECTED ('#A855F7'). Banned by Maestro rules. Use Teal/Cyan/Emerald instead.
+  - [Cognitive Load] index.html: Form inputs without labels. Use <label> for accessibility and clarity.
+  - [Color] index.html: PURPLE DETECTED ('#A78BFA'). Banned by Maestro rules. Use Teal/Cyan/Emerald instead.
+  - [Cognitive Load] TodoItem.tsx: Form inputs without labels. Use <label> for accessibility and clarity.
+  - [Cognitive Load] index.html: Form inputs without labels. Use <label> for accessibility and clarity.
+  - [Color] index.html: PURPLE DETECTED ('#A78BFA'). Banned by Maestro rules. Use Teal/Cyan/Emerald instead.
+  - [Cognitive Load] TodoItem.tsx: Form inputs without labels. Use <label> for accessibility and clarity.
+  - [Cognitive Load] App.css: Form inputs without labels. Use <label> for accessibility and clarity.
+[*] WARNINGS (308):
+  - [Fitts' Law] main.css: Small targets (< 44px)
+  - [Trust] main.css: Form without security indicators. Add 'SSL Secure' or lock icon.
+  - [Cognitive Load] main.css: High visual noise detected. Many colors and borders increase cognitive load.
+  - [Typography] main.css: Adjacent font weights (700/600). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (600/500). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (700/600). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (600/700). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (700/600). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (800/700). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (700/600). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (600/500). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (500/600). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Adjacent font weights (600/500). Skip at least 2 levels for contrast.
+  - [Typography] main.css: Fixed font sizes without clamp(). Consider fluid typography: clamp(MIN, PREFERRED, MAX)
+  - [Performance] main.css: Animating expensive properties (right, padding, width, margin, height, top, bottom, left). Use transform/opacity where possible.
+[+] PASSED CHECKS: 15
+STATUS: FAIL

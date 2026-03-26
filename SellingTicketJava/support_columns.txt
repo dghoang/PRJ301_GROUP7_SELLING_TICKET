@@ -1,0 +1,19 @@
+COLUMN_NAME                                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------
+ticket_id                                                                                                                       
+ticket_code                                                                                                                     
+user_id                                                                                                                         
+order_id                                                                                                                        
+event_id                                                                                                                        
+category                                                                                                                        
+subject                                                                                                                         
+description                                                                                                                     
+status                                                                                                                          
+priority                                                                                                                        
+routed_to                                                                                                                       
+assigned_to                                                                                                                     
+resolved_at                                                                                                                     
+created_at                                                                                                                      
+updated_at                                                                                                                      
+
+(15 rows affected)

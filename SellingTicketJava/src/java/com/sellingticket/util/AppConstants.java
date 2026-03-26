@@ -111,9 +111,30 @@ public final class AppConstants {
     public static final String JWT_SECRET = loadSecret();
 
     // ========================
+    // PLATFORM CONFIGURATION
+    // ========================
+    public static final double PLATFORM_FEE_RATE = loadPlatformFeeRate();
+
+    // ========================
     // ADMIN PRIVATE KEY (for role upgrade to admin)
     // ========================
     public static final String ADMIN_PRIVATE_KEY = loadAdminKey();
+
+    /**
+     * Load platform fee rate from env var.
+     * Default: 0.05 (5%).
+     */
+    private static double loadPlatformFeeRate() {
+        String env = System.getenv("TICKETBOX_PLATFORM_FEE_RATE");
+        if (env != null && !env.isEmpty()) {
+            try {
+                return Double.parseDouble(env);
+            } catch (NumberFormatException e) {
+                LOGGER.log(Level.WARNING, "Invalid TICKETBOX_PLATFORM_FEE_RATE value, using default 0.05");
+            }
+        }
+        return 0.05; // Default 5%
+    }
 
     /**
      * Load JWT secret from env var. Falls back to a random key if missing

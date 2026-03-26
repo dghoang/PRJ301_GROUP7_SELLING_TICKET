@@ -6,6 +6,7 @@ import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import com.sellingticket.service.OrderService;
 import com.sellingticket.util.JsonResponse;
+import com.sellingticket.util.JsonUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -66,16 +67,16 @@ public class MyOrderApiServlet extends HttpServlet {
             for (Order o : result.getItems()) {
                 StringBuilder item = new StringBuilder("{");
                 item.append("\"orderId\":").append(o.getOrderId()).append(",");
-                item.append("\"orderCode\":\"").append(esc(o.getOrderCode())).append("\",");
-                item.append("\"eventTitle\":\"").append(esc(o.getEventTitle())).append("\",");
+                item.append("\"orderCode\":\"").append(JsonUtil.esc(o.getOrderCode())).append("\",");
+                item.append("\"eventTitle\":\"").append(JsonUtil.esc(o.getEventTitle())).append("\",");
                 item.append("\"eventId\":").append(o.getEventId()).append(",");
-                item.append("\"status\":\"").append(esc(o.getStatus())).append("\",");
-                item.append("\"paymentMethod\":\"").append(esc(o.getPaymentMethod())).append("\",");
+                item.append("\"status\":\"").append(JsonUtil.esc(o.getStatus())).append("\",");
+                item.append("\"paymentMethod\":\"").append(JsonUtil.esc(o.getPaymentMethod())).append("\",");
                 item.append("\"totalAmount\":").append(o.getTotalAmount()).append(",");
                 item.append("\"discountAmount\":").append(o.getDiscountAmount()).append(",");
                 item.append("\"finalAmount\":").append(o.getFinalAmount()).append(",");
-                item.append("\"buyerName\":\"").append(esc(o.getBuyerName())).append("\",");
-                item.append("\"buyerEmail\":\"").append(esc(o.getBuyerEmail())).append("\",");
+                item.append("\"buyerName\":\"").append(JsonUtil.esc(o.getBuyerName())).append("\",");
+                item.append("\"buyerEmail\":\"").append(JsonUtil.esc(o.getBuyerEmail())).append("\",");
                 item.append("\"createdAt\":\"").append(o.getCreatedAt() != null ? sdf.format(o.getCreatedAt()) : "").append("\",");
 
                 // Include order items
@@ -84,7 +85,7 @@ public class MyOrderApiServlet extends HttpServlet {
                     for (int i = 0; i < o.getItems().size(); i++) {
                         OrderItem oi = o.getItems().get(i);
                         if (i > 0) item.append(",");
-                        item.append("{\"ticketTypeName\":\"").append(esc(oi.getTicketTypeName())).append("\",");
+                        item.append("{\"ticketTypeName\":\"").append(JsonUtil.esc(oi.getTicketTypeName())).append("\",");
                         item.append("\"quantity\":").append(oi.getQuantity()).append(",");
                         item.append("\"unitPrice\":").append(oi.getUnitPrice()).append(",");
                         item.append("\"subtotal\":").append(oi.getSubtotal()).append("}");
@@ -102,9 +103,5 @@ public class MyOrderApiServlet extends HttpServlet {
         }
     }
 
-    private static String esc(String v) {
-        if (v == null) return "";
-        return v.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r");
-    }
+
 }

@@ -50,13 +50,28 @@ public class NotificationController extends HttpServlet {
             return;
         }
 
-        // Default: show notifications page
-        List<Notification> notifications = notifService.getByUser(user.getUserId(), 50);
+        // Default: show notifications page with pagination
+        List<Notification> allNotifications = notifService.getByUser(user.getUserId(), 500);
         int unreadCount = notifService.countUnread(user.getUserId());
 
-        request.setAttribute("notifications", notifications);
+        int page = Math.max(1, Integer.parseInt(request.getParameter("page") != null ? request.getParameter("page") : "1"));
+        int size = 20;
+        try { size = Integer.parseInt(request.getParameter("size")); } catch (Exception ignored) {}
+        if (size < 1 || size > 200) size = 20;
+
+        int totalRecords = allNotifications.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+        if (page > totalPages) page = totalPages;
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, totalRecords);
+
+        request.setAttribute("notifications", allNotifications.subList(fromIndex, toIndex));
         request.setAttribute("unreadCount", unreadCount);
         request.setAttribute("userRole", user.getRole());
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", size);
+        request.setAttribute("totalRecords", totalRecords);
         request.getRequestDispatcher("/notifications.jsp").forward(request, response);
     }
 

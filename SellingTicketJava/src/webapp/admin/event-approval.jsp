@@ -2,6 +2,7 @@
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -132,6 +133,13 @@
                         </div>
                         </c:forEach>
                     </div>
+
+                    <tags:pagination
+                        currentPage="${currentPage}"
+                        totalPages="${totalPages}"
+                        pageSize="${pageSize}"
+                        totalRecords="${totalRecords}"
+                        baseUrl="${pageContext.request.contextPath}/admin/event-approval" />
                 </c:otherwise>
             </c:choose>
         </div>

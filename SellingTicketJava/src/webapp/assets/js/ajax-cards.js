@@ -291,6 +291,9 @@ class AjaxCards {
         if (params.has('page')) {
             this.currentPage = parseInt(params.get('page')) || 1;
         }
+        if (params.has('size')) {
+            this.pageSize = parseInt(params.get('size')) || this.pageSize;
+        }
         if ((params.has('q') || params.has('search')) && this.searchInput) {
             this.searchInput.value = params.get('q') || params.get('search');
             // Show the clear button if search value is pre-filled
@@ -372,12 +375,22 @@ class AjaxCards {
 
     _renderPagination() {
         if (!this.paginationContainer) return;
-        if (this.totalPages <= 1) {
+        if (this.totalItems === 0) {
             this.paginationContainer.innerHTML = '';
             return;
         }
 
-        let html = '<nav aria-label="Pagination"><ul class="pagination-ajax">';
+        let html = '<div class="d-flex flex-wrap align-items-center justify-content-between w-100">';
+        
+        // Page size selector
+        var sizes = [10, 20, 50, 100, 200];
+        var sizeOpts = sizes.map(s => '<option value="' + s + '"' + (this.pageSize === s ? ' selected' : '') + '>' + s + '</option>').join('');
+        html += '<div class="d-flex align-items-center mb-2 mx-auto mx-md-0" style="gap:0.5rem">' +
+            '<span class="text-muted small">Hiển thị:</span>' +
+            '<select class="form-select form-select-sm limit-select" style="width:auto;border-radius:var(--radius-md)">' + sizeOpts + '</select>' +
+        '</div>';
+
+        html += '<nav aria-label="Pagination" class="mb-2 mx-auto mx-md-0"><ul class="pagination-ajax m-0">';
 
         // Previous
         html += `<li class="${this.currentPage <= 1 ? 'disabled' : ''}">
@@ -402,7 +415,7 @@ class AjaxCards {
                 <i class="fas fa-chevron-right"></i>
             </a></li>`;
 
-        html += '</ul></nav>';
+        html += '</ul></nav></div>';
         this.paginationContainer.innerHTML = html;
 
         // Bind page clicks
@@ -417,6 +430,16 @@ class AjaxCards {
                 }
             });
         });
+        
+        // Bind page size change
+        const limitSelect = this.paginationContainer.querySelector('.limit-select');
+        if (limitSelect) {
+            limitSelect.addEventListener('change', (e) => {
+                this.pageSize = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.load();
+            });
+        }
     }
 
     _getPageNumbers() {

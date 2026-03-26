@@ -42,10 +42,13 @@
             <%-- Stats Cards as Filters --%>
             <div class="row g-3 mb-4">
                 <%-- Tất cả --%>
+                <c:set var="styleAll" value="transition: all 0.3s;" />
+                <c:if test="${empty statusFilter}">
+                    <c:set var="styleAll" value="background: rgba(59,130,246,0.1); border: 2px solid var(--primary) !important;" />
+                </c:if>
                 <div class="col-6 col-xl animate-on-scroll">
                     <a href="${pageContext.request.contextPath}/admin/orders" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${empty statusFilter ? 'shadow-lg' : ''}"
-                             style="${empty statusFilter ? 'background: rgba(59,130,246,0.1); border: 2px solid var(--primary) !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${empty statusFilter ? 'shadow-lg' : ''}" style="${styleAll}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:12px;">
                                     <i class="fas fa-box text-white"></i>
@@ -59,10 +62,13 @@
                     </a>
                 </div>
                 <%-- Đã thanh toán --%>
+                <c:set var="stylePaid" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'paid'}">
+                    <c:set var="stylePaid" value="background: rgba(16,185,129,0.1); border: 2px solid #10b981 !important;" />
+                </c:if>
                 <div class="col-6 col-xl animate-on-scroll stagger-1">
                     <a href="${pageContext.request.contextPath}/admin/orders?status=paid" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'paid' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'paid' ? 'background: rgba(16,185,129,0.1); border: 2px solid #10b981 !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'paid' ? 'shadow-lg' : ''}" style="${stylePaid}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#10b981,#06b6d4);border-radius:12px;">
                                     <i class="fas fa-check-circle text-white"></i>
@@ -76,10 +82,13 @@
                     </a>
                 </div>
                 <%-- Chờ thanh toán --%>
+                <c:set var="stylePending" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'pending'}">
+                    <c:set var="stylePending" value="background: rgba(245,158,11,0.1); border: 2px solid #f59e0b !important;" />
+                </c:if>
                 <div class="col-6 col-xl animate-on-scroll stagger-2">
                     <a href="${pageContext.request.contextPath}/admin/orders?status=pending" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'pending' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'pending' ? 'background: rgba(245,158,11,0.1); border: 2px solid #f59e0b !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'pending' ? 'shadow-lg' : ''}" style="${stylePending}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:12px;">
                                     <i class="fas fa-clock text-white"></i>
@@ -93,10 +102,13 @@
                     </a>
                 </div>
                 <%-- Đã hủy --%>
+                <c:set var="styleCancelled" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'cancelled'}">
+                    <c:set var="styleCancelled" value="background: rgba(239,68,68,0.1); border: 2px solid #ef4444 !important;" />
+                </c:if>
                 <div class="col-6 col-xl animate-on-scroll stagger-3">
                     <a href="${pageContext.request.contextPath}/admin/orders?status=cancelled" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'cancelled' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'cancelled' ? 'background: rgba(239,68,68,0.1); border: 2px solid #ef4444 !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'cancelled' ? 'shadow-lg' : ''}" style="${styleCancelled}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#ef4444,#f97316);border-radius:12px;">
                                     <i class="fas fa-times-circle text-white"></i>
@@ -110,10 +122,13 @@
                     </a>
                 </div>
                 <%-- Chờ hoàn tiền --%>
+                <c:set var="styleRefund" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'refund_requested'}">
+                    <c:set var="styleRefund" value="background: rgba(147,51,234,0.1); border: 2px solid #9333ea !important;" />
+                </c:if>
                 <div class="col-6 col-xl animate-on-scroll stagger-3">
                     <a href="${pageContext.request.contextPath}/admin/orders?status=refund_requested" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'refund_requested' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'refund_requested' ? 'background: rgba(147,51,234,0.1); border: 2px solid #9333ea !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'refund_requested' ? 'shadow-lg' : ''}" style="${styleRefund}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#9333ea,#a855f7);border-radius:12px;">
                                     <i class="fas fa-undo text-white"></i>
@@ -155,6 +170,19 @@
             </div>
 
             <%-- Orders Table --%>
+            <div class="d-flex justify-content-between align-items-end mb-3 animate-on-scroll">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small fw-medium">Hiển thị:</span>
+                    <select id="orderPageSize" class="form-select form-select-sm glass border-0 rounded-3 text-center fw-bold text-primary shadow-sm" style="width: 80px; cursor: pointer;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                    <span class="text-muted small">đơn hàng</span>
+                </div>
+            </div>
             <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -176,10 +204,10 @@
                         </table>
                     </div>
                 </div>
+                
+                <%-- Pagination --%>
+                <div id="admin-orders-pagination" class="card-footer bg-transparent border-0 pb-3"></div>
             </div>
-
-            <%-- Pagination --%>
-            <div id="admin-orders-pagination" class="d-flex justify-content-center mt-4"></div>
         </div>
     </div>
 </div>
@@ -204,7 +232,7 @@
     </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js?v=1.1"></script>
 <script>
 (function() {
     var ctxPath = '${pageContext.request.contextPath}';
@@ -417,7 +445,8 @@
         paginationContainer: '#admin-orders-pagination',
         searchInput: '#admin-order-search',
         pageSize: 20,
-        skeletonCols: 8,
+        pageSizeSelector: '#orderPageSize',
+        skeletonCols: 7,
         debounceDelay: 500,
         renderRow: function(o) {
             var actions = '';
@@ -444,6 +473,12 @@
         }
     });
     ordersTable.init();
+
+    document.getElementById('orderPageSize').addEventListener('change', function() {
+        ordersTable.pageSize = parseInt(this.value);
+        ordersTable.currentPage = 1;
+        ordersTable.load();
+    });
 })();
 </script>
 

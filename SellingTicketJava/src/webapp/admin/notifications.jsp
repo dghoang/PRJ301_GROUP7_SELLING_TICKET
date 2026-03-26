@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -40,17 +41,20 @@
                     <div class="d-flex align-items-start gap-3 p-3 border-bottom notif-item ${n.read ? '' : 'bg-primary bg-opacity-10'}" 
                          data-id="${n.notificationId}" style="transition: all 0.3s;">
                         <!-- Icon -->
+                        <c:set var="bg" value="rgba(16,185,129,0.15)"/>
+                        <c:set var="fg" value="#10b981"/>
+                        <c:set var="icon" value="fa-bell"/>
+                        <c:if test="${n.type == 'event_pending'}"><c:set var="bg" value="rgba(245,158,11,0.15)"/><c:set var="fg" value="#f59e0b"/><c:set var="icon" value="fa-clock"/></c:if>
+                        <c:if test="${n.type == 'order_new'}"><c:set var="bg" value="rgba(59,130,246,0.15)"/><c:set var="fg" value="#3b82f6"/><c:set var="icon" value="fa-shopping-cart"/></c:if>
+                        <c:if test="${n.type == 'system'}"><c:set var="bg" value="rgba(100,116,139,0.15)"/><c:set var="fg" value="#64748b"/><c:set var="icon" value="fa-cog"/></c:if>
+                        
+                        <c:set var="containerStyle" value="width: 40px; height: 40px; background: ${bg};"/>
+                        <c:set var="iconStyle" value="color: ${fg};"/>
+
                         <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
-                             style="width: 40px; height: 40px; background: ${n.type == 'event_pending' ? 'rgba(245,158,11,0.15)' :
-                                    n.type == 'order_new' ? 'rgba(59,130,246,0.15)' :
-                                    n.type == 'system' ? 'rgba(100,116,139,0.15)' :
-                                    'rgba(16,185,129,0.15)'};">
-                            <i class="fas ${n.type == 'event_pending' ? 'fa-clock' :
-                                           n.type == 'order_new' ? 'fa-shopping-cart' :
-                                           n.type == 'system' ? 'fa-cog' : 'fa-bell'}"
-                               style="color: ${n.type == 'event_pending' ? '#f59e0b' :
-                                              n.type == 'order_new' ? '#3b82f6' :
-                                              n.type == 'system' ? '#64748b' : '#10b981'};"></i>
+                             style="${containerStyle}">
+                            <i class="fas ${icon}"
+                               style="${iconStyle}"></i>
                         </div>
                         <!-- Content -->
                         <div class="flex-grow-1 min-width-0">
@@ -89,6 +93,13 @@
                     </c:if>
                 </div>
             </div>
+
+            <tags:pagination
+                currentPage="${currentPage}"
+                totalPages="${totalPages}"
+                pageSize="${pageSize}"
+                totalRecords="${totalRecords}"
+                baseUrl="${pageContext.request.contextPath}/notifications" />
         </div>
     </div>
 </div>

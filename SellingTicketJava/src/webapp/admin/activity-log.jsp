@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -84,22 +85,17 @@
                             <tbody>
                                 <c:forEach var="log" items="${logs}" varStatus="loop">
                                 <tr class="hover-lift" style="transition: all 0.2s;">
-                                    <td class="text-muted small">${(currentPage - 1) * 20 + loop.index + 1}</td>
+                                    <td class="text-muted small">${(currentPage - 1) * pageSize + loop.index + 1}</td>
                                     <td>
-                                        <span class="badge rounded-pill px-2 py-1" style="
-                                            background: ${log.action.contains('approve') ? 'rgba(16,185,129,0.15)' :
-                                                         log.action.contains('reject') ? 'rgba(239,68,68,0.15)' :
-                                                         log.action.contains('create') ? 'rgba(59,130,246,0.15)' :
-                                                         log.action.contains('delete') ? 'rgba(239,68,68,0.15)' :
-                                                         log.action.contains('update') ? 'rgba(245,158,11,0.15)' :
-                                                         'rgba(100,116,139,0.15)'};
-                                            color: ${log.action.contains('approve') ? '#10b981' :
-                                                    log.action.contains('reject') ? '#ef4444' :
-                                                    log.action.contains('create') ? '#3b82f6' :
-                                                    log.action.contains('delete') ? '#ef4444' :
-                                                    log.action.contains('update') ? '#f59e0b' :
-                                                    '#64748b'};
-                                            font-size: 0.75rem;">
+                                        <c:choose>
+                                            <c:when test="${log.action.contains('approve')}"><c:set var="bClass" value="bg-success"/></c:when>
+                                            <c:when test="${log.action.contains('reject')}"><c:set var="bClass" value="bg-danger"/></c:when>
+                                            <c:when test="${log.action.contains('delete')}"><c:set var="bClass" value="bg-danger"/></c:when>
+                                            <c:when test="${log.action.contains('create')}"><c:set var="bClass" value="bg-primary"/></c:when>
+                                            <c:when test="${log.action.contains('update')}"><c:set var="bClass" value="bg-warning text-dark"/></c:when>
+                                            <c:otherwise><c:set var="bClass" value="bg-secondary"/></c:otherwise>
+                                        </c:choose>
+                                        <span class="badge rounded-pill px-2 py-1 ${bClass}" style="font-size: 0.75rem;">
                                             ${log.action}
                                         </span>
                                     </td>
@@ -133,37 +129,8 @@
                     </div>
                 </div>
 
-                <!-- Pagination -->
-                <c:if test="${totalPages > 1}">
-                <div class="card-footer bg-transparent border-0 d-flex justify-content-between align-items-center px-4 py-3">
-                    <small class="text-muted">Trang ${currentPage} / ${totalPages}</small>
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <c:if test="${currentPage > 1}">
-                            <li class="page-item">
-                                <a class="page-link rounded-pill" href="${pageContext.request.contextPath}/admin/activity-log?page=${currentPage - 1}&action=${filterAction}&entity=${filterEntity}&userId=${filterUserId}">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                            </li>
-                            </c:if>
-                            <c:forEach begin="1" end="${totalPages}" var="i">
-                                <c:if test="${i <= 5 || i > totalPages - 2 || (i >= currentPage - 1 && i <= currentPage + 1)}">
-                                <li class="page-item ${i == currentPage ? 'active' : ''}">
-                                    <a class="page-link rounded-pill" href="${pageContext.request.contextPath}/admin/activity-log?page=${i}&action=${filterAction}&entity=${filterEntity}&userId=${filterUserId}">${i}</a>
-                                </li>
-                                </c:if>
-                            </c:forEach>
-                            <c:if test="${currentPage < totalPages}">
-                            <li class="page-item">
-                                <a class="page-link rounded-pill" href="${pageContext.request.contextPath}/admin/activity-log?page=${currentPage + 1}&action=${filterAction}&entity=${filterEntity}&userId=${filterUserId}">
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                            </li>
-                            </c:if>
-                        </ul>
-                    </nav>
-                </div>
-                </c:if>
+                <%-- Pagination --%>
+                <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}" formId="" />
             </div>
         </div>
     </div>

@@ -49,13 +49,25 @@ public class OrganizerTicketController extends HttpServlet {
 
         try {
             List<Event> events = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "edit");
+            LOGGER.info("[TICKET-DEBUG] userId=" + user.getUserId() + " role=" + user.getRole() + " eventsCount=" + events.size());
 
             List<Integer> eventIds = new ArrayList<>();
             for (Event e : events) { eventIds.add(e.getEventId()); }
+            LOGGER.info("[TICKET-DEBUG] eventIds=" + eventIds);
 
             Map<Integer, List<TicketType>> ticketMap = eventIds.isEmpty()
                     ? Collections.emptyMap()
                     : ticketService.getTicketsByEventIds(eventIds);
+            LOGGER.info("[TICKET-DEBUG] ticketMapSize=" + ticketMap.size() + " totalTickets=" + ticketMap.values().stream().mapToInt(List::size).sum());
+
+            // Hydrate eventTitle on each TicketType for JSP display
+            Map<Integer, String> eventTitleMap = new java.util.HashMap<>();
+            for (Event e : events) { eventTitleMap.put(e.getEventId(), e.getTitle()); }
+            for (List<TicketType> list : ticketMap.values()) {
+                for (TicketType tt : list) {
+                    tt.setEventTitle(eventTitleMap.getOrDefault(tt.getEventId(), ""));
+                }
+            }
 
             List<TicketType> allTicketTypes = new ArrayList<>();
             int filterEventId = parseIntOrDefault(request.getParameter("eventId"), 0);
@@ -68,10 +80,28 @@ public class OrganizerTicketController extends HttpServlet {
                     allTicketTypes.addAll(list);
                 }
             }
+            LOGGER.info("[TICKET-DEBUG] allTicketTypesCount=" + allTicketTypes.size());
 
             request.setAttribute("events", events);
             request.setAttribute("ticketMap", ticketMap);
-            request.setAttribute("ticketTypes", allTicketTypes);
+
+            // In-memory pagination
+            int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+            int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
+            int totalRecords = allTicketTypes.size();
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+            page = Math.min(page, totalPages);
+            int fromIndex = (page - 1) * size;
+            int toIndex = Math.min(fromIndex + size, totalRecords);
+            List<TicketType> pagedTickets = (fromIndex < totalRecords)
+                    ? allTicketTypes.subList(fromIndex, toIndex)
+                    : Collections.emptyList();
+
+            request.setAttribute("ticketTypes", pagedTickets);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("pageSize", size);
+            request.setAttribute("totalRecords", totalRecords);
             request.getRequestDispatcher("/organizer/tickets.jsp").forward(request, response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load organizer tickets", e);

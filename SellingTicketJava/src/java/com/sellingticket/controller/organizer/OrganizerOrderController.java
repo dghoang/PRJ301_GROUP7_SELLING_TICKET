@@ -75,7 +75,8 @@ public class OrganizerOrderController extends HttpServlet {
             double totalRevenueStr = 0;
 
             String eventIdStr = request.getParameter("eventId");
-            int page = parseIntOrDefault(request.getParameter("page"), 1);
+            int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+            int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
 
             List<Order> allOrders = new java.util.ArrayList<>();
             List<Order> displayOrders = new java.util.ArrayList<>();
@@ -85,19 +86,23 @@ public class OrganizerOrderController extends HttpServlet {
                 boolean ownsEvent = myEvents.stream().anyMatch(e -> e.getEventId() == eventId);
                 if (ownsEvent) {
                     allOrders = orderService.getOrdersByEvent(eventId, 1, 9999);
-                    displayOrders = orderService.getOrdersByEvent(eventId, page, 50);
+                    int start = (page - 1) * size;
+                    int end = Math.min(start + size, allOrders.size());
+                    if (start < allOrders.size()) {
+                        displayOrders = new java.util.ArrayList<>(allOrders.subList(start, end));
+                    }
                     request.setAttribute("selectedEventId", eventId);
                 }
             } else {
-                for (Event e : myEvents) {
-                    allOrders.addAll(orderService.getOrdersByEvent(e.getEventId(), 1, 9999));
-                }
-                // Sort allOrders descending by created_at since it's merged
+                // Batch-fetch all orders for all organizer events in a SINGLE query (N+1 fix)
+                List<Integer> eventIds = myEvents.stream().map(Event::getEventId).collect(java.util.stream.Collectors.toList());
+                allOrders = orderService.getOrdersByEventIds(eventIds);
+                // Sort descending by created_at
                 allOrders.sort((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt()));
-                int start = (page - 1) * 50;
-                int end = Math.min(start + 50, allOrders.size());
+                int start = (page - 1) * size;
+                int end = Math.min(start + size, allOrders.size());
                 if (start < allOrders.size()) {
-                    displayOrders = allOrders.subList(start, end);
+                    displayOrders = new java.util.ArrayList<>(allOrders.subList(start, end));
                 }
             }
 
@@ -113,11 +118,19 @@ public class OrganizerOrderController extends HttpServlet {
             }
 
             request.setAttribute("orders", displayOrders);
-
             request.setAttribute("totalPaid", totalPaid);
             request.setAttribute("totalPending", totalPending);
             request.setAttribute("totalCanceled", totalCanceled);
             request.setAttribute("totalRevenue", totalRevenueStr);
+
+            // Pagination attributes
+            int totalRecords = allOrders.size();
+            int totalPages = (int) Math.ceil((double) totalRecords / size);
+            if (totalPages == 0) totalPages = 1;
+            request.setAttribute("currentPage", page);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("pageSize", size);
+            request.setAttribute("totalRecords", totalRecords);
 
             request.getRequestDispatcher("/organizer/orders.jsp").forward(request, response);
         } catch (Exception e) {
@@ -130,7 +143,7 @@ public class OrganizerOrderController extends HttpServlet {
             throws ServletException, IOException {
 
         int eventId = getIdFromPath(request.getPathInfo());
-        if (eventId <= 0 || !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
+        if (eventId <= 0 || !eventService.hasEditPermission(eventId, user.getUserId(), user.getRole())) {
             com.sellingticket.util.ServletUtil.setToast(request, "Bạn không có quyền xem đơn hàng này!", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/orders");
             return;
@@ -143,9 +156,23 @@ public class OrganizerOrderController extends HttpServlet {
             return;
         }
 
-        int page = parseIntOrDefault(request.getParameter("page"), 1);
+        int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+        int size = parseIntOrDefault(request.getParameter("size"), 20);
+        if (size < 1 || size > 200) size = 20;
+
+        List<com.sellingticket.model.Order> allOrders = orderService.getOrdersByEvent(eventId, 1, 10000);
+        int totalRecords = allOrders.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+        if (page > totalPages) page = totalPages;
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, totalRecords);
+
         request.setAttribute("event", event);
-        request.setAttribute("orders", orderService.getOrdersByEvent(eventId, page, 20));
+        request.setAttribute("orders", allOrders.subList(fromIndex, toIndex));
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", size);
+        request.setAttribute("totalRecords", totalRecords);
         request.getRequestDispatcher("/organizer/event-orders.jsp").forward(request, response);
     }
 
@@ -162,7 +189,7 @@ public class OrganizerOrderController extends HttpServlet {
         }
 
         Event event = eventService.getEventDetails(eventId);
-        if (event == null || !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
+        if (event == null || !eventService.hasEditPermission(eventId, user.getUserId(), user.getRole())) {
             com.sellingticket.util.ServletUtil.setToast(request, "Thao tác trên đơn hàng thất bại!", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/orders");
             return;

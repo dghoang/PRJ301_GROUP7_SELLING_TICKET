@@ -165,6 +165,18 @@ public class UserService {
         return userDAO.getTotalUsers();
     }
 
+    public int countActive() {
+        return userDAO.countActive();
+    }
+
+    public int countLocked() {
+        return userDAO.countLocked();
+    }
+
+    public int countByRole(String role) {
+        return userDAO.countByRole(role);
+    }
+
     // ========================
     // VALIDATION HELPERS
     // ========================

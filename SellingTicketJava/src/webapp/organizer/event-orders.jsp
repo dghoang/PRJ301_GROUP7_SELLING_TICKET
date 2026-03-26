@@ -137,6 +137,13 @@
                     </div>
                 </div>
             </div>
+
+            <tags:pagination
+                currentPage="${currentPage}"
+                totalPages="${totalPages}"
+                pageSize="${pageSize}"
+                totalRecords="${totalRecords}"
+                baseUrl="${pageContext.request.contextPath}/organizer/orders/${event.eventId}" />
         </div>
     </div>
 </div>

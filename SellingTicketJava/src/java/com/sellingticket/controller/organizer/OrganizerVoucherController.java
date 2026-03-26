@@ -109,9 +109,27 @@ public class OrganizerVoucherController extends HttpServlet {
 
     private void listVouchers(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        request.setAttribute("vouchers", voucherService.getVouchersByOrganizer(user.getUserId()));
+        List<com.sellingticket.model.Voucher> allVouchers = voucherService.getVouchersByOrganizer(user.getUserId());
+
+        // In-memory pagination
+        int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+        int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
+        int totalRecords = allVouchers.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+        page = Math.min(page, totalPages);
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, totalRecords);
+        List<com.sellingticket.model.Voucher> pagedVouchers = (fromIndex < totalRecords)
+                ? allVouchers.subList(fromIndex, toIndex)
+                : java.util.Collections.emptyList();
+
+        request.setAttribute("vouchers", pagedVouchers);
         request.setAttribute("events", getVoucherManageableEvents(user));
         request.setAttribute("isSystemAdmin", false);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", size);
+        request.setAttribute("totalRecords", totalRecords);
         request.getRequestDispatcher("/organizer/vouchers.jsp").forward(request, response);
     }
 
@@ -163,6 +181,7 @@ public class OrganizerVoucherController extends HttpServlet {
         v.setVoucherScope("EVENT");
         v.setFundSource("ORGANIZER");
         v.setOrganizerId(user.getUserId());
+        v.setActive(true); // Vouchers are active by default upon creation
         boolean ok = voucherService.createVoucher(v);
         setToast(request, ok ? "Tạo mã giảm giá thành công!" : "Tạo mã thất bại!", ok ? "success" : "error");
     }

@@ -92,6 +92,11 @@ public class OrganizerDashboardChartDataController extends HttpServlet {
                     sendJson(response, 200, buildJsonArray(data));
                     break;
                 }
+                case "hourly": {
+                    List<Map<String, Object>> data = dashboardService.getHourlyDistributionForEvents(eventIds);
+                    sendJson(response, 200, buildJsonArray(data));
+                    break;
+                }
                 default:
                     sendJson(response, 400, "{\"error\":\"Invalid type parameter\"}");
             }

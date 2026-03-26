@@ -3,7 +3,7 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <jsp:include page="../header.jsp" />
-<script src="https://unpkg.com/html5-qrcode"></script>
+
 
 <div class="container-fluid py-4">
     <div class="row">
@@ -202,17 +202,25 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>        </div>
-                                </div>
                             </div>
+                            </div>
+                        </div>
+                    </div>
 
                             <!-- Session Check-in History -->
                             <div class="card glass-strong border-0 rounded-4 animate-fadeInDown" style="animation-delay: 0.15s;">
                                 <div class="card-header bg-transparent border-0 py-3 px-4 d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0 fw-bold"><i class="fas fa-history me-2"></i>Lịch sử check-in phiên này</h6>
-                                    <span class="badge rounded-pill px-3 py-1 fw-bold" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
-                                        <span id="checkin-count">0</span> vé
-                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <c:if test="${eventStaffRole == 'owner' || eventStaffRole == 'manager' || sessionScope.user.role == 'admin'}">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btn-load-history" onclick="loadFullHistory()">
+                                            <i class="fas fa-database me-1"></i>Xem lịch sử đầy đủ
+                                        </button>
+                                        </c:if>
+                                        <span class="badge rounded-pill px-3 py-1 fw-bold" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                                            <span id="checkin-count">0</span> vé
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="card-body p-0" id="history-body">
                                     <div class="text-center py-4 text-muted" id="history-empty">
@@ -225,6 +233,9 @@
                                                 <tr class="text-muted small" style="border-bottom: 2px solid rgba(0,0,0,0.05);">
                                                     <th class="ps-4">#</th>
                                                     <th>Mã vé</th>
+                                                    <th>Khách hàng</th>
+                                                    <th>Loại vé</th>
+                                                    <th>Nhân viên</th>
                                                     <th>Thời gian</th>
                                                     <th class="text-center">Trạng thái</th>
                                                 </tr>
@@ -234,6 +245,47 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Analytics Section (Manager/Owner only) -->
+                            <c:if test="${eventStaffRole == 'owner' || eventStaffRole == 'manager' || sessionScope.user.role == 'admin'}">
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <div class="card glass-strong border-0 rounded-4 animate-fadeInDown" style="animation-delay: 0.2s;">
+                                        <div class="card-header bg-transparent border-0 py-3 px-4">
+                                            <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>Tiến độ check-in</h6>
+                                        </div>
+                                        <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                                            <canvas id="checkin-donut" width="200" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card glass-strong border-0 rounded-4 animate-fadeInDown" style="animation-delay: 0.25s;">
+                                        <div class="card-header bg-transparent border-0 py-3 px-4">
+                                            <h6 class="mb-0 fw-bold"><i class="fas fa-users me-2 text-info"></i>Hiệu suất nhân viên</h6>
+                                        </div>
+                                        <div class="card-body p-0" id="staff-perf-body">
+                                            <div class="text-center py-4 text-muted" id="staff-perf-empty">
+                                                <i class="fas fa-user-clock opacity-25 mb-2" style="font-size: 1.5rem;"></i>
+                                                <p class="mb-0 small">Chưa có dữ liệu nhân viên</p>
+                                            </div>
+                                            <div class="table-responsive d-none" id="staff-perf-table">
+                                                <table class="table table-hover align-middle mb-0">
+                                                    <thead>
+                                                        <tr class="text-muted small">
+                                                            <th class="ps-4">Nhân viên</th>
+                                                            <th class="text-center">Số vé check-in</th>
+                                                            <th class="text-end pe-4">Tỷ lệ</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="staff-perf-rows"></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </c:if>
                         </div>
                     </div>
                 </c:otherwise>
@@ -242,8 +294,26 @@
     </div>
 </div>
 
+<!-- Full-screen Check-in Success Overlay -->
+<div id="checkin-overlay" class="d-none" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);cursor:pointer;">
+    <div id="overlay-content" style="text-align:center;animation:popIn 0.4s ease-out;">
+        <div id="overlay-icon" style="width:120px;height:120px;border-radius:50%;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:56px;"></div>
+        <div id="overlay-title" style="font-size:32px;font-weight:800;margin-bottom:8px;"></div>
+        <div id="overlay-subtitle" style="font-size:18px;opacity:0.9;margin-bottom:12px;"></div>
+        <div id="overlay-staff" style="font-size:14px;opacity:0.7;"></div>
+        <div style="margin-top:20px;font-size:13px;opacity:0.5;color:white;">Nhấn để đóng • Tự đóng sau 3 giây</div>
+    </div>
+</div>
+<style>
+@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 50% { box-shadow: 0 0 40px 20px rgba(16,185,129,0.15); } }
+</style>
+
 <c:if test="${!noEventSelected}">
 <script src="https://unpkg.com/html5-qrcode"></script>
+<c:if test="${eventStaffRole == 'owner' || eventStaffRole == 'manager' || sessionScope.user.role == 'admin'}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</c:if>
 <script>
 (function() {
     var count       = 0;
@@ -263,6 +333,8 @@
     var totalChecked = parseInt('${selectedEvent.ticketsChecked}') || 0;
     var eventId     = '${eventId}';
     var ctx         = '${pageContext.request.contextPath}';
+    var staffName   = '${sessionScope.user.fullName}';
+    var canViewStats = ("${eventStaffRole == 'owner' || eventStaffRole == 'manager' || sessionScope.user.role == 'admin'}" === "true");
 
     var html5QrCode = null;
     var isCameraOn  = false;
@@ -324,6 +396,9 @@
         row.style.animation = 'fadeInDown 0.3s ease-out';
         row.innerHTML = '<td class="ps-4 fw-semibold">' + (++count) + '</td>' +
                         '<td><code class="small">' + (code || 'QR Scan') + '</code></td>' +
+                        '<td class="small">' + (result.customerName || '—') + '</td>' +
+                        '<td class="small">' + (result.ticketType || '—') + '</td>' +
+                        '<td class="small"><span class="badge bg-light text-dark rounded-pill"><i class="fas fa-user-check me-1"></i>' + (result.staffName || staffName) + '</span></td>' +
                         '<td class="small text-muted">' + time + '</td>' +
                         '<td class="text-center">' +
                             (result.success ? '<span class="badge rounded-pill" style="background:rgba(16,185,129,0.15);color:#10b981;">Thành công</span>'
@@ -364,6 +439,8 @@
         }
 
         if (data.success) {
+            showFullScreenOverlay('success', data.message || 'Check-in thành công!', 
+                (data.customerName || '') + ' — ' + (data.ticketType || ''), staffName);
             showResult('success', '<strong>' + (data.message || 'Check-in thành công!') + '</strong><br>' + 
                        '<span class="small">' + (data.customerName || '') + ' - ' + (data.ticketType || '') + '</span>');
             totalChecked++;
@@ -371,6 +448,7 @@
             addHistoryRow(data.ticketCode || label, data);
         } else {
             var mode = data.alreadyCheckedIn ? 'warning' : 'danger';
+            showFullScreenOverlay(mode, data.message || data.error || 'Thất bại', data.customerName || '', staffName);
             showResult(mode, '<strong>' + (data.message || data.error || 'Thất bại') + '</strong><br>' + 
                        '<span class="small">' + (data.customerName || '') + '</span>');
             addHistoryRow(label, data);
@@ -417,11 +495,186 @@
         });
     }
 
+    // Full-screen overlay function
+    var overlayTimer = null;
+    function showFullScreenOverlay(type, title, subtitle, staff) {
+        var overlay = document.getElementById('checkin-overlay');
+        var icon = document.getElementById('overlay-icon');
+        var titleEl = document.getElementById('overlay-title');
+        var subtitleEl = document.getElementById('overlay-subtitle');
+        var staffEl = document.getElementById('overlay-staff');
+        var content = document.getElementById('overlay-content');
+
+        if (type === 'success') {
+            icon.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            icon.innerHTML = '<i class="fas fa-check" style="color:white;"></i>';
+            icon.style.animation = 'pulseGlow 1.5s ease-in-out infinite';
+            titleEl.style.color = '#10b981';
+            titleEl.textContent = '✅ ' + title;
+            // Play success beep
+            try { var ac = new AudioContext(); var o = ac.createOscillator(); var g = ac.createGain(); o.connect(g); g.connect(ac.destination); o.frequency.value = 880; g.gain.value = 0.3; o.start(); o.stop(ac.currentTime + 0.15); } catch(e) {}
+        } else if (type === 'warning') {
+            icon.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+            icon.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:white;"></i>';
+            icon.style.animation = 'none';
+            titleEl.style.color = '#f59e0b';
+            titleEl.textContent = '⚠️ ' + title;
+        } else {
+            icon.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            icon.innerHTML = '<i class="fas fa-times" style="color:white;"></i>';
+            icon.style.animation = 'none';
+            titleEl.style.color = '#ef4444';
+            titleEl.textContent = '❌ ' + title;
+        }
+        subtitleEl.textContent = subtitle;
+        subtitleEl.style.color = 'white';
+        staffEl.textContent = staff ? 'Nhân viên: ' + staff : '';
+        staffEl.style.color = 'rgba(255,255,255,0.7)';
+        content.style.animation = 'none';
+        void content.offsetWidth; // trigger reflow
+        content.style.animation = 'popIn 0.4s ease-out';
+
+        overlay.classList.remove('d-none');
+        overlay.style.display = 'flex';
+        if (overlayTimer) clearTimeout(overlayTimer);
+        overlayTimer = setTimeout(function() { hideOverlay(); }, 3000);
+    }
+
+    function hideOverlay() {
+        var overlay = document.getElementById('checkin-overlay');
+        overlay.style.display = 'none';
+        overlay.classList.add('d-none');
+        if (overlayTimer) { clearTimeout(overlayTimer); overlayTimer = null; }
+    }
+    document.getElementById('checkin-overlay').addEventListener('click', hideOverlay);
+
     form.addEventListener('submit', function() {
         var code = input.value.trim();
         if (!code) return;
         processCheckIn({ orderCode: code });
     });
+
+    // ============================
+    // SERVER-SIDE HISTORY LOADING
+    // ============================
+    window.loadFullHistory = function() {
+        var btn = document.getElementById('btn-load-history');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang tải...';
+
+        fetch(ctx + '/staff/check-in?action=history&eventId=' + eventId)
+            .then(r => r.json())
+            .then(data => {
+                histRows.innerHTML = '';
+                count = data.length;
+                data.forEach(function(row, i) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = '<td class="ps-4 fw-semibold">' + (data.length - i) + '</td>' +
+                                   '<td><code class="small">' + (row.ticketCode || '—') + '</code></td>' +
+                                   '<td class="small">' + (row.attendeeName || '—') + '</td>' +
+                                   '<td class="small">' + (row.ticketType || '—') + '</td>' +
+                                   '<td class="small"><span class="badge bg-light text-dark rounded-pill"><i class="fas fa-user-check me-1"></i>' + (row.staffName || '—') + '</span></td>' +
+                                   '<td class="small text-muted">' + (row.checkedInAt || '—') + '</td>' +
+                                   '<td class="text-center"><span class="badge rounded-pill" style="background:rgba(16,185,129,0.15);color:#10b981;">Thành công</span></td>';
+                    histRows.appendChild(tr);
+                });
+                histTable.classList.remove('d-none');
+                histEmpty.classList.add('d-none');
+                document.getElementById('checkin-count').textContent = count;
+                btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Làm mới (' + count + ' vé)';
+                btn.disabled = false;
+            })
+            .catch(err => {
+                console.error(err);
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Lỗi tải dữ liệu';
+                btn.disabled = false;
+            });
+    };
+
+    // ============================
+    // CHART.JS: DONUT + STATS
+    // ============================
+    function loadStats() {
+        fetch(ctx + '/staff/check-in?action=stats&eventId=' + eventId)
+            .then(r => r.json())
+            .then(data => {
+                renderDonut(totalChecked, totalSold - totalChecked);
+                renderStaffPerformance(data.staffPerformance || []);
+            })
+            .catch(err => console.error('Stats error:', err));
+    }
+
+    function renderDonut(checked, remaining) {
+        var canvas = document.getElementById('checkin-donut');
+        if (!canvas) return;
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đã check-in', 'Chưa check-in'],
+                datasets: [{
+                    data: [checked, remaining],
+                    backgroundColor: ['#10b981', 'rgba(148,163,184,0.25)'],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, font: { size: 12 } } },
+                    tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + ' vé'; } } }
+                }
+            },
+            plugins: [{
+                id: 'centerText',
+                beforeDraw: function(chart) {
+                    var ctx2 = chart.ctx;
+                    var pct = totalSold > 0 ? (totalChecked * 100 / totalSold).toFixed(1) : '0';
+                    ctx2.save();
+                    ctx2.font = 'bold 24px Inter, sans-serif';
+                    ctx2.fillStyle = '#10b981';
+                    ctx2.textAlign = 'center';
+                    ctx2.textBaseline = 'middle';
+                    var cx = (chart.chartArea.left + chart.chartArea.right) / 2;
+                    var cy = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+                    ctx2.fillText(pct + '%', cx, cy);
+                    ctx2.restore();
+                }
+            }]
+        });
+    }
+
+    function renderStaffPerformance(staffData) {
+        var rows = document.getElementById('staff-perf-rows');
+        var table = document.getElementById('staff-perf-table');
+        var empty = document.getElementById('staff-perf-empty');
+        if (!staffData.length) return;
+
+        var totalStaff = staffData.reduce(function(sum, s) { return sum + s.count; }, 0);
+        rows.innerHTML = '';
+        staffData.forEach(function(s) {
+            var pct = totalStaff > 0 ? (s.count * 100 / totalStaff).toFixed(1) : '0';
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td class="ps-4"><i class="fas fa-user-circle me-2 text-primary"></i><span class="fw-semibold">' + s.name + '</span></td>' +
+                           '<td class="text-center"><span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">' + s.count + ' vé</span></td>' +
+                           '<td class="text-end pe-4">' +
+                               '<div class="d-flex align-items-center justify-content-end gap-2">' +
+                                   '<div class="progress" style="width:80px;height:6px;">' +
+                                       '<div class="progress-bar" style="width:' + pct + '%;background:#10b981;"></div>' +
+                                   '</div>' +
+                                   '<span class="small fw-semibold">' + pct + '%</span>' +
+                               '</div>' +
+                           '</td>';
+            rows.appendChild(tr);
+        });
+        table.classList.remove('d-none');
+        empty.classList.add('d-none');
+    }
+
+    // Auto-load stats on page load (manager/owner only)
+    if (canViewStats) setTimeout(loadStats, 300);
+
 })();
 </script>
 </c:if>

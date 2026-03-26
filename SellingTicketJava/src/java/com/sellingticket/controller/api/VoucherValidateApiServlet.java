@@ -3,6 +3,7 @@ package com.sellingticket.controller.api;
 import com.sellingticket.model.User;
 import com.sellingticket.service.VoucherService;
 import com.sellingticket.service.VoucherService.VoucherResult;
+import com.sellingticket.util.JsonUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -58,14 +59,11 @@ public class VoucherValidateApiServlet extends HttpServlet {
         VoucherResult result = voucherService.validateVoucher(code, eventId, amount);
         String json = "{\"valid\":" + result.valid
                 + ",\"discountAmount\":" + result.discountAmount
-                + ",\"voucherScope\":\"" + esc(result.voucherScope) + "\""
-                + ",\"fundSource\":\"" + esc(result.fundSource) + "\""
-                + ",\"message\":\"" + esc(result.message) + "\"}";
+                + ",\"voucherScope\":\"" + JsonUtil.esc(result.voucherScope) + "\""
+                + ",\"fundSource\":\"" + JsonUtil.esc(result.fundSource) + "\""
+                + ",\"message\":\"" + JsonUtil.esc(result.message) + "\"}";
         response.getWriter().write(json);
     }
 
-    private static String esc(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
-    }
+
 }

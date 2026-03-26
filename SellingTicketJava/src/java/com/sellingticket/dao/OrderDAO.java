@@ -62,8 +62,11 @@ public class OrderDAO extends DBContext {
 
             // Step 1.5: Atomically increment voucher usage if applicable
             if (order.getVoucherCode() != null && !order.getVoucherCode().isEmpty()) {
+                boolean hasVSD = hasColumn(conn, "Vouchers", "is_deleted");
+                String vSdFilter = hasVSD ? " AND (is_deleted = 0 OR is_deleted IS NULL) " : " ";
+                
                 String updateVoucherSQL = "UPDATE Vouchers SET used_count = used_count + 1 " +
-                                          "WHERE code = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL) " +
+                                          "WHERE code = ? AND is_active = 1" + vSdFilter +
                                           "AND (usage_limit = 0 OR used_count < usage_limit)";
                 try (PreparedStatement psVoucher = conn.prepareStatement(updateVoucherSQL)) {
                     psVoucher.setString(1, order.getVoucherCode());
@@ -156,8 +159,7 @@ public class OrderDAO extends DBContext {
         String sql = "SELECT COALESCE(SUM(oi.quantity), 0) as total " +
                      "FROM Orders o JOIN OrderItems oi ON o.order_id = oi.order_id " +
                      "WHERE o.user_id = ? AND o.event_id = ? " +
-                     "AND o.status NOT IN ('cancelled', 'refunded') " +
-                     "AND (o.is_deleted = 0 OR o.is_deleted IS NULL)";
+                     "AND o.status NOT IN ('cancelled', 'refunded')";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
@@ -439,7 +441,7 @@ public class OrderDAO extends DBContext {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
                      "JOIN Events e ON o.event_id = e.event_id " +
-                     "WHERE o.user_id = ? AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ORDER BY o.created_at DESC " +
+                     "WHERE o.user_id = ? ORDER BY o.created_at DESC " +
                      "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -464,7 +466,7 @@ public class OrderDAO extends DBContext {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
                      "JOIN Events e ON o.event_id = e.event_id " +
-                     "WHERE o.event_id = ? AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ORDER BY o.created_at DESC " +
+                     "WHERE o.event_id = ? ORDER BY o.created_at DESC " +
                      "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -478,6 +480,33 @@ public class OrderDAO extends DBContext {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to get orders for eventId=" + eventId, e);
         }
+        return orders;
+    }
+
+    /**
+     * Batch-fetch orders for multiple events in a single query.
+     * Eliminates N+1 issue when listing orders across all organizer events.
+     */
+    public List<Order> getOrdersByEventIds(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new ArrayList<>();
+        List<Order> orders = new ArrayList<>();
+        String placeholders = eventIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT o.*, e.title as event_title FROM Orders o " +
+                     "JOIN Events e ON o.event_id = e.event_id " +
+                     "WHERE o.event_id IN (" + placeholders + ") ORDER BY o.created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < eventIds.size(); i++) {
+                ps.setInt(i + 1, eventIds.get(i));
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                orders.add(mapResultSetToOrder(rs));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to batch-get orders for eventIds", e);
+        }
+        if (!orders.isEmpty()) loadOrderItemsBatch(orders);
         return orders;
     }
 
@@ -536,6 +565,25 @@ public class OrderDAO extends DBContext {
         return 0;
     }
 
+    /**
+     * Batch count orders grouped by status in a single query.
+     * Replaces 4 separate countOrdersByStatus calls.
+     */
+    public java.util.Map<String, Integer> countOrdersByStatuses() {
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        String sql = "SELECT status, COUNT(*) AS cnt FROM Orders GROUP BY status";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                counts.put(rs.getString("status"), rs.getInt("cnt"));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to batch count orders by status", e);
+        }
+        return counts;
+    }
+
     /** Count checked-in orders for a specific event. */
     public int countCheckedInByEvent(int eventId) {
         String sql = "SELECT COUNT(*) FROM Orders WHERE event_id = ? AND status = 'checked_in'";
@@ -560,7 +608,7 @@ public class OrderDAO extends DBContext {
     public PageResult<Order> searchOrdersPaged(String keyword, String[] statuses,
             String dateFrom, String dateTo, int page, int pageSize) {
 
-        StringBuilder where = new StringBuilder("WHERE (o.is_deleted = 0 OR o.is_deleted IS NULL) ");
+        StringBuilder where = new StringBuilder("WHERE 1=1 ");
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -630,7 +678,7 @@ public class OrderDAO extends DBContext {
     public PageResult<Order> getOrdersByUserPaged(int userId, String keyword,
             String[] statuses, int page, int pageSize) {
 
-        StringBuilder where = new StringBuilder("WHERE o.user_id = ? AND (o.is_deleted = 0 OR o.is_deleted IS NULL) ");
+        StringBuilder where = new StringBuilder("WHERE o.user_id = ? ");
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {

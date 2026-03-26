@@ -5,6 +5,7 @@ import com.sellingticket.model.ChatSession;
 import com.sellingticket.model.User;
 import com.sellingticket.service.ChatService;
 import com.sellingticket.service.ChatService.ChatSessionResult;
+import com.sellingticket.websocket.ChatWebSocketEndpoint;
 import static com.sellingticket.util.ServletUtil.getSessionUser;
 import static com.sellingticket.util.ServletUtil.sendJson;
 
@@ -154,6 +155,13 @@ public class ChatApiServlet extends HttpServlet {
                 boolean ok = chatService.sendMessage(sessionId, user.getUserId(), trimmed);
                 setTyping(sessionId, user.getUserId(), false);
                 if (ok) {
+                    // Push via WebSocket to all subscribers in this chat room
+                    String wsPayload = "{\"type\":\"new_message\",\"sessionId\":" + sessionId
+                        + ",\"senderId\":" + user.getUserId()
+                        + ",\"senderName\":\"" + esc(user.getFullName()) + "\""
+                        + ",\"senderRole\":\"" + esc(user.getRole()) + "\""
+                        + ",\"content\":\"" + esc(trimmed) + "\"}";
+                    ChatWebSocketEndpoint.broadcast(sessionId, wsPayload);
                     sendJson(response, "{\"ok\":true}");
                 } else {
                     sendJson(response, 403, "{\"error\":\"Phiên chat đã đóng hoặc không tồn tại.\"}");
@@ -177,6 +185,11 @@ public class ChatApiServlet extends HttpServlet {
                 }
                 int sessionId = parseInt(request.getParameter("sessionId"), 0);
                 boolean ok = chatService.acceptSession(sessionId, user.getUserId());
+                if (ok) {
+                    ChatWebSocketEndpoint.broadcastSessionUpdate();
+                    ChatWebSocketEndpoint.broadcast(sessionId,
+                        "{\"type\":\"session_accepted\",\"agentName\":\"" + esc(user.getFullName()) + "\"}");
+                }
                 sendJson(response, ok ? "{\"ok\":true}" : "{\"error\":\"Failed\"}");
                 break;
             }
@@ -186,6 +199,11 @@ public class ChatApiServlet extends HttpServlet {
                     sendJson(response, 403, "{\"error\":\"Forbidden\"}"); return;
                 }
                 boolean ok = chatService.closeSession(sessionId);
+                if (ok) {
+                    ChatWebSocketEndpoint.broadcastSessionUpdate();
+                    ChatWebSocketEndpoint.broadcast(sessionId,
+                        "{\"type\":\"session_closed\"}");
+                }
                 sendJson(response, ok ? "{\"ok\":true}" : "{\"error\":\"Failed\"}");
                 break;
             }
@@ -228,6 +246,8 @@ public class ChatApiServlet extends HttpServlet {
             boolean customerOnline = isUserOnline(s.getCustomerId());
             sb.append("{\"id\":").append(s.getSessionId())
               .append(",\"customerName\":\"").append(esc(s.getCustomerName())).append("\"")
+              .append(",\"agentId\":").append(s.getAgentId() != null ? s.getAgentId() : "null")
+              .append(",\"agentName\":\"").append(s.getAgentName() != null ? esc(s.getAgentName()) : "").append("\"")
               .append(",\"status\":\"").append(s.getStatus()).append("\"")
               .append(",\"eventTitle\":\"").append(s.getEventTitle() != null ? esc(s.getEventTitle()) : "").append("\"")
               .append(",\"tier\":\"").append(s.getCustomerTier() != null ? s.getCustomerTier() : "registered").append("\"")

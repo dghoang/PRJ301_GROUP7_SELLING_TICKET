@@ -50,7 +50,7 @@
                     </a>
                 </div>
                 <div class="col-md-3 animate-on-scroll stagger-1">
-                    <a href="${pageContext.request.contextPath}/admin/users?filter=active" class="text-decoration-none">
+                    <a href="${pageContext.request.contextPath}/admin/users?filter=active&isActive=true" class="text-decoration-none">
                     <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #06b6d4);">
@@ -65,7 +65,7 @@
                     </a>
                 </div>
                 <div class="col-md-3 animate-on-scroll stagger-2">
-                    <a href="${pageContext.request.contextPath}/admin/users?filter=support_agent" class="text-decoration-none">
+                    <a href="${pageContext.request.contextPath}/admin/users?filter=support_agent&role=support_agent" class="text-decoration-none">
                     <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #9333ea, #a855f7);">
@@ -80,7 +80,7 @@
                     </a>
                 </div>
                 <div class="col-md-3 animate-on-scroll stagger-3">
-                    <a href="${pageContext.request.contextPath}/admin/users?filter=locked" class="text-decoration-none">
+                    <a href="${pageContext.request.contextPath}/admin/users?filter=locked&isActive=false" class="text-decoration-none">
                     <div class="card glass-strong border-0 rounded-4 hover-lift cursor-pointer">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="width: 44px; height: 44px; background: linear-gradient(135deg, #f59e0b, #f97316);">
@@ -125,6 +125,20 @@
                 </div>
             </div>
 
+            <div class="d-flex justify-content-between align-items-end mb-3 animate-on-scroll">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small fw-medium">Hiển thị:</span>
+                    <select id="userPageSize" class="form-select form-select-sm glass border-0 rounded-3 text-center fw-bold text-primary shadow-sm" style="width: 80px; cursor: pointer;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                    <span class="text-muted small">người dùng</span>
+                </div>
+            </div>
+
             <!-- Users Table -->
             <div class="card glass-strong border-0 rounded-4 animate-on-scroll">
                 <div class="card-body p-0">
@@ -145,17 +159,19 @@
                         </table>
                     </div>
                 </div>
+                
+                <%-- Pagination --%>
+                <div id="admin-users-pagination" class="card-footer bg-transparent border-0 pb-3"></div>
             </div>
-            <div id="admin-users-pagination" class="d-flex justify-content-center mt-4"></div>
         </div>
     </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js?v=1.2"></script>
 <script>
 var ctxPath = '${pageContext.request.contextPath}';
 var csrfToken = '${sessionScope.csrf_token}';
-var currentUserId = ${sessionScope.user.userId};
+var currentUserId = parseInt('${sessionScope.user != null ? sessionScope.user.userId : 0}') || 0;
 
 function esc(v) { if (!v) return ''; var d = document.createElement('div'); d.textContent = v; return d.innerHTML; }
 function fmtDate(s) {
@@ -201,6 +217,7 @@ var usersTable = new AjaxTable({
     paginationContainer: '#admin-users-pagination',
     searchInput: '#admin-user-search',
     pageSize: 20,
+    pageSizeSelector: '#userPageSize',
     skeletonCols: 6,
     debounceDelay: 500,
     renderRow: function(u) {

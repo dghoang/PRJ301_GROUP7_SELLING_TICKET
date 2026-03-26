@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -50,7 +51,7 @@
                                 <i class="fas fa-tags text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0">${categories.size()}</h4>
+                                <h4 class="fw-bold mb-0">${allCategories.size()}</h4>
                                 <small class="text-muted">Tổng danh mục</small>
                             </div>
                         </div>
@@ -64,7 +65,7 @@
                             </div>
                             <div>
                                 <c:set var="totalCatEvents" value="0"/>
-                                <c:forEach var="cat" items="${categories}">
+                                <c:forEach var="cat" items="${allCategories}">
                                     <c:set var="totalCatEvents" value="${totalCatEvents + cat.eventCount}"/>
                                 </c:forEach>
                                 <h4 class="fw-bold mb-0">${totalCatEvents}</h4>
@@ -82,8 +83,8 @@
                             <div>
                                 <h4 class="fw-bold mb-0">
                                     <c:choose>
-                                        <c:when test="${totalCatEvents > 0 && categories.size() > 0}">
-                                            ~${Math.round(totalCatEvents / categories.size())}
+                                        <c:when test="${totalCatEvents > 0 && allCategories.size() > 0}">
+                                            ~${Math.round(totalCatEvents / allCategories.size())}
                                         </c:when>
                                         <c:otherwise>0</c:otherwise>
                                     </c:choose>
@@ -133,11 +134,11 @@
                                     </c:if>
                                     <div class="d-flex gap-2 justify-content-center">
                                         <button class="btn btn-sm btn-light rounded-circle" title="Chỉnh sửa"
-                                                onclick="openEditModal(${cat.categoryId}, '${cat.name}', '${cat.icon}', '${cat.description}', ${cat.displayOrder})">
+                                                onclick="openEditModal(${cat.categoryId}, `${cat.name}`, `${cat.icon}`, `${cat.description}`, ${cat.displayOrder})">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-sm btn-light rounded-circle text-danger" title="Xóa"
-                                                onclick="confirmDelete(${cat.categoryId}, '${cat.name}', ${cat.eventCount})">
+                                                onclick="confirmDelete(${cat.categoryId}, `${cat.name}`, ${cat.eventCount})">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -148,6 +149,9 @@
                     </div>
                 </c:otherwise>
             </c:choose>
+
+            <%-- Pagination --%>
+            <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}" />
         </div>
     </div>
 </div>

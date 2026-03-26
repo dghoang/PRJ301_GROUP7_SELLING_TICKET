@@ -69,7 +69,8 @@
                                 <i class="fas fa-dollar-sign text-white"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0"><span class="counter" data-target="${totalRevenue != null ? totalRevenue : 0}">0</span>đ</h4>
+                                <fmt:formatNumber value="${totalRevenue != null ? totalRevenue : 0}" pattern="0" var="fmtRevenue"/>
+                                <h4 class="fw-bold mb-0"><span class="counter" data-target="${fmtRevenue}">0</span>đ</h4>
                                 <small class="text-muted">Tổng doanh thu</small>
                             </div>
                         </div>
@@ -179,15 +180,7 @@
             </div>
 
             <!-- Pagination -->
-            <nav class="mt-4 d-flex justify-content-center animate-on-scroll">
-                <ul class="pagination">
-                    <li class="page-item disabled"><a class="page-link glass rounded-start-3" href="#"><i class="fas fa-chevron-left"></i></a></li>
-                    <li class="page-item active"><a class="page-link" href="#" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none;">1</a></li>
-                    <li class="page-item"><a class="page-link glass" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link glass" href="#">3</a></li>
-                    <li class="page-item"><a class="page-link glass rounded-end-3" href="#"><i class="fas fa-chevron-right"></i></a></li>
-                </ul>
-            </nav>
+            <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}" />
         </div>
     </div>
 </div>

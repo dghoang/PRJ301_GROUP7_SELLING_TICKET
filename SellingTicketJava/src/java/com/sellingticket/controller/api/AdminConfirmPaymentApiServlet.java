@@ -6,6 +6,7 @@ import com.sellingticket.model.Ticket;
 import com.sellingticket.model.User;
 import com.sellingticket.service.OrderService;
 import com.sellingticket.util.JsonResponse;
+import com.sellingticket.util.JsonUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -107,11 +108,11 @@ public class AdminConfirmPaymentApiServlet extends HttpServlet {
         for (Ticket t : existingTickets) {
             StringBuilder item = new StringBuilder("{");
             item.append("\"ticketId\":").append(t.getTicketId()).append(",");
-            item.append("\"ticketCode\":\"").append(esc(t.getTicketCode())).append("\",");
-            item.append("\"ticketTypeName\":\"").append(esc(t.getTicketTypeName())).append("\",");
-            item.append("\"attendeeName\":\"").append(esc(t.getAttendeeName())).append("\",");
-            item.append("\"attendeeEmail\":\"").append(esc(t.getAttendeeEmail())).append("\",");
-            item.append("\"qrCode\":\"").append(esc(t.getQrCode())).append("\"");
+            item.append("\"ticketCode\":\"").append(JsonUtil.esc(t.getTicketCode())).append("\",");
+            item.append("\"ticketTypeName\":\"").append(JsonUtil.esc(t.getTicketTypeName())).append("\",");
+            item.append("\"attendeeName\":\"").append(JsonUtil.esc(t.getAttendeeName())).append("\",");
+            item.append("\"attendeeEmail\":\"").append(JsonUtil.esc(t.getAttendeeEmail())).append("\",");
+            item.append("\"qrCode\":\"").append(JsonUtil.esc(t.getQrCode())).append("\"");
             item.append("}");
             json.arrayElement(item.toString());
         }
@@ -122,9 +123,5 @@ public class AdminConfirmPaymentApiServlet extends HttpServlet {
                 new Object[]{user.getEmail(), orderId, existingTickets.size()});
     }
 
-    private static String esc(String v) {
-        if (v == null) return "";
-        return v.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r");
-    }
+
 }

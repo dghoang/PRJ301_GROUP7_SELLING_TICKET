@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -96,7 +97,7 @@
                                                 <c:set var="soldPercent" value="${tt.quantity > 0 ? (tt.soldCount * 100 / tt.quantity) : 0}"/>
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="progress flex-grow-1" style="height: 6px; width: 80px;">
-                                                        <div class="progress-bar" style="width: ${soldPercent}%; background: linear-gradient(90deg, #10b981, #06b6d4);"></div>
+                                                        <div class="progress-bar" style="--w: ${soldPercent}%; width: var(--w); background: linear-gradient(90deg, #10b981, #06b6d4);"></div>
                                                     </div>
                                                     <span class="small fw-medium">${tt.soldCount}</span>
                                                 </div>
@@ -114,7 +115,7 @@
                                             <td class="text-end pe-4">
                                                 <div class="d-flex gap-1 justify-content-end">
                                                     <button class="btn btn-sm glass rounded-circle" title="Sửa"
-                                                            onclick="editTicket(${tt.ticketTypeId}, '${tt.typeName}', ${tt.price}, ${tt.quantity})">
+                                                            onclick="editTicket('${tt.ticketTypeId}', '${tt.typeName}', '${tt.price}', '${tt.quantity}', '${tt.eventId}', '${tt.description}')">
                                                         <i class="fas fa-edit text-primary"></i>
                                                     </button>
                                                     <form method="POST" action="${pageContext.request.contextPath}/organizer/tickets" style="display:inline;">
@@ -137,6 +138,8 @@
                     </div>
                 </c:otherwise>
             </c:choose>
+
+            <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}"/>
         </div>
     </div>
 </div>
@@ -203,15 +206,35 @@
 </div>
 
 <script>
-function editTicket(id, name, price, qty) {
+function editTicket(id, name, price, qty, eventId, desc) {
     document.getElementById('ticketAction').value = 'update';
     document.getElementById('ticketId').value = id;
     document.getElementById('inputTypeName').value = name;
     document.getElementById('inputPrice').value = price;
     document.getElementById('inputQuantity').value = qty;
+    // Pre-select event in dropdown
+    var eventSelect = document.querySelector('#ticketForm select[name="eventId"]');
+    if (eventSelect) eventSelect.value = eventId;
+    // Populate description
+    var descField = document.querySelector('#ticketForm textarea[name="description"]');
+    if (descField) descField.value = (desc && desc !== 'null') ? desc : '';
     document.getElementById('ticketModalTitle').innerHTML = '<i class="fas fa-edit text-primary me-2"></i>Chỉnh sửa loại vé';
     new bootstrap.Modal(document.getElementById('ticketModal')).show();
 }
+
+// Reset modal to "create" mode when opening for new ticket
+document.getElementById('ticketModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('ticketAction').value = 'create';
+    document.getElementById('ticketId').value = '';
+    document.getElementById('inputTypeName').value = '';
+    document.getElementById('inputPrice').value = '';
+    document.getElementById('inputQuantity').value = '';
+    var descField = document.querySelector('#ticketForm textarea[name="description"]');
+    if (descField) descField.value = '';
+    var eventSelect = document.querySelector('#ticketForm select[name="eventId"]');
+    if (eventSelect) eventSelect.selectedIndex = 0;
+    document.getElementById('ticketModalTitle').innerHTML = '<i class="fas fa-ticket-alt text-primary me-2"></i>Thêm loại vé mới';
+});
 </script>
 
 <jsp:include page="../footer.jsp" />

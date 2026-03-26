@@ -236,10 +236,11 @@ public class EventService {
     }
 
     public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
-                String role = getUserEventRole(eventId, userId, userRole);
+        String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
+        // Hierarchy: admin > owner > manager > staff > scanner — all can check in
         return "admin".equals(role) || "owner".equals(role)
-                || "manager".equals(role) || "scanner".equals(role);
+                || "manager".equals(role) || "staff".equals(role) || "scanner".equals(role);
     }
 
     public boolean hasDeletePermission(int eventId, int userId, String userRole) {
@@ -297,6 +298,23 @@ public class EventService {
             ownEvents.addAll(staffEvents);
         }
         return ownEvents;
+    }
+
+    public PageResult<Event> getAccessibleEventsPaged(int userId, String userRole, int page, int pageSize) {
+        List<Event> allEvents = getAccessibleEvents(userId, userRole);
+        int totalItems = allEvents.size();
+        int totalPages = (int) Math.ceil((double) totalItems / pageSize);
+        if (totalPages == 0) totalPages = 1;
+        
+        int start = (page - 1) * pageSize;
+        int end = Math.min(start + pageSize, totalItems);
+        
+        List<Event> pagedList = new java.util.ArrayList<>();
+        if (start < totalItems) {
+            pagedList = allEvents.subList(start, end);
+        }
+        
+        return new PageResult<>(pagedList, totalItems, totalPages, page);
     }
 
     // ========================

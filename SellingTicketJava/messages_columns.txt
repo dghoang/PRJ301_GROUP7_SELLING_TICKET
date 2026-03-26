@@ -1,0 +1,10 @@
+COLUMN_NAME                                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------
+message_id                                                                                                                      
+ticket_id                                                                                                                       
+sender_id                                                                                                                       
+content                                                                                                                         
+is_internal                                                                                                                     
+created_at                                                                                                                      
+
+(6 rows affected)

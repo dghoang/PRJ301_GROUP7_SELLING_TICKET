@@ -6,7 +6,6 @@ import com.sellingticket.model.User;
 import com.sellingticket.service.EventService;
 import com.sellingticket.util.AppConstants;
 import com.sellingticket.util.InputValidator;
-import com.sellingticket.util.PermissionCache;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -39,25 +38,56 @@ public class OrganizerTeamController extends HttpServlet {
         if (user == null) { redirectToLogin(request, response); return; }
 
         try {
-            // Load organizer's events for event picker
-            List<Event> events = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
+            // Load organizer's events for event picker (with pagination)
+            List<Event> allEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
+
+            int eventPage = Math.max(1, parseIntOrDefault(request.getParameter("eventPage"), 1));
+            int eventSize = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("eventSize"), 20)));
+            int totalEvents = allEvents.size();
+            int totalEventPages = Math.max(1, (int) Math.ceil((double) totalEvents / eventSize));
+            eventPage = Math.min(eventPage, totalEventPages);
+            int evFrom = (eventPage - 1) * eventSize;
+            int evTo = Math.min(evFrom + eventSize, totalEvents);
+            List<Event> events = (evFrom < totalEvents)
+                    ? allEvents.subList(evFrom, evTo)
+                    : java.util.Collections.emptyList();
+
             request.setAttribute("events", events);
+            request.setAttribute("eventCurrentPage", eventPage);
+            request.setAttribute("eventTotalPages", totalEventPages);
+            request.setAttribute("eventPageSize", eventSize);
+            request.setAttribute("totalEvents", totalEvents);
 
             // If an event is selected, load its staff
             int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
             if (eventId > 0) {
-                // Verify permission via cached check
-                if (!PermissionCache.hasPermission(request.getSession(), eventId, user.getUserId())
-                    && !isOwner(user.getUserId(), eventId, events)
-                    && !"admin".equals(user.getRole())) {
+                // Verify manager-level permission via EventService (source of truth)
+                if (!eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
                     setToast(request, "Bạn không có quyền quản lý sự kiện này", "error");
                     response.sendRedirect(request.getContextPath() + "/organizer/team");
                     return;
                 }
 
-                List<EventStaff> staffList = eventService.getEventStaff(eventId);
-                request.setAttribute("staffList", staffList);
+                List<EventStaff> allStaff = eventService.getEventStaff(eventId);
+
+                // In-memory pagination for staff list
+                int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+                int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
+                int totalRecords = allStaff.size();
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+                page = Math.min(page, totalPages);
+                int fromIndex = (page - 1) * size;
+                int toIndex = Math.min(fromIndex + size, totalRecords);
+                List<EventStaff> pagedStaff = (fromIndex < totalRecords)
+                        ? allStaff.subList(fromIndex, toIndex)
+                        : java.util.Collections.emptyList();
+
+                request.setAttribute("staffList", pagedStaff);
                 request.setAttribute("selectedEventId", eventId);
+                request.setAttribute("currentPage", page);
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", size);
+                request.setAttribute("totalRecords", totalRecords);
 
                 // Find event title
                 events.stream()
@@ -90,9 +120,8 @@ public class OrganizerTeamController extends HttpServlet {
         }
 
         try {
-            // Permission check
-            List<Event> events = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
-            if (!hasManagerAccess(user, eventId, events)) {
+            // Permission check via EventService (source of truth)
+            if (!eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
                 setToast(request, "Không có quyền", "error");
                 response.sendRedirect(request.getContextPath() + "/organizer/team?eventId=" + eventId);
                 return;
@@ -108,14 +137,12 @@ public class OrganizerTeamController extends HttpServlet {
                 } else {
                     boolean ok = eventService.addEventStaff(eventId, email.trim(), role, user.getUserId());
                     setToast(request, ok ? "Đã thêm thành viên!" : "Email không tồn tại hoặc đã là thành viên", ok ? "success" : "error");
-                    PermissionCache.invalidate(request.getSession());
                 }
             } else if ("remove".equals(action)) {
                 int staffUserId = parseIntOrDefault(request.getParameter("userId"), 0);
                 if (staffUserId > 0) {
                     eventService.removeEventStaff(eventId, staffUserId);
                     setToast(request, "Đã xóa thành viên", "success");
-                    PermissionCache.invalidate(request.getSession());
                 }
             }
         } catch (Exception e) {
@@ -126,13 +153,4 @@ public class OrganizerTeamController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/organizer/team?eventId=" + eventId);
     }
 
-    private boolean isOwner(int userId, int eventId, List<Event> events) {
-        return events.stream().anyMatch(e -> e.getEventId() == eventId && e.getOrganizerId() == userId);
-    }
-
-    private boolean hasManagerAccess(User user, int eventId, List<Event> events) {
-        if ("admin".equals(user.getRole())) return true;
-        if (isOwner(user.getUserId(), eventId, events)) return true;
-        return eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole());
-    }
 }

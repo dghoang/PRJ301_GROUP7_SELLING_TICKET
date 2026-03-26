@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -27,16 +28,38 @@
                 </c:if>
             </div>
 
-            <!-- Event Picker -->
+            <!-- Event Picker (Paginated) -->
             <div class="card glass-strong border-0 rounded-4 mb-4">
                 <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3"><i class="fas fa-calendar-alt text-primary me-2"></i>Chọn sự kiện</h6>
-                    <div class="row g-2">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0"><i class="fas fa-calendar-alt text-primary me-2"></i>Chọn sự kiện <span class="badge bg-primary bg-opacity-10 text-primary ms-2">${totalEvents}</span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted small">Hiển thị:</span>
+                            <select class="form-select form-select-sm glass border-0 rounded-3 text-center" style="width: 70px; font-weight: 500;"
+                                    onchange="changeEventPageSize(this.value)">
+                                <option value="10" ${eventPageSize == 10 ? 'selected' : ''}>10</option>
+                                <option value="20" ${eventPageSize == 20 ? 'selected' : ''}>20</option>
+                                <option value="50" ${eventPageSize == 50 ? 'selected' : ''}>50</option>
+                                <option value="100" ${eventPageSize == 100 ? 'selected' : ''}>100</option>
+                                <option value="200" ${eventPageSize == 200 ? 'selected' : ''}>200</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2" style="content-visibility: auto; contain-intrinsic-size: auto 200px;">
                         <c:forEach var="ev" items="${events}">
                             <div class="col-md-4 col-lg-3">
-                                <a href="${pageContext.request.contextPath}/organizer/team?eventId=${ev.eventId}"
-                                   class="d-block p-3 rounded-3 text-decoration-none small ${ev.eventId == selectedEventId ? 'fw-bold' : ''}"
-                                   style="background:${ev.eventId == selectedEventId ? 'rgba(59,130,246,0.12)' : 'rgba(0,0,0,0.02)'};border:1px solid ${ev.eventId == selectedEventId ? 'rgba(59,130,246,0.3)' : 'transparent'};">
+                                <c:set var="cardBg" value="rgba(0,0,0,0.02)"/>
+                                <c:set var="cardBorder" value="transparent"/>
+                                <c:set var="cardActive" value=""/>
+                                <c:if test="${ev.eventId == selectedEventId}">
+                                    <c:set var="cardBg" value="rgba(59,130,246,0.12)"/>
+                                    <c:set var="cardBorder" value="rgba(59,130,246,0.3)"/>
+                                    <c:set var="cardActive" value="fw-bold"/>
+                                </c:if>
+                                <c:set var="cardStyle" value="background:${cardBg};border:1px solid ${cardBorder};"/>
+                                <a href="${pageContext.request.contextPath}/organizer/team?eventId=${ev.eventId}&eventPage=${eventCurrentPage}&eventSize=${eventPageSize}"
+                                   class="d-block p-3 rounded-3 text-decoration-none small ${cardActive}"
+                                   style="${cardStyle}">
                                     <span class="text-truncate d-block">${ev.title}</span>
                                     <small class="text-muted"><fmt:formatDate value="${ev.startDate}" pattern="dd/MM/yyyy"/></small>
                                 </a>
@@ -48,6 +71,38 @@
                             </div>
                         </c:if>
                     </div>
+                    <!-- Event Pagination -->
+                    <c:if test="${eventTotalPages > 1}">
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <small class="text-muted">
+                            Trang <b>${eventCurrentPage}</b> / <b>${eventTotalPages}</b> (${totalEvents} sự kiện)
+                        </small>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item ${eventCurrentPage == 1 ? 'disabled' : ''}">
+                                    <a class="page-link glass rounded-start-3" href="javascript:void(0)" onclick="goToEventPage(parseInt('${eventCurrentPage - 1}'))"><i class="fas fa-chevron-left"></i></a>
+                                </li>
+                                <c:set var="evStartPg" value="${eventCurrentPage > 2 ? eventCurrentPage - 2 : 1}" />
+                                <c:set var="evEndPg" value="${evStartPg + 4 > eventTotalPages ? eventTotalPages : evStartPg + 4}" />
+                                <c:forEach begin="${evStartPg}" end="${evEndPg}" var="i">
+                                    <li class="page-item ${i == eventCurrentPage ? 'active' : ''}">
+                                        <c:choose>
+                                            <c:when test="${i == eventCurrentPage}">
+                                                <a class="page-link fw-bold" href="javascript:void(0)" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; color: white;">${i}</a>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <a class="page-link glass" href="javascript:void(0)" onclick="goToEventPage(parseInt('${i}'))">${i}</a>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </li>
+                                </c:forEach>
+                                <li class="page-item ${eventCurrentPage == eventTotalPages ? 'disabled' : ''}">
+                                    <a class="page-link glass rounded-end-3" href="javascript:void(0)" onclick="goToEventPage(parseInt('${eventCurrentPage + 1}'))"><i class="fas fa-chevron-right"></i></a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                    </c:if>
                 </div>
             </div>
 
@@ -153,6 +208,8 @@
                         </div>
                     </c:if>
                 </div>
+
+                <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}"/>
             </c:if>
 
             <c:if test="${empty selectedEventId}">
@@ -204,5 +261,22 @@
     </div>
 </div>
 </c:if>
+
+<script>
+function changeEventPageSize(size) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('eventSize', size);
+    url.searchParams.set('eventPage', '1');
+    window.location.href = url.toString();
+}
+function goToEventPage(page) {
+    const totalPages = parseInt('${eventTotalPages}') || 0;
+    if (page < 1 || page > totalPages) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('eventPage', page);
+    if (!url.searchParams.has('eventSize')) url.searchParams.set('eventSize', '${eventPageSize}');
+    window.location.href = url.toString();
+}
+</script>
 
 <jsp:include page="../footer.jsp" />

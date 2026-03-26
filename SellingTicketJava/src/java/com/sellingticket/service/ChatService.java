@@ -100,6 +100,16 @@ public class ChatService {
         return dao.isOrganizerOfSession(sessionId, userId);
     }
 
+    /** Global count of active chat sessions. */
+    public int countActiveSessions() {
+        return dao.countActiveSessions();
+    }
+
+    /** Global count of waiting (unassigned) chat sessions. */
+    public int countWaitingSessions() {
+        return dao.countWaitingSessions();
+    }
+
     /** Result wrapper for session creation with anti-spam info. */
     public static class ChatSessionResult {
         public final ChatSession session;

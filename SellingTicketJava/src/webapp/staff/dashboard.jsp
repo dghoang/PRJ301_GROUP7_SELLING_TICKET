@@ -25,7 +25,8 @@
 
             <!-- Stats Row -->
             <div class="row g-3 mb-4 animate-fadeInDown" style="animation-delay: 0.1s;">
-                <div class="col-md-4">
+            <div class="row g-3 mb-4 animate-fadeInDown" style="animation-delay: 0.1s;">
+                <div class="col-md-3">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="background: rgba(16,185,129,0.15);">
@@ -38,7 +39,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="background: rgba(59,130,246,0.15);">
@@ -51,7 +52,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card glass-strong border-0 rounded-4 h-100">
                         <div class="card-body d-flex align-items-center gap-3 p-3">
                             <div class="dash-icon-box" style="background: rgba(245,158,11,0.15);">
@@ -60,6 +61,26 @@
                             <div>
                                 <div class="text-muted small">Đã check-in</div>
                                 <div class="fw-bold fs-4"><fmt:formatNumber value="${totalTicketsChecked}" /></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card glass-strong border-0 rounded-4 h-100">
+                        <div class="card-body d-flex align-items-center gap-3 p-3">
+                            <div class="dash-icon-box" style="background: rgba(139,92,246,0.15);">
+                                <i class="fas fa-chart-line" style="color: #8b5cf6;"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Tỷ lệ check-in</div>
+                                <div class="fw-bold fs-4">
+                                    <c:choose>
+                                        <c:when test="${totalTicketsSold > 0}">
+                                            <fmt:formatNumber value="${totalTicketsChecked * 100.0 / totalTicketsSold}" maxFractionDigits="1"/>%
+                                        </c:when>
+                                        <c:otherwise>0%</c:otherwise>
+                                    </c:choose>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -93,10 +114,11 @@
                                         <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>${ev.venue}</small>
                                     </td>
                                     <td>
-                                        <span class="badge rounded-pill px-2 py-1" style="background: ${ev.staffRole == 'manager' ? 'rgba(139,92,246,0.15); color:#8b5cf6' :
+                                        <span class="badge rounded-pill px-2 py-1" style="background: ${ev.staffRole == 'owner' ? 'rgba(234,179,8,0.15); color:#ca8a04' :
+                                            ev.staffRole == 'manager' ? 'rgba(139,92,246,0.15); color:#8b5cf6' :
                                             ev.staffRole == 'scanner' ? 'rgba(16,185,129,0.15); color:#10b981' :
                                             'rgba(59,130,246,0.15); color:#3b82f6'};">
-                                            <i class="fas ${ev.staffRole == 'manager' ? 'fa-user-shield' : ev.staffRole == 'scanner' ? 'fa-qrcode' : 'fa-user'} me-1"></i>${ev.staffRole}
+                                            <i class="fas ${ev.staffRole == 'owner' ? 'fa-crown' : ev.staffRole == 'manager' ? 'fa-user-shield' : ev.staffRole == 'scanner' ? 'fa-qrcode' : 'fa-user'} me-1"></i>${ev.staffRole}
                                         </span>
                                     </td>
                                     <td>
@@ -122,7 +144,7 @@
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="d-flex gap-1 justify-content-end">
-                                            <c:if test="${ev.staffRole == 'manager' || ev.staffRole == 'scanner'}">
+                                            <c:if test="${ev.staffRole == 'owner' || ev.staffRole == 'manager' || ev.staffRole == 'scanner'}">
                                             <a href="${pageContext.request.contextPath}/staff/check-in?eventId=${ev.eventId}" 
                                                class="btn btn-sm rounded-pill" style="background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.75rem;">
                                                 <i class="fas fa-qrcode me-1"></i>Check-in
@@ -150,8 +172,110 @@
                     </div>
                 </div>
             </div>
+            <!-- Overall Check-in Chart -->
+            <c:if test="${totalTicketsSold > 0}">
+            <div class="row g-3 mt-3 animate-fadeInDown" style="animation-delay: 0.3s;">
+                <div class="col-md-4">
+                    <div class="card glass-strong border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 py-3 px-4">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-success"></i>Tổng quan check-in</h6>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                            <canvas id="dash-donut" width="200" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card glass-strong border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 py-3 px-4">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-chart-bar me-2 text-primary"></i>Check-in theo sự kiện</h6>
+                        </div>
+                        <div class="card-body" style="min-height: 220px;">
+                            <canvas id="dash-bar"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </c:if>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    // Donut chart
+    var donutCanvas = document.getElementById('dash-donut');
+    if (donutCanvas) {
+        var sold = parseInt('${totalTicketsSold}') || 0;
+        var checked = parseInt('${totalTicketsChecked}') || 0;
+        new Chart(donutCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đã check-in', 'Chưa check-in'],
+                datasets: [{
+                    data: [checked, sold - checked],
+                    backgroundColor: ['#10b981', 'rgba(148,163,184,0.25)'],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, font: { size: 12 } } }
+                }
+            },
+            plugins: [{
+                id: 'centerText',
+                beforeDraw: function(chart) {
+                    var ctx = chart.ctx;
+                    var pct = sold > 0 ? (checked * 100 / sold).toFixed(1) : '0';
+                    ctx.save();
+                    ctx.font = 'bold 22px Inter, sans-serif';
+                    ctx.fillStyle = '#10b981';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    var cx = (chart.chartArea.left + chart.chartArea.right) / 2;
+                    var cy = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+                    ctx.fillText(pct + '%', cx, cy);
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    // Bar chart per event
+    var barCanvas = document.getElementById('dash-bar');
+    if (barCanvas) {
+        var names = [], soldArr = [], checkedArr = [];
+        <c:forEach var="ev" items="${assignedEvents}">
+        names.push('${ev.eventName}');
+        soldArr.push(${ev.ticketsSold});
+        checkedArr.push(${ev.ticketsChecked});
+        </c:forEach>
+        new Chart(barCanvas, {
+            type: 'bar',
+            data: {
+                labels: names,
+                datasets: [
+                    { label: 'Đã check-in', data: checkedArr, backgroundColor: '#10b981', borderRadius: 6 },
+                    { label: 'Tổng bán', data: soldArr, backgroundColor: 'rgba(59,130,246,0.3)', borderRadius: 6 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 11 } } } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+})();
+</script>
 
 <jsp:include page="../footer.jsp" />

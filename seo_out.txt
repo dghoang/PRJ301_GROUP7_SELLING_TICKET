@@ -1,0 +1,33 @@
+
+============================================================
+  SEO CHECKER - Search Engine Optimization Audit
+============================================================
+Project: D:\GITHUB\PRJ301_GROUP4_SELLING_TICKET
+Time: 2026-03-27 02:58:46
+------------------------------------------------------------
+Found 8 page files to analyze
+
+============================================================
+SEO ANALYSIS RESULTS
+============================================================
+
+Issue Summary:
+  [6] Missing meta description
+  [6] Missing Open Graph tags
+
+Affected files (6):
+  - viewer.html
+  - index.html
+  - index.html
+  - viewer.html
+  - index.html
+  ... and 1 more
+
+{
+  "script": "seo_checker",
+  "project": "D:\\GITHUB\\PRJ301_GROUP4_SELLING_TICKET",
+  "files_checked": 8,
+  "files_with_issues": 6,
+  "issues_found": 12,
+  "passed": false
+}

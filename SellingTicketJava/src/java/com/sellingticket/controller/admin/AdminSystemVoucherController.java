@@ -7,7 +7,9 @@ import com.sellingticket.util.InputValidator;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
@@ -39,7 +41,26 @@ public class AdminSystemVoucherController extends HttpServlet {
         try {
             String pathInfo = request.getPathInfo();
             if (pathInfo == null || "/".equals(pathInfo)) {
-                request.setAttribute("vouchers", voucherService.getSystemVouchers());
+                List<Voucher> allVouchers = voucherService.getSystemVouchers();
+                if (allVouchers == null) allVouchers = Collections.emptyList();
+
+                int page = parseIntOrDefault(request.getParameter("page"), 1);
+                int size = parseIntOrDefault(request.getParameter("size"), 20);
+                size = Math.max(1, Math.min(200, size));
+                page = Math.max(1, page);
+
+                int total = allVouchers.size();
+                int totalPages = Math.max(1, (int) Math.ceil((double) total / size));
+                if (page > totalPages) page = totalPages;
+                int fromIdx = (page - 1) * size;
+                int toIdx = Math.min(fromIdx + size, total);
+                List<Voucher> paged = allVouchers.subList(fromIdx, toIdx);
+
+                request.setAttribute("vouchers", paged);
+                request.setAttribute("currentPage", page);
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", size);
+                request.setAttribute("totalRecords", total);
                 request.getRequestDispatcher("/admin/system-vouchers.jsp").forward(request, response);
                 return;
             }
@@ -104,6 +125,7 @@ public class AdminSystemVoucherController extends HttpServlet {
         v.setOrganizerId(user.getUserId());
         v.setVoucherScope("SYSTEM");
         v.setFundSource("SYSTEM");
+        v.setActive(true); // System vouchers active by default upon creation
 
         boolean ok = voucherService.createVoucher(v);
         setToast(request, ok ? "Tạo voucher hệ thống thành công" : "Tạo voucher hệ thống thất bại", ok ? "success" : "error");

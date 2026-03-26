@@ -5,6 +5,7 @@ import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import com.sellingticket.service.EventService;
 import com.sellingticket.util.JsonResponse;
+import com.sellingticket.util.JsonUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -92,14 +93,14 @@ public class OrganizerEventApiServlet extends HttpServlet {
         for (Event e : result.getItems()) {
             StringBuilder item = new StringBuilder("{");
             item.append("\"eventId\":").append(e.getEventId()).append(",");
-            item.append("\"title\":\"").append(esc(e.getTitle())).append("\",");
-            item.append("\"slug\":\"").append(esc(e.getSlug())).append("\",");
-            item.append("\"bannerImage\":\"").append(esc(e.getBannerImage())).append("\",");
-            item.append("\"location\":\"").append(esc(e.getLocation())).append("\",");
+            item.append("\"title\":\"").append(JsonUtil.esc(e.getTitle())).append("\",");
+            item.append("\"slug\":\"").append(JsonUtil.esc(e.getSlug())).append("\",");
+            item.append("\"bannerImage\":\"").append(JsonUtil.esc(e.getBannerImage())).append("\",");
+            item.append("\"location\":\"").append(JsonUtil.esc(e.getLocation())).append("\",");
             item.append("\"startDate\":\"").append(e.getStartDate() != null ? sdf.format(e.getStartDate()) : "").append("\",");
             item.append("\"endDate\":\"").append(e.getEndDate() != null ? sdf.format(e.getEndDate()) : "").append("\",");
-            item.append("\"status\":\"").append(esc(e.getStatus())).append("\",");
-            item.append("\"categoryName\":\"").append(esc(e.getCategoryName())).append("\",");
+            item.append("\"status\":\"").append(JsonUtil.esc(e.getStatus())).append("\",");
+            item.append("\"categoryName\":\"").append(JsonUtil.esc(e.getCategoryName())).append("\",");
             item.append("\"soldTickets\":").append(e.getSoldTickets()).append(",");
             item.append("\"totalTickets\":").append(e.getTotalTickets()).append(",");
             item.append("\"revenue\":").append(e.getRevenue());
@@ -110,11 +111,7 @@ public class OrganizerEventApiServlet extends HttpServlet {
         json.send(response);
     }
 
-    private static String esc(String v) {
-        if (v == null) return "";
-        return v.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r");
-    }
+
 
     private static boolean matchesKeyword(Event event, String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) return true;

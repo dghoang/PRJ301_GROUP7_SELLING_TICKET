@@ -58,7 +58,12 @@ public class CheckoutServlet extends HttpServlet {
             throws ServletException, IOException {
 
         User user = getSessionUser(request);
+        // Support both GET param and request attribute (set by showError() on POST failure)
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
+        if (eventId <= 0) {
+            Object attrId = request.getAttribute("_eventId");
+            if (attrId instanceof Integer) eventId = (Integer) attrId;
+        }
         Event event = null;
 
         if (eventId > 0) {
@@ -77,7 +82,13 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         // Parse items param: "typeId:qty,typeId:qty" (multi-ticket support)
+        // Also check request attribute fallback from POST error forward
         int maxQtyForPreview = resolvePerBuyerLimit(event);
+        String itemsOverride = (String) request.getAttribute("_items");
+        if (itemsOverride != null && request.getParameter("items") == null) {
+            // Inject items into the request for parseItemsParam to find
+            request.setAttribute("_itemsParam", itemsOverride);
+        }
         List<Map<String, Object>> selectedItems = parseItemsParam(request, maxQtyForPreview);
         if (!selectedItems.isEmpty()) {
             request.setAttribute("selectedItems", selectedItems);
@@ -86,6 +97,11 @@ public class CheckoutServlet extends HttpServlet {
                 totalAmount += (double) item.get("subtotal");
             }
             request.setAttribute("subtotal", totalAmount);
+        }
+
+        // Show CSRF error message if redirected from CsrfFilter
+        if ("csrf".equals(request.getParameter("error"))) {
+            request.setAttribute("error", "Phiên bảo mật đã hết hạn. Vui lòng thử lại.");
         }
 
         if (user != null) {
@@ -100,13 +116,6 @@ public class CheckoutServlet extends HttpServlet {
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
-
-        // AJAX: voucher validation
-        String action = request.getParameter("action");
-        if ("validate-voucher".equals(action)) {
-            handleVoucherValidation(request, response);
-            return;
-        }
 
         User user = getSessionUser(request);
 
@@ -127,7 +136,14 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         try {
-            Order order = buildOrderFromRequest(request, user);
+            Order order = null;
+            try {
+                order = buildOrderFromRequest(request, user);
+            } catch (IllegalArgumentException ex) {
+                showError(request, response, ex.getMessage());
+                return;
+            }
+
             if (order == null) {
                 showError(request, response, "Dữ liệu đơn hàng không hợp lệ hoặc vé đã hết. Vui lòng quay lại chọn vé.");
                 return;
@@ -151,7 +167,7 @@ public class CheckoutServlet extends HttpServlet {
                     order.setEventDiscountAmount(vr.eventDiscountAmount);
                     order.setSystemDiscountAmount(vr.systemDiscountAmount);
                     // Organizer payout: full face value minus event discount minus platform fee
-                    double platformFee = 0; // TODO: configurable platform fee rate
+                    double platformFee = order.getTotalAmount() * com.sellingticket.util.AppConstants.PLATFORM_FEE_RATE;
                     order.setPlatformFeeAmount(platformFee);
                     order.setOrganizerPayoutAmount(order.getTotalAmount() - vr.eventDiscountAmount - platformFee);
                     LOGGER.log(Level.INFO, "Voucher {0} validated: discount={1}, scope={2}, source={3}",
@@ -163,7 +179,10 @@ public class CheckoutServlet extends HttpServlet {
             if (order.getVoucherScope() == null) {
                 order.setVoucherScope("NONE");
                 order.setVoucherFundSource("NONE");
-                order.setOrganizerPayoutAmount(order.getTotalAmount());
+                // V11 FIX: Deduct platform fee correctly when no voucher is used
+                double platformFee = order.getTotalAmount() * com.sellingticket.util.AppConstants.PLATFORM_FEE_RATE;
+                order.setPlatformFeeAmount(platformFee);
+                order.setOrganizerPayoutAmount(order.getTotalAmount() - platformFee);
             }
 
             int orderId = orderService.createOrder(order);
@@ -200,28 +219,7 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    /** AJAX handler: validate voucher code and return discount info as JSON. */
-    private void handleVoucherValidation(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.setContentType("application/json;charset=UTF-8");
-        String code = request.getParameter("code");
-        int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        double amount = 0;
-        try { amount = Double.parseDouble(request.getParameter("amount")); } catch (Exception ignored) {}
 
-        VoucherResult result = voucherService.validateVoucher(code, eventId, amount);
-        String json = "{\"valid\":" + result.valid
-                + ",\"discountAmount\":" + result.discountAmount
-                + ",\"voucherScope\":\"" + escapeJson(result.voucherScope) + "\""
-                + ",\"fundSource\":\"" + escapeJson(result.fundSource) + "\""
-                + ",\"message\":\"" + escapeJson(result.message) + "\"}";
-        response.getWriter().write(json);
-    }
-
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
-    }
 
     /**
      * Parse the items parameter format: "typeId:qty,typeId:qty".
@@ -230,6 +228,10 @@ public class CheckoutServlet extends HttpServlet {
     private List<Map<String, Object>> parseItemsParam(HttpServletRequest request, int maxQty) {
         List<Map<String, Object>> result = new ArrayList<>();
         String itemsParam = request.getParameter("items");
+        // Fallback: check request attribute set by showError() forward
+        if (itemsParam == null) {
+            itemsParam = (String) request.getAttribute("_itemsParam");
+        }
         int safeMax = Math.max(1, Math.min(maxQty, ABSOLUTE_MAX_QUANTITY));
 
         if (itemsParam != null && !itemsParam.isEmpty()) {
@@ -270,18 +272,18 @@ public class CheckoutServlet extends HttpServlet {
     private Order buildOrderFromRequest(HttpServletRequest request, User user) {
 
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
-        if (eventId <= 0) return null;
+        if (eventId <= 0) throw new IllegalArgumentException("Dữ liệu sự kiện không hợp lệ.");
 
         Event event = eventService.getEventDetails(eventId);
-        if (event == null) return null;
+        if (event == null) throw new IllegalArgumentException("Không tìm thấy sự kiện.");
 
         // V4 FIX: Only allow checkout for approved events
-        if (!"approved".equals(event.getStatus())) return null;
+        if (!"approved".equals(event.getStatus())) throw new IllegalArgumentException("Sự kiện chưa được duyệt.");
 
         // Block checkout for past events
         Date now = new Date();
         if (event.getEndDate() != null && event.getEndDate().before(now)) {
-            return null;
+            throw new IllegalArgumentException("Sự kiện đã kết thúc, không thể mua vé.");
         }
 
         // Anti-hoarding limit per buyer (configurable per event).
@@ -304,11 +306,11 @@ public class CheckoutServlet extends HttpServlet {
                 TicketType ticket = ticketService.getTicketTypeById(typeId);
                 if (ticket == null) continue;
                 // V9 FIX: Verify ticket belongs to this event
-                if (ticket.getEventId() != eventId) continue;
+                if (ticket.getEventId() != eventId) throw new IllegalArgumentException("Loại vé không thuộc sự kiện này.");
                 // Sale window enforcement
-                if (ticket.getSaleStart() != null && ticket.getSaleStart().after(now)) continue;
-                if (ticket.getSaleEnd() != null && ticket.getSaleEnd().before(now)) continue;
-                if (!ticketService.checkAvailability(typeId, qty)) return null;
+                if (ticket.getSaleStart() != null && ticket.getSaleStart().after(now)) throw new IllegalArgumentException("Vé chưa mở bán.");
+                if (ticket.getSaleEnd() != null && ticket.getSaleEnd().before(now)) throw new IllegalArgumentException("Vé đã ngừng bán.");
+                if (!ticketService.checkAvailability(typeId, qty)) throw new IllegalArgumentException("Vé đã hết hoặc không đủ số lượng.");
 
                 double subtotal = ticket.getPrice() * qty;
                 OrderItem item = new OrderItem();
@@ -326,13 +328,13 @@ public class CheckoutServlet extends HttpServlet {
             if (ticketTypeId <= 0 || quantity < 1 || quantity > perBuyerLimit) return null;
 
             TicketType ticket = ticketService.getTicketTypeById(ticketTypeId);
-            if (ticket == null) return null;
+            if (ticket == null) throw new IllegalArgumentException("Không tìm thấy loại vé.");
             // V9 FIX: Verify ticket belongs to this event
-            if (ticket.getEventId() != eventId) return null;
+            if (ticket.getEventId() != eventId) throw new IllegalArgumentException("Loại vé không thuộc sự kiện này.");
             // Sale window enforcement
-            if (ticket.getSaleStart() != null && ticket.getSaleStart().after(now)) return null;
-            if (ticket.getSaleEnd() != null && ticket.getSaleEnd().before(now)) return null;
-            if (!ticketService.checkAvailability(ticketTypeId, quantity)) return null;
+            if (ticket.getSaleStart() != null && ticket.getSaleStart().after(now)) throw new IllegalArgumentException("Vé chưa mở bán.");
+            if (ticket.getSaleEnd() != null && ticket.getSaleEnd().before(now)) throw new IllegalArgumentException("Vé đã ngừng bán.");
+            if (!ticketService.checkAvailability(ticketTypeId, quantity)) throw new IllegalArgumentException("Vé đã hết hoặc không đủ số lượng.");
 
             totalAmount = ticket.getPrice() * quantity;
             OrderItem item = new OrderItem();
@@ -344,18 +346,24 @@ public class CheckoutServlet extends HttpServlet {
             totalTicketsInOrder += quantity;
         }
 
-        if (items.isEmpty()) return null;
+        if (items.isEmpty()) throw new IllegalArgumentException("Vui lòng chọn vé.");
 
         // Enforce max tickets per order
-        if (totalTicketsInOrder > perBuyerLimit) return null;
+        if (totalTicketsInOrder > perBuyerLimit) {
+            throw new IllegalArgumentException("Bạn chỉ được mua tối đa " + perBuyerLimit + " vé cho một đơn hàng.");
+        }
 
         // Enforce max total tickets for event
         int eventMaxTotal = event.getMaxTotalTickets();
-        if (eventMaxTotal > 0 && (event.getSoldTickets() + totalTicketsInOrder) > eventMaxTotal) return null;
+        if (eventMaxTotal > 0 && (event.getSoldTickets() + totalTicketsInOrder) > eventMaxTotal) {
+            throw new IllegalArgumentException("Sự kiện đã đạt giới hạn tổng số vé.");
+        }
 
         // Per-user purchase limit: existing tickets + new tickets <= configured cap.
         int existingUserTickets = orderService.countUserTicketsForEvent(user.getUserId(), eventId);
-        if ((existingUserTickets + totalTicketsInOrder) > perBuyerLimit) return null;
+        if ((existingUserTickets + totalTicketsInOrder) > perBuyerLimit) {
+            throw new IllegalArgumentException("Bạn đã mua " + existingUserTickets + " vé. Bạn chỉ được phép mua thêm tối đa " + (perBuyerLimit - existingUserTickets) + " vé nữa cho sự kiện này.");
+        }
 
         // Business policy: only QR bank transfer via SeePay is accepted.
         String paymentMethod = "seepay";
@@ -392,6 +400,15 @@ public class CheckoutServlet extends HttpServlet {
     private void showError(HttpServletRequest request, HttpServletResponse response, String message)
             throws ServletException, IOException {
         request.setAttribute("error", message);
+        // Preserve POST form data as request attributes so doGet() can re-render correctly
+        String eventId = request.getParameter("eventId");
+        String items = request.getParameter("items");
+        if (eventId != null) {
+            request.setAttribute("_eventId", parseIntOrDefault(eventId, -1));
+        }
+        if (items != null) {
+            request.setAttribute("_items", items);
+        }
         doGet(request, response);
     }
 

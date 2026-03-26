@@ -5,6 +5,7 @@ import com.sellingticket.model.PageResult;
 import com.sellingticket.model.Ticket;
 import com.sellingticket.model.User;
 import com.sellingticket.util.JsonResponse;
+import com.sellingticket.util.JsonUtil;
 import static com.sellingticket.util.ServletUtil.*;
 
 import java.io.IOException;
@@ -68,21 +69,21 @@ public class MyTicketApiServlet extends HttpServlet {
             for (Ticket t : result.getItems()) {
                 StringBuilder item = new StringBuilder("{");
                 item.append("\"ticketId\":").append(t.getTicketId()).append(",");
-                item.append("\"ticketCode\":\"").append(esc(t.getTicketCode())).append("\",");
-                item.append("\"eventTitle\":\"").append(esc(t.getEventTitle())).append("\",");
+                item.append("\"ticketCode\":\"").append(JsonUtil.esc(t.getTicketCode())).append("\",");
+                item.append("\"eventTitle\":\"").append(JsonUtil.esc(t.getEventTitle())).append("\",");
                 item.append("\"eventId\":").append(t.getEventId()).append(",");
-                item.append("\"ticketTypeName\":\"").append(esc(t.getTicketTypeName())).append("\",");
-                item.append("\"orderCode\":\"").append(esc(t.getOrderCode())).append("\",");
-                item.append("\"attendeeName\":\"").append(esc(t.getAttendeeName())).append("\",");
-                item.append("\"attendeeEmail\":\"").append(esc(t.getAttendeeEmail())).append("\",");
-                item.append("\"qrCode\":\"").append(esc(t.getQrCode())).append("\",");
+                item.append("\"ticketTypeName\":\"").append(JsonUtil.esc(t.getTicketTypeName())).append("\",");
+                item.append("\"orderCode\":\"").append(JsonUtil.esc(t.getOrderCode())).append("\",");
+                item.append("\"attendeeName\":\"").append(JsonUtil.esc(t.getAttendeeName())).append("\",");
+                item.append("\"attendeeEmail\":\"").append(JsonUtil.esc(t.getAttendeeEmail())).append("\",");
+                item.append("\"qrCode\":\"").append(JsonUtil.esc(t.getQrCode())).append("\",");
                 item.append("\"isCheckedIn\":").append(t.isCheckedIn()).append(",");
-                item.append("\"orderStatus\":\"").append(esc(t.getOrderStatus() != null ? t.getOrderStatus() : "paid")).append("\",");
+                item.append("\"orderStatus\":\"").append(JsonUtil.esc(t.getOrderStatus() != null ? t.getOrderStatus() : "paid")).append("\",");
                 item.append("\"orderId\":").append(t.getOrderId()).append(",");
                 item.append("\"checkedInAt\":\"").append(t.getCheckedInAt() != null ? sdf.format(t.getCheckedInAt()) : "").append("\",");
                 item.append("\"eventStartDate\":\"").append(t.getEventStartDate() != null ? sdf.format(t.getEventStartDate()) : "").append("\",");
                 item.append("\"eventEndDate\":\"").append(t.getEventEndDate() != null ? sdf.format(t.getEventEndDate()) : "").append("\",");
-                item.append("\"venue\":\"").append(esc(t.getVenue())).append("\",");
+                item.append("\"venue\":\"").append(JsonUtil.esc(t.getVenue())).append("\",");
                 item.append("\"createdAt\":\"").append(t.getCreatedAt() != null ? sdf.format(t.getCreatedAt()) : "").append("\"");
                 item.append("}");
                 json.arrayElement(item.toString());
@@ -95,9 +96,5 @@ public class MyTicketApiServlet extends HttpServlet {
         }
     }
 
-    private static String esc(String v) {
-        if (v == null) return "";
-        return v.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r");
-    }
+
 }

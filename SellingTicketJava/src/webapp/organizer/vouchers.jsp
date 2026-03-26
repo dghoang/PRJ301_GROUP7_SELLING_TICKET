@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -57,7 +58,10 @@
                             <div class="card glass-strong border-0 rounded-4 hover-lift h-100" style="transition: all 0.3s;">
                                 <div class="card-body p-4">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <div class="dash-icon-box" style="background: linear-gradient(135deg, ${v.discountType == 'percentage' ? '#3b82f6, #6366f1' : '#10b981, #06b6d4'});">
+                                        <c:set var="iconBg" value="linear-gradient(135deg, #10b981, #06b6d4)"/>
+                                        <c:if test="${v.discountType == 'percentage'}"><c:set var="iconBg" value="linear-gradient(135deg, #3b82f6, #6366f1)"/></c:if>
+                                        <c:set var="iconStyle" value="background: ${iconBg};"/>
+                                        <div class="dash-icon-box" style="${iconStyle}">
                                             <i class="fas ${v.discountType == 'percentage' ? 'fa-percent' : 'fa-tag'} fa-lg text-white"></i>
                                         </div>
                                         <c:choose>
@@ -97,7 +101,8 @@
                                             <span><fmt:formatNumber value="${usagePercent}" maxFractionDigits="0"/>%</span>
                                         </div>
                                         <div class="progress" style="height: 6px; border-radius: 3px;">
-                                            <div class="progress-bar" style="width: ${usagePercent}%; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px;"></div>
+                                            <c:set var="progressStyle" value="width: ${usagePercent}%; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px;"/>
+                                            <div class="progress-bar" style="${progressStyle}"></div>
                                         </div>
                                     </div>
 
@@ -133,6 +138,8 @@
                     </div>
                 </c:otherwise>
             </c:choose>
+
+            <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}"/>
         </div>
     </div>
 </div>

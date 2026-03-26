@@ -39,15 +39,21 @@ public class VoucherDAO extends DBContext {
 
     public List<Voucher> getVouchersByOrganizer(int organizerId) {
         List<Voucher> vouchers = new ArrayList<>();
-        String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
-                     "LEFT JOIN Events e ON v.event_id = e.event_id " +
-                     "WHERE v.organizer_id = ? AND v.event_id IS NOT NULL AND v.event_id > 0 " +
-                     "AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, organizerId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) vouchers.add(mapResultSetToVoucher(rs));
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Vouchers", "is_deleted");
+            String sdFilter = hasSD ? " AND (v.is_deleted = 0 OR v.is_deleted IS NULL)" : "";
+            
+            String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
+                         "LEFT JOIN Events e ON v.event_id = e.event_id " +
+                         "WHERE v.organizer_id = ? AND v.event_id IS NOT NULL AND v.event_id > 0 " +
+                         sdFilter + " ORDER BY v.created_at DESC";
+            
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, organizerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) vouchers.add(mapResultSetToVoucher(rs));
+                }
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error getting vouchers by organizer", e);
         }
@@ -59,14 +65,20 @@ public class VoucherDAO extends DBContext {
      */
     public List<Voucher> getSystemVouchers() {
         List<Voucher> vouchers = new ArrayList<>();
-        String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
-                     "LEFT JOIN Events e ON v.event_id = e.event_id " +
-                     "WHERE (v.event_id IS NULL OR v.event_id <= 0) " +
-                     "AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ORDER BY v.created_at DESC";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) vouchers.add(mapResultSetToVoucher(rs));
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Vouchers", "is_deleted");
+            String sdFilter = hasSD ? " AND (v.is_deleted = 0 OR v.is_deleted IS NULL)" : "";
+
+            String sql = "SELECT v.*, e.title as event_name FROM Vouchers v " +
+                         "LEFT JOIN Events e ON v.event_id = e.event_id " +
+                         "WHERE (v.event_id IS NULL OR v.event_id <= 0) " +
+                         sdFilter + " ORDER BY v.created_at DESC";
+            
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) vouchers.add(mapResultSetToVoucher(rs));
+                }
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error getting system vouchers", e);
         }
@@ -156,11 +168,21 @@ public class VoucherDAO extends DBContext {
     }
 
     public boolean deleteVoucher(int voucherId) {
-        String sql = "UPDATE Vouchers SET is_deleted = 1, is_active = 0 WHERE voucher_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, voucherId);
-            return ps.executeUpdate() > 0;
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Vouchers", "is_deleted");
+            if (hasSD) {
+                String sql = "UPDATE Vouchers SET is_deleted = 1, is_active = 0 WHERE voucher_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, voucherId);
+                    return ps.executeUpdate() > 0;
+                }
+            } else {
+                String sql = "UPDATE Vouchers SET is_active = 0 WHERE voucher_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, voucherId);
+                    return ps.executeUpdate() > 0;
+                }
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error soft-deleting voucher", e);
         }

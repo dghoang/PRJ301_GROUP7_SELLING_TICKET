@@ -35,7 +35,8 @@ public class AdminOrderController extends HttpServlet {
             FlashUtil.apply(request);
             String status = request.getParameter("status");
             String query = request.getParameter("q");
-            int page = parseIntOrDefault(request.getParameter("page"), 1);
+            int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+            int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
 
             // If searching by order code
             if (query != null && !query.trim().isEmpty()) {
@@ -49,23 +50,37 @@ public class AdminOrderController extends HttpServlet {
                     request.setAttribute("searchNotFound", true);
                 }
             } else {
-                List<Order> orders = orderService.getAllOrders(status, page, 20);
+                List<Order> orders = orderService.getAllOrders(status, page, size);
                 request.setAttribute("orders", orders);
                 request.setAttribute("currentPage", page);
             }
 
             request.setAttribute("statusFilter", status);
 
-            // Stats
-            int paid = orderService.countOrdersByStatus("paid") + orderService.countOrdersByStatus("checked_in");
-            int pending = orderService.countOrdersByStatus("pending");
-            int cancelled = orderService.countOrdersByStatus("cancelled");
-            int refundReq = orderService.countOrdersByStatus("refund_requested");
+            // Stats — single query instead of 4 separate calls
+            java.util.Map<String, Integer> statusCounts = orderService.countOrdersByStatuses();
+            int paid = statusCounts.getOrDefault("paid", 0) + statusCounts.getOrDefault("checked_in", 0);
+            int pending = statusCounts.getOrDefault("pending", 0);
+            int cancelled = statusCounts.getOrDefault("cancelled", 0);
+            int refundReq = statusCounts.getOrDefault("refund_requested", 0);
             request.setAttribute("paidOrders", paid);
             request.setAttribute("pendingOrders", pending);
             request.setAttribute("cancelledOrders", cancelled);
             request.setAttribute("refundRequested", refundReq);
             request.setAttribute("totalOrders", paid + pending + cancelled + refundReq);
+
+            // Pagination attributes
+            int totalRecords;
+            if ("paid".equals(status)) totalRecords = paid;
+            else if ("pending".equals(status)) totalRecords = pending;
+            else if ("cancelled".equals(status)) totalRecords = cancelled;
+            else if ("refund_requested".equals(status)) totalRecords = refundReq;
+            else totalRecords = paid + pending + cancelled + refundReq;
+
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("pageSize", size);
+            request.setAttribute("totalRecords", totalRecords);
 
             // Sidebar badge
             request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());

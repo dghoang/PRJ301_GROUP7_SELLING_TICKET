@@ -137,13 +137,30 @@ public class CsrfFilter implements Filter {
                         + " (submitted=" + (submittedToken != null ? "present" : "null")
                         + ", session=" + (sessionToken != null ? "present" : "null") + ")");
 
-                // For login/register pages, redirect back to the GET form instead of raw 403
-                // This handles edge cases: expired session, back-button resubmit, token desync
+                // For user-facing form pages, redirect back to the GET form instead of raw 403.
+                // This handles edge cases: expired session, back-button resubmit, token desync.
                 String ctxPath = request.getContextPath();
+                session.removeAttribute(TOKEN_NAME); // force fresh token on next GET
+
                 if (uri.endsWith("/login") || uri.endsWith("/register")) {
-                    session.removeAttribute(TOKEN_NAME); // force fresh token on next GET
                     response.sendRedirect(ctxPath + (uri.endsWith("/login") ? "/login" : "/register")
                             + "?error=csrf");
+                    return;
+                }
+
+                // Checkout: redirect to event page so user can re-select tickets
+                if (uri.endsWith("/checkout")) {
+                    String eventIdParam = request.getParameter("eventId");
+                    String redirectUrl = ctxPath + "/checkout?error=csrf";
+                    if (eventIdParam != null && !eventIdParam.isEmpty()) {
+                        redirectUrl += "&eventId=" + eventIdParam;
+                        // Preserve items selection if possible
+                        String items = request.getParameter("items");
+                        if (items != null && !items.isEmpty()) {
+                            redirectUrl += "&items=" + java.net.URLEncoder.encode(items, java.nio.charset.StandardCharsets.UTF_8);
+                        }
+                    }
+                    response.sendRedirect(redirectUrl);
                     return;
                 }
 

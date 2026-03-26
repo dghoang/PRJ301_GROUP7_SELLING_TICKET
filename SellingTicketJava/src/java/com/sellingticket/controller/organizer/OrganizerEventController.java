@@ -122,9 +122,21 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
         String userRole = user.getRole();
         boolean isAdmin = "admin".equals(userRole);
-        List<Event> events = eventService.getAccessibleEvents(user.getUserId(), userRole);
+        
+        int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+        int pageSize = parseIntOrDefault(request.getParameter("size"), 12);
+        
+        // Use paged getter instead of full lists
+        com.sellingticket.model.PageResult<Event> pagedEvents = eventService.getAccessibleEventsPaged(user.getUserId(), userRole, page, pageSize);
+        List<Event> events = pagedEvents.getItems();
+        
         request.setAttribute("events", events);
         request.setAttribute("isAdmin", isAdmin);
+        
+        request.setAttribute("currentPage", pagedEvents.getCurrentPage());
+        request.setAttribute("totalPages", pagedEvents.getTotalPages());
+        request.setAttribute("pageSize", pageSize);
+        request.setAttribute("totalRecords", pagedEvents.getTotalItems());
 
         // Compute user's specific role for each event (to control UI buttons)
         java.util.Map<Integer, String> eventRoles = new java.util.HashMap<>();
@@ -133,11 +145,12 @@ public class OrganizerEventController extends HttpServlet {
         }
         request.setAttribute("eventRoles", eventRoles);
 
-        // Summary stats computed from events list
+        // Summary stats computed from FULL list (we still need this for the cards)
+        List<Event> allEvents = eventService.getAccessibleEvents(user.getUserId(), userRole);
         int totalSold = 0;
         double totalRevenue = 0;
         int countApproved = 0, countPending = 0, countDraft = 0, countEnded = 0;
-        for (Event e : events) {
+        for (Event e : allEvents) {
             totalSold += e.getSoldTickets();
             totalRevenue += e.getRevenue();
             switch (e.getStatus() != null ? e.getStatus() : "") {
@@ -150,7 +163,7 @@ public class OrganizerEventController extends HttpServlet {
         }
         request.setAttribute("totalSold", totalSold);
         request.setAttribute("totalRevenue", totalRevenue);
-        request.setAttribute("countAll", events.size());
+        request.setAttribute("countAll", allEvents.size());
         request.setAttribute("countApproved", countApproved);
         request.setAttribute("countPending", countPending);
         request.setAttribute("countDraft", countDraft);

@@ -12,19 +12,7 @@ public class CategoryDAO extends DBContext {
 
     private static final Logger LOGGER = Logger.getLogger(CategoryDAO.class.getName());
 
-    private boolean hasColumn(Connection conn, String tableName, String columnName) {
-        String sql = "SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(?) AND name = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, tableName);
-            ps.setString(2, columnName);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to check column metadata: {0}.{1}", new Object[]{tableName, columnName});
-            return false;
-        }
-    }
+    // Local hasColumn removed, using inherited DBContext.hasColumn for consistency and caching
 
     private Category mapCategory(ResultSet rs) throws SQLException {
         Category cat = new Category();

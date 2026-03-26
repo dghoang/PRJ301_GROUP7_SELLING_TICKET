@@ -6,6 +6,9 @@
 <c:set var="pageTitle" value="Thanh toán" scope="request" />
 <jsp:include page="header.jsp" />
 
+<%-- Meta tag: always carries the latest CSRF token for JS to read dynamically --%>
+<meta name="csrf-token" content="${not empty requestScope.csrf_token ? requestScope.csrf_token : sessionScope.csrf_token}">
+
 <div class="container py-5" style="max-width: 1140px;">
     <!-- Progress Steps -->
     <div class="mb-5 animate-fadeInDown">
@@ -299,7 +302,11 @@ function applyPromo() {
 
     var ctx = '${pageContext.request.contextPath}';
     var eventId = '${event.eventId}';
-    var csrfToken = '${not empty requestScope.csrf_token ? requestScope.csrf_token : sessionScope.csrf_token}';
+    // Read CSRF token dynamically from meta tag (always fresh)
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
 
     fetch(ctx + '/api/voucher/validate', {
         method: 'POST',
@@ -308,7 +315,7 @@ function applyPromo() {
         body: 'code=' + encodeURIComponent(code)
             + '&eventId=' + encodeURIComponent(eventId)
             + '&amount=' + encodeURIComponent(baseSubtotal)
-            + '&csrf_token=' + encodeURIComponent(csrfToken || '')
+            + '&csrf_token=' + encodeURIComponent(getCsrfToken())
     })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -362,6 +369,11 @@ function updateOrderTotal() {
 }
 
 document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+    // Refresh CSRF token in form right before submit
+    var tokenInput = this.querySelector('input[name="csrf_token"]');
+    if (tokenInput) {
+        tokenInput.value = getCsrfToken();
+    }
     var btn = document.getElementById('payBtn');
     btn.disabled = true;
     document.getElementById('payBtnText').classList.add('d-none');

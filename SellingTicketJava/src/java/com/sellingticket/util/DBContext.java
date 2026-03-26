@@ -131,7 +131,29 @@ public class DBContext {
             Thread.currentThread().interrupt();
         }
 
-        throw new SQLException("Connection pool exhausted (max=" + MAX_POOL_SIZE + ")");
+            throw new SQLException("Connection pool exhausted (max=" + MAX_POOL_SIZE + ")");
+    }
+
+    private static final java.util.Map<String, Boolean> columnCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Check if a column exists in a table. Useful for handling schema drift
+     * (e.g. is_deleted column added in newer versions).
+     * Uses a cache to avoid repeated metadata lookups.
+     */
+    public boolean hasColumn(Connection conn, String tableName, String columnName) {
+        String cacheKey = (tableName + "." + columnName).toUpperCase();
+        return columnCache.computeIfAbsent(cacheKey, key -> {
+            try {
+                java.sql.DatabaseMetaData dbmd = conn.getMetaData();
+                try (java.sql.ResultSet rs = dbmd.getColumns(null, null, tableName, columnName)) {
+                    return rs.next();
+                }
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Failed to check column existence: " + tableName + "." + columnName, e);
+                return false;
+            }
+        });
     }
 
     // ========================

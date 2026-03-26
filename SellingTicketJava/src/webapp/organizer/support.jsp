@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -25,8 +26,17 @@
 
             <%-- Toast --%>
             <c:if test="${not empty sessionScope.toastMessage}">
+                <c:set var="toastBg" value="rgba(239,68,68,0.1)"/>
+                <c:set var="toastBorder" value="#ef4444"/>
+                <c:set var="toastIcon" value="exclamation-circle text-danger"/>
+                <c:if test="${sessionScope.toastType == 'success'}">
+                    <c:set var="toastBg" value="rgba(16,185,129,0.1)"/>
+                    <c:set var="toastBorder" value="#10b981"/>
+                    <c:set var="toastIcon" value="check-circle text-success"/>
+                </c:if>
+                <c:set var="alertStyle" value="background: ${toastBg}; border-left: 4px solid ${toastBorder} !important;"/>
                 <div class="alert glass-strong border-0 rounded-4 alert-dismissible fade show mb-4 animate-fadeInDown" role="alert"
-                     style="background: rgba(${sessionScope.toastType == 'success' ? '16,185,129' : '239,68,68'},0.1); border-left: 4px solid ${sessionScope.toastType == 'success' ? '#10b981' : '#ef4444'} !important;">
+                     style="${alertStyle}">
                     <i class="fas fa-${sessionScope.toastType == 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} me-2"></i>
                     ${sessionScope.toastMessage}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -125,6 +135,8 @@
                     </c:choose>
                 </div>
             </div>
+
+            <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}"/>
         </div>
     </div>
 </div>

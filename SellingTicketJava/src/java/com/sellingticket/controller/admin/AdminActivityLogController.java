@@ -21,7 +21,8 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AdminActivityLogController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(AdminActivityLogController.class.getName());
-    private static final int PAGE_SIZE = 20;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 200;
     private final ActivityLogService activityLogService = new ActivityLogService();
 
     @Override
@@ -43,11 +44,17 @@ public class AdminActivityLogController extends HttpServlet {
                 try { page = Math.max(1, Integer.parseInt(pageParam)); } catch (NumberFormatException ignored) {}
             }
 
+            int pageSize = DEFAULT_PAGE_SIZE;
+            String sizeParam = request.getParameter("size");
+            if (sizeParam != null) {
+                try { pageSize = Math.max(1, Math.min(MAX_PAGE_SIZE, Integer.parseInt(sizeParam))); } catch (NumberFormatException ignored) {}
+            }
+
             // Fetch data
             List<ActivityLog> logs = activityLogService.search(
-                    actionFilter, userIdFilter, entityFilter, page, PAGE_SIZE);
+                    actionFilter, userIdFilter, entityFilter, page, pageSize);
             int totalCount = activityLogService.countSearch(actionFilter, userIdFilter, entityFilter);
-            int totalPages = (int) Math.ceil((double) totalCount / PAGE_SIZE);
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
 
             // Distinct action types for filter dropdown
             List<String> actionTypes = activityLogService.getDistinctActions();
@@ -58,6 +65,8 @@ public class AdminActivityLogController extends HttpServlet {
             request.setAttribute("currentPage", page);
             request.setAttribute("totalPages", totalPages);
             request.setAttribute("totalCount", totalCount);
+            request.setAttribute("pageSize", pageSize);
+            request.setAttribute("totalRecords", totalCount);
             request.setAttribute("filterAction", actionFilter);
             request.setAttribute("filterEntity", entityFilter);
             request.setAttribute("filterUserId", userIdParam);

@@ -4,9 +4,11 @@ import com.sellingticket.model.ActivityLog;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.Order;
 import com.sellingticket.service.ActivityLogService;
+import com.sellingticket.service.ChatService;
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.EventService;
 import com.sellingticket.service.OrderService;
+import com.sellingticket.service.SupportTicketService;
 import com.sellingticket.util.FlashUtil;
 import static com.sellingticket.util.ServletUtil.sendJson;
 
@@ -40,6 +42,8 @@ public class AdminDashboardController extends HttpServlet {
     private final EventService eventService = new EventService();
     private final OrderService orderService = new OrderService();
     private final ActivityLogService activityLogService = new ActivityLogService();
+    private final SupportTicketService supportTicketService = new SupportTicketService();
+    private final ChatService chatService = new ChatService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -76,6 +80,12 @@ public class AdminDashboardController extends HttpServlet {
             // Activity feed — recent admin/system actions
             List<ActivityLog> activityFeed = activityLogService.getRecent(10);
             request.setAttribute("activityFeed", activityFeed);
+
+            // CSKH metrics: support tickets + chat sessions
+            request.setAttribute("openTickets", supportTicketService.countByStatus("open"));
+            request.setAttribute("inProgressTickets", supportTicketService.countByStatus("in_progress"));
+            request.setAttribute("activeChatSessions", chatService.countActiveSessions());
+            request.setAttribute("waitingChatSessions", chatService.countWaitingSessions());
 
             request.getRequestDispatcher("/admin/dashboard.jsp").forward(request, response);
         } catch (Exception e) {
@@ -129,6 +139,18 @@ public class AdminDashboardController extends HttpServlet {
                     sendJson(response, buildJsonArray(data));
                     break;
                 }
+                case "support-metrics": {
+                    // Support ticket status distribution
+                    List<Map<String, Object>> data = supportTicketService.getStatusDistribution();
+                    sendJson(response, buildJsonArray(data));
+                    break;
+                }
+                case "support-agent-performance": {
+                    // Agent workload: tickets assigned per agent
+                    List<Map<String, Object>> data = supportTicketService.getAgentWorkload();
+                    sendJson(response, buildJsonArray(data));
+                    break;
+                }
                 default:
                     sendJson(response, 400, "{\"error\":\"Invalid type parameter\"}");
             }
@@ -166,6 +188,8 @@ public class AdminDashboardController extends HttpServlet {
     }
 
     private String escapeJson(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
     }
 }

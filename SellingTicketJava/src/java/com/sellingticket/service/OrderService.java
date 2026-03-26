@@ -78,6 +78,13 @@ public class OrderService {
         return orderDAO.getOrdersByEvent(eventId, page, pageSize);
     }
 
+    /**
+     * Batch-fetch orders for multiple events in a single query.
+     */
+    public List<Order> getOrdersByEventIds(List<Integer> eventIds) {
+        return orderDAO.getOrdersByEventIds(eventIds);
+    }
+
     public List<Order> getAllOrders(String status, int page, int pageSize) {
         return orderDAO.getAllOrders(status, page, pageSize);
     }
@@ -181,5 +188,12 @@ public class OrderService {
 
     public int countOrdersByStatus(String status) {
         return orderDAO.countOrdersByStatus(status);
+    }
+
+    /**
+     * Batch count all order statuses in a single DB call.
+     */
+    public java.util.Map<String, Integer> countOrdersByStatuses() {
+        return orderDAO.countOrdersByStatuses();
     }
 }

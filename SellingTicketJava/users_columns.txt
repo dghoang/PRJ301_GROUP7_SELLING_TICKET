@@ -1,0 +1,26 @@
+COLUMN_NAME                                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------
+user_id                                                                                                                         
+email                                                                                                                           
+password_hash                                                                                                                   
+full_name                                                                                                                       
+phone                                                                                                                           
+gender                                                                                                                          
+date_of_birth                                                                                                                   
+role                                                                                                                            
+avatar                                                                                                                          
+is_active                                                                                                                       
+is_deleted                                                                                                                      
+bio                                                                                                                             
+website                                                                                                                         
+social_facebook                                                                                                                 
+social_instagram                                                                                                                
+email_verified                                                                                                                  
+email_verified_at                                                                                                               
+last_login_at                                                                                                                   
+last_login_ip                                                                                                                   
+password_changed_at                                                                                                             
+created_at                                                                                                                      
+updated_at                                                                                                                      
+
+(22 rows affected)

@@ -367,7 +367,7 @@
         container: '#eventsGrid',
         paginationContainer: '#orgEvtPagination',
         searchInput: '#eventSearchInput',
-        pageSize: 12,
+        pageSize: 10,
         skeletonCount: 6,
         renderEmpty: function() {
             return '<div class="col-12">' +

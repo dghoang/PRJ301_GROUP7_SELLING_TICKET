@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -167,6 +168,13 @@
                     </div>
                 </div>
             </div>
+
+            <tags:pagination
+                currentPage="${currentPage}"
+                totalPages="${totalPages}"
+                pageSize="${pageSize}"
+                totalRecords="${totalRecords}"
+                baseUrl="${pageContext.request.contextPath}/staff/support${not empty statusFilter ? '?status='.concat(statusFilter) : ''}" />
         </div>
     </div>
 </div>

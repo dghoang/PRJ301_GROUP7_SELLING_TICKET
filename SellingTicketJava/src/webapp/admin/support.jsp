@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@taglib prefix="tags" tagdir="/WEB-INF/tags" %>
 
 <jsp:include page="../header.jsp" />
 
@@ -101,6 +102,7 @@
                                     <th class="py-3">Khách hàng</th>
                                     <th class="py-3">Loại</th>
                                     <th class="py-3">Tiêu đề</th>
+                                    <th class="py-3">Nhân viên xử lý</th>
                                     <th class="py-3">Trạng thái</th>
                                     <th class="py-3">Ưu tiên</th>
                                     <th class="py-3">Ngày tạo</th>
@@ -121,6 +123,16 @@
                                         <c:if test="${not empty t.orderCode}">
                                             <small class="text-muted"><i class="fas fa-link me-1"></i>${t.orderCode}</small>
                                         </c:if>
+                                    </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${not empty t.assignedToName}">
+                                                <span class="small fw-medium"><i class="fas fa-user-shield text-primary me-1"></i>${t.assignedToName}</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-light text-muted rounded-pill px-2 small">Chưa phân công</span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </td>
                                     <td>
                                         <c:choose>
@@ -156,7 +168,7 @@
                                 </c:forEach>
                                 <c:if test="${empty tickets}">
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-5">
+                                    <td colspan="9" class="text-center text-muted py-5">
                                         <i class="fas fa-inbox fa-2x mb-2 opacity-25"></i>
                                         <p class="mb-0">Không có yêu cầu hỗ trợ nào</p>
                                     </td>
@@ -167,6 +179,9 @@
                     </div>
                 </div>
             </div>
+
+            <%-- Pagination --%>
+            <tags:pagination currentPage="${currentPage}" totalPages="${totalPages}" pageSize="${pageSize}" totalRecords="${totalRecords}" />
         </div>
     </div>
 </div>

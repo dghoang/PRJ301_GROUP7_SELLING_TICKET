@@ -125,15 +125,24 @@ public class EventStaffDAO extends DBContext {
      */
     public List<java.util.Map<String, Object>> getAssignedEventsWithDetails(int userId) {
         List<java.util.Map<String, Object>> list = new ArrayList<>();
+        // UNION: events assigned as staff + events owned (organizer_id)
         String sql = "SELECT e.event_id, e.title AS event_name, e.start_date, e.end_date, e.location AS venue, e.status, " +
                      "es.role AS staff_role, " +
                      "(SELECT COUNT(*) FROM OrderItems oi JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id WHERE tt.event_id = e.event_id) AS tickets_sold, " +
                      "(SELECT COUNT(*) FROM Tickets tk JOIN OrderItems oi2 ON tk.order_item_id = oi2.order_item_id JOIN TicketTypes tt2 ON oi2.ticket_type_id = tt2.ticket_type_id WHERE tt2.event_id = e.event_id AND tk.is_checked_in = 1) AS tickets_checked " +
                      "FROM EventStaff es JOIN Events e ON es.event_id = e.event_id " +
-                     "WHERE es.user_id = ? ORDER BY e.start_date DESC";
+                     "WHERE es.user_id = ? " +
+                     "UNION " +
+                     "SELECT e2.event_id, e2.title AS event_name, e2.start_date, e2.end_date, e2.location AS venue, e2.status, " +
+                     "'owner' AS staff_role, " +
+                     "(SELECT COUNT(*) FROM OrderItems oi3 JOIN TicketTypes tt3 ON oi3.ticket_type_id = tt3.ticket_type_id WHERE tt3.event_id = e2.event_id) AS tickets_sold, " +
+                     "(SELECT COUNT(*) FROM Tickets tk2 JOIN OrderItems oi4 ON tk2.order_item_id = oi4.order_item_id JOIN TicketTypes tt4 ON oi4.ticket_type_id = tt4.ticket_type_id WHERE tt4.event_id = e2.event_id AND tk2.is_checked_in = 1) AS tickets_checked " +
+                     "FROM Events e2 WHERE e2.organizer_id = ? " +
+                     "ORDER BY start_date DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
+            ps.setInt(2, userId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();

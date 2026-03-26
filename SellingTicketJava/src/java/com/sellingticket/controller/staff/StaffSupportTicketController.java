@@ -65,13 +65,24 @@ public class StaffSupportTicketController extends HttpServlet {
                 // List
                 String status = request.getParameter("status");
                 String category = request.getParameter("category");
-                int page = parseIntOrDefault(request.getParameter("page"), 1);
+                int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+                int size = parseIntOrDefault(request.getParameter("size"), 20);
+                if (size < 1 || size > 200) size = 20;
 
-                List<SupportTicket> tickets = ticketService.getAll(status, category, page, 20);
-                request.setAttribute("tickets", tickets);
+                List<SupportTicket> allTickets = ticketService.getAll(status, category, 1, 10000);
+                int totalRecords = allTickets.size();
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+                if (page > totalPages) page = totalPages;
+                int fromIndex = (page - 1) * size;
+                int toIndex = Math.min(fromIndex + size, totalRecords);
+
+                request.setAttribute("tickets", allTickets.subList(fromIndex, toIndex));
                 request.setAttribute("currentPage", page);
                 request.setAttribute("statusFilter", status);
                 request.setAttribute("categoryFilter", category);
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", size);
+                request.setAttribute("totalRecords", totalRecords);
 
                 // Stats
                 request.setAttribute("totalTickets", ticketService.countByStatus(null));

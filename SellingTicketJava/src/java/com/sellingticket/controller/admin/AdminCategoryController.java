@@ -60,8 +60,27 @@ public class AdminCategoryController extends HttpServlet {
     private void listCategories(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            List<Category> categories = categoryService.getAllCategories();
+            List<Category> allCategories = categoryService.getAllCategories();
+            if (allCategories == null) allCategories = java.util.Collections.emptyList();
+
+            int page = parseIntOrDefault(request.getParameter("page"), 1);
+            int size = parseIntOrDefault(request.getParameter("size"), 20);
+            size = Math.max(1, Math.min(200, size));
+            page = Math.max(1, page);
+
+            int total = allCategories.size();
+            int totalPages = Math.max(1, (int) Math.ceil((double) total / size));
+            if (page > totalPages) page = totalPages;
+            int fromIdx = (page - 1) * size;
+            int toIdx = Math.min(fromIdx + size, total);
+            List<Category> categories = allCategories.subList(fromIdx, toIdx);
+
             request.setAttribute("categories", categories);
+            request.setAttribute("allCategories", allCategories);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("pageSize", size);
+            request.setAttribute("totalRecords", total);
             request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
 
             String editId = request.getParameter("edit");

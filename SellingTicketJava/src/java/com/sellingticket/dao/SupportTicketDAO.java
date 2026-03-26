@@ -135,6 +135,35 @@ public class SupportTicketDAO extends DBContext {
         return queryList(sql, eventId);
     }
 
+    /**
+     * Fetch support tickets for multiple events (staff routing).
+     * Allows organizer staff to see tickets routed to their managed events.
+     */
+    public List<SupportTicket> getByEventIds(List<Integer> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) return new ArrayList<>();
+        String placeholders = eventIds.stream().map(id -> "?").collect(java.util.stream.Collectors.joining(","));
+        String sql = "SELECT t.*, u.full_name AS user_name, u.email AS user_email, "
+                   + "o.order_code, e.title AS event_title, a.full_name AS assigned_to_name "
+                   + "FROM SupportTickets t "
+                   + "JOIN Users u ON t.user_id = u.user_id "
+                   + "LEFT JOIN Orders o ON t.order_id = o.order_id "
+                   + "LEFT JOIN Events e ON t.event_id = e.event_id "
+                   + "LEFT JOIN Users a ON t.assigned_to = a.user_id "
+                   + "WHERE t.event_id IN (" + placeholders + ") ORDER BY t.created_at DESC";
+        List<SupportTicket> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < eventIds.size(); i++) {
+                ps.setInt(i + 1, eventIds.get(i));
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) list.add(mapTicket(rs));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to query tickets by eventIds", e);
+        }
+        return list;
+    }
+
     public List<SupportTicket> getAll(String status, String category, int page, int pageSize) {
         StringBuilder sql = new StringBuilder(
             "SELECT t.*, u.full_name AS user_name, u.email AS user_email, "
@@ -251,6 +280,47 @@ public class SupportTicketDAO extends DBContext {
             LOGGER.log(Level.SEVERE, "Failed to count tickets", e);
         }
         return 0;
+    }
+
+    /** Status distribution for chart: [{label, value}] */
+    public java.util.List<java.util.Map<String, Object>> getStatusDistribution() {
+        String sql = "SELECT status, COUNT(*) AS cnt FROM SupportTickets GROUP BY status";
+        java.util.List<java.util.Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("label", rs.getString("status"));
+                m.put("value", rs.getInt("cnt"));
+                list.add(m);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "getStatusDistribution failed", e);
+        }
+        return list;
+    }
+
+    /** Agent workload: ticket count per assigned agent for chart */
+    public java.util.List<java.util.Map<String, Object>> getAgentWorkload() {
+        String sql = "SELECT u.full_name AS agent_name, COUNT(*) AS ticket_count "
+                   + "FROM SupportTickets t JOIN Users u ON t.assigned_to = u.user_id "
+                   + "WHERE t.assigned_to IS NOT NULL "
+                   + "GROUP BY u.full_name ORDER BY ticket_count DESC";
+        java.util.List<java.util.Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("label", rs.getString("agent_name"));
+                m.put("value", rs.getInt("ticket_count"));
+                list.add(m);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "getAgentWorkload failed", e);
+        }
+        return list;
     }
 
     // ========================

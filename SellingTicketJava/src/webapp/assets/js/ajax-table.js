@@ -44,6 +44,7 @@ class AjaxTable {
         this.skeletonRows = config.skeletonRows || 5;
         this.skeletonCols = config.skeletonCols || 6;
         this.totalItemsEl = config.totalItemsEl ? document.querySelector(config.totalItemsEl) : null;
+        this.externalPageSizeSelector = config.pageSizeSelector ? document.querySelector(config.pageSizeSelector) : null;
     }
 
     init() {
@@ -113,6 +114,18 @@ class AjaxTable {
                 this.searchInput.value = '';
                 this.currentPage = 1;
                 this.load();
+            });
+        }
+        
+        // Bind external page size selector if any
+        if (this.externalPageSizeSelector) {
+            this.externalPageSizeSelector.addEventListener('change', (e) => {
+                const newSize = parseInt(e.target.value);
+                if (newSize && newSize !== this.pageSize) {
+                    this.pageSize = newSize;
+                    this.currentPage = 1;
+                    this.load();
+                }
             });
         }
     }
@@ -216,6 +229,9 @@ class AjaxTable {
         if (params.has('page')) {
             this.currentPage = parseInt(params.get('page')) || 1;
         }
+        if (params.has('size')) {
+            this.pageSize = Math.max(1, Math.min(200, parseInt(params.get('size')) || 20));
+        }
         if (params.has('q') && this.searchInput) {
             this.searchInput.value = params.get('q');
         }
@@ -263,37 +279,56 @@ class AjaxTable {
 
     _renderPagination() {
         if (!this.paginationContainer) return;
-        if (this.totalPages <= 1) {
+        if (this.totalPages <= 0) {
             this.paginationContainer.innerHTML = '';
             return;
         }
 
-        let html = '<nav aria-label="Pagination"><ul class="pagination-ajax">';
+        let html = '<div class="d-flex flex-column flex-md-row justify-content-between align-items-center">';
+        
+        // Items Display Info
+        const startRow = (this.currentPage - 1) * this.pageSize + 1;
+        const endRow = Math.min(this.currentPage * this.pageSize, this.totalItems);
+        html += `<div class="text-muted small mb-3 mb-md-0">Hiển thị <b class="text-dark">${startRow} - ${endRow}</b> trong tổng số <b class="text-dark">${this.totalItems}</b> kết quả</div>`;
 
-        // Previous
-        html += `<li class="${this.currentPage <= 1 ? 'disabled' : ''}">
-            <a href="#" data-page="${this.currentPage - 1}" aria-label="Previous">
-                <i class="fas fa-chevron-left"></i>
-            </a></li>`;
+        html += '<div class="d-flex align-items-center gap-3">';
+        
+        // Page Size Selector (Optional inline)
+        html += '<div class="d-flex align-items-center gap-2">';
+        html += '<span class="text-muted small">Cỡ trang:</span>';
+        html += '<select class="form-select form-select-sm glass border-0 rounded-3 text-center fw-bold ajax-page-size-select" style="width: 70px; cursor: pointer;">';
+        [10, 20, 50, 100, 200].forEach(size => {
+            let selected = (parseInt(size) === parseInt(this.pageSize)) ? 'selected' : '';
+            html += `<option value="${size}" ${selected}>${size}</option>`;
+        });
+        html += '</select></div>';
 
-        // Page numbers with ellipsis
+        // Pagination Controls
+        html += '<nav aria-label="Page navigation"><ul class="pagination mb-0 shadow-sm rounded-3 overflow-hidden">';
+        
+        // First & Prev
+        html += `<li class="page-item ${this.currentPage <= 1 ? 'disabled' : ''}"><a class="page-link glass px-3 border-0 py-2" href="#" data-page="1" title="Trang đầu"><i class="fas fa-angle-double-left"></i></a></li>`;
+        html += `<li class="page-item ${this.currentPage <= 1 ? 'disabled' : ''}"><a class="page-link glass px-3 border-0 py-2" href="#" data-page="${this.currentPage - 1}" title="Trang trước"><i class="fas fa-chevron-left"></i></a></li>`;
+
         const pages = this._getPageNumbers();
         for (const p of pages) {
             if (p === '...') {
-                html += '<li class="ellipsis"><span>...</span></li>';
+                html += '<li class="page-item disabled"><span class="page-link glass px-3 border-0 py-2 text-muted">...</span></li>';
             } else {
-                html += `<li class="${p === this.currentPage ? 'active' : ''}">
-                    <a href="#" data-page="${p}">${p}</a></li>`;
+                if (parseInt(p) === parseInt(this.currentPage)) {
+                    html += `<li class="page-item active" style="z-index: 1;"><a class="page-link fw-bold border-0 py-2 px-3 shadow" href="#" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">${p}</a></li>`;
+                } else {
+                    html += `<li class="page-item"><a class="page-link glass px-3 border-0 py-2 fw-medium text-dark hover-primary" href="#" data-page="${p}">${p}</a></li>`;
+                }
             }
         }
 
-        // Next
-        html += `<li class="${this.currentPage >= this.totalPages ? 'disabled' : ''}">
-            <a href="#" data-page="${this.currentPage + 1}" aria-label="Next">
-                <i class="fas fa-chevron-right"></i>
-            </a></li>`;
-
+        // Next & Last
+        html += `<li class="page-item ${this.currentPage >= this.totalPages ? 'disabled' : ''}"><a class="page-link glass px-3 border-0 py-2" href="#" data-page="${this.currentPage + 1}" title="Trang sau"><i class="fas fa-chevron-right"></i></a></li>`;
+        html += `<li class="page-item ${this.currentPage >= this.totalPages ? 'disabled' : ''}"><a class="page-link glass px-3 border-0 py-2" href="#" data-page="${this.totalPages}" title="Trang cuối"><i class="fas fa-angle-double-right"></i></a></li>`;
         html += '</ul></nav>';
+        html += '</div></div>';
+
         this.paginationContainer.innerHTML = html;
 
         // Bind page clicks
@@ -305,10 +340,32 @@ class AjaxTable {
                     this.currentPage = page;
                     this.load();
                     // Scroll to top of table
-                    this.tableBody.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const tableContainer = this.tableBody.closest('.card, .container, .container-fluid');
+                    if (tableContainer) {
+                        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 }
             });
         });
+
+        // Bind page size select in pagination container
+        const sizeSelect = this.paginationContainer.querySelector('.ajax-page-size-select');
+        if (sizeSelect) {
+            sizeSelect.addEventListener('change', (e) => {
+                const newSize = parseInt(e.target.value);
+                if (newSize && newSize !== this.pageSize) {
+                    this.pageSize = newSize;
+                    if (this.externalPageSizeSelector) this.externalPageSizeSelector.value = newSize;
+                    this.currentPage = 1; // Reset to page 1 on size change
+                    this.load();
+                }
+            });
+        }
+        
+        // Sync external page size selector if it exists
+        if (this.externalPageSizeSelector) {
+            this.externalPageSizeSelector.value = this.pageSize;
+        }
     }
 
     _getPageNumbers() {

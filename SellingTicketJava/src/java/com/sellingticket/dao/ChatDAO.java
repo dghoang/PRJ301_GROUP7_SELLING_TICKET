@@ -370,4 +370,32 @@ public class ChatDAO extends DBContext {
         if (score >= 50) return "regular";
         return "registered";
     }
+
+    // ========================
+    // STATS (for dashboard)
+    // ========================
+
+    /** Count all globally active chat sessions. */
+    public int countActiveSessions() {
+        return countSessionsByStatus("active");
+    }
+
+    /** Count all waiting (unassigned) chat sessions. */
+    public int countWaitingSessions() {
+        return countSessionsByStatus("waiting");
+    }
+
+    private int countSessionsByStatus(String status) {
+        String sql = "SELECT COUNT(*) FROM ChatSessions WHERE status = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "countSessionsByStatus(" + status + ") failed", e);
+        }
+        return 0;
+    }
 }

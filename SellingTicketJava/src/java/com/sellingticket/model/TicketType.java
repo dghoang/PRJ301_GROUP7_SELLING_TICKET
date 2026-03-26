@@ -15,6 +15,9 @@ public class TicketType {
     private boolean isActive;
     private Date createdAt;
 
+    // Transient field — populated by controller, not persisted
+    private String eventTitle;
+
     public TicketType() {}
 
     // Getters and Setters
@@ -26,6 +29,9 @@ public class TicketType {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    /** JSP EL alias: ${tt.typeName} resolves to getName() */
+    public String getTypeName() { return name; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -39,6 +45,9 @@ public class TicketType {
     public int getSoldQuantity() { return soldQuantity; }
     public void setSoldQuantity(int soldQuantity) { this.soldQuantity = soldQuantity; }
 
+    /** JSP EL alias: ${tt.soldCount} resolves to getSoldQuantity() */
+    public int getSoldCount() { return soldQuantity; }
+
     public Date getSaleStart() { return saleStart; }
     public void setSaleStart(Date saleStart) { this.saleStart = saleStart; }
 
@@ -50,6 +59,9 @@ public class TicketType {
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+
+    public String getEventTitle() { return eventTitle; }
+    public void setEventTitle(String eventTitle) { this.eventTitle = eventTitle; }
     
     public int getAvailableQuantity() {
         return quantity - soldQuantity;

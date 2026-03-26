@@ -95,13 +95,31 @@ public class EventDAO extends BaseDAO {
             "ON tp.event_id = e.event_id ";
 
     public List<Event> getApprovedEvents(boolean featuredOnly, int limit) {
-        String where = featuredOnly
-                ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND (e.end_date IS NULL OR e.end_date >= GETDATE()) AND (e.is_deleted = 0 OR e.is_deleted IS NULL) "
-                : "WHERE e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()) AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ";
-        String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) + where +
-                     "ORDER BY ISNULL(e.pin_order, 0) DESC, e.start_date ASC";
-        
-        return queryList(sql, ps -> ps.setInt(1, limit), this::mapEventWithJoins);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
+            
+            String where = featuredOnly
+                    ? "WHERE e.status = 'approved' AND e.is_featured = 1 AND (e.end_date IS NULL OR e.end_date >= GETDATE()) " + sdFilter
+                    : "WHERE e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()) " + sdFilter;
+            
+            String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) + where +
+                         "ORDER BY ISNULL(e.pin_order, 0) DESC, e.start_date ASC";
+            
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, limit);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Event> results = new ArrayList<>();
+                    while (rs.next()) {
+                        results.add(mapEventWithJoins(rs));
+                    }
+                    return results;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to get approved events", e);
+            return new ArrayList<>();
+        }
     }
 
     public List<Event> getFeaturedEvents(int limit) {
@@ -113,32 +131,48 @@ public class EventDAO extends BaseDAO {
     }
 
     public List<Event> searchEvents(String keyword, String category, String dateFilter, int page, int pageSize) {
-        StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
-        sql.append("WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
-        }
-        if (category != null && !category.trim().isEmpty()) {
-            sql.append("AND c.slug = ? ");
-        }
-        appendDateFilter(sql, dateFilter);
+            StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
+            sql.append("WHERE e.status = 'approved' ").append(sdFilter);
 
-        sql.append("ORDER BY e.start_date ASC ");
-        sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-
-        return queryList(sql.toString(), ps -> {
-            int idx = 1;
             if (keyword != null && !keyword.trim().isEmpty()) {
-                ps.setString(idx++, "%" + keyword + "%");
-                ps.setString(idx++, "%" + keyword + "%");
+                sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
             }
             if (category != null && !category.trim().isEmpty()) {
-                ps.setString(idx++, category);
+                sql.append("AND c.slug = ? ");
             }
-            ps.setInt(idx++, (page - 1) * pageSize);
-            ps.setInt(idx, pageSize);
-        }, this::mapEventWithJoins);
+            appendDateFilter(sql, dateFilter);
+
+            sql.append("ORDER BY e.start_date ASC ");
+            sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int idx = 1;
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    ps.setString(idx++, "%" + keyword + "%");
+                    ps.setString(idx++, "%" + keyword + "%");
+                }
+                if (category != null && !category.trim().isEmpty()) {
+                    ps.setString(idx++, category);
+                }
+                ps.setInt(idx++, (page - 1) * pageSize);
+                ps.setInt(idx, pageSize);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Event> results = new ArrayList<>();
+                    while (rs.next()) {
+                        results.add(mapEventWithJoins(rs));
+                    }
+                    return results;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to search events", e);
+            return new ArrayList<>();
+        }
     }
 
     private void appendDateFilter(StringBuilder sql, String dateFilter) {
@@ -184,41 +218,64 @@ public class EventDAO extends BaseDAO {
     }
 
     public List<Event> getEventsByOrganizer(int organizerId) {
-        String sql = "SELECT e.*, c.name as category_name, " +
-                     "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
-                     "ISNULL(ts.total_tickets, 0) as total_tickets, " +
-                     "ISNULL(rev.revenue, 0) as revenue " +
-                     "FROM Events e " +
-                     "JOIN Categories c ON e.category_id = c.category_id " +
-                     "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
-                     "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
-                     "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
-                     "           FROM OrderItems oi " +
-                     "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
-                     "           JOIN Orders o ON oi.order_id = o.order_id " +
-                     "           WHERE o.status IN ('paid','completed') " +
-                     "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
-                     "WHERE e.organizer_id = ? AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ORDER BY e.created_at DESC";
-                     
-        return queryList(sql, ps -> ps.setInt(1, organizerId), rs -> {
-            Event event = mapResultSetToEvent(rs);
-            event.setCategoryName(rs.getString("category_name"));
-            event.setSoldTickets(rs.getInt("sold_tickets"));
-            event.setTotalTickets(rs.getInt("total_tickets"));
-            event.setRevenue(rs.getDouble("revenue"));
-            return event;
-        });
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
+
+            String sql = "SELECT e.*, c.name as category_name, " +
+                         "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                         "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                         "ISNULL(rev.revenue, 0) as revenue " +
+                         "FROM Events e " +
+                         "JOIN Categories c ON e.category_id = c.category_id " +
+                         "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                         "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                         "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                         "           FROM OrderItems oi " +
+                         "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                         "           JOIN Orders o ON oi.order_id = o.order_id " +
+                         "           WHERE o.status IN ('paid','completed') " +
+                         "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id " +
+                         "WHERE e.organizer_id = ? " + sdFilter + " ORDER BY e.created_at DESC";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, organizerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Event> results = new ArrayList<>();
+                    while (rs.next()) {
+                        Event event = mapResultSetToEvent(rs);
+                        event.setCategoryName(rs.getString("category_name"));
+                        event.setSoldTickets(rs.getInt("sold_tickets"));
+                        event.setTotalTickets(rs.getInt("total_tickets"));
+                        event.setRevenue(rs.getDouble("revenue"));
+                        results.add(event);
+                    }
+                    return results;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to get events by organizer", e);
+            return new ArrayList<>();
+        }
     }
 
     public int countApprovedEventsForUser(int userId) {
-        String sql = "SELECT COUNT(*) FROM Events WHERE " +
-                     "(organizer_id = ? OR event_id IN (SELECT event_id FROM EventStaff WHERE user_id = ?)) " +
-                     "AND status IN ('approved', 'ended', 'completed', 'cancelled') " +
-                     "AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return queryScalar(sql, ps -> {
-            ps.setInt(1, userId);
-            ps.setInt(2, userId);
-        }, 0);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
+            
+            String sql = "SELECT COUNT(*) FROM Events WHERE " +
+                         "(organizer_id = ? OR event_id IN (SELECT event_id FROM EventStaff WHERE user_id = ?)) " +
+                         "AND status IN ('approved', 'ended', 'completed', 'cancelled') " + sdFilter;
+            
+            return queryScalar(sql, ps -> {
+                ps.setInt(1, userId);
+                ps.setInt(2, userId);
+            }, 0);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to count approved events", e);
+            return 0;
+        }
     }
 
     public List<Event> getAllEventsWithStats() {
@@ -251,18 +308,26 @@ public class EventDAO extends BaseDAO {
     }
 
     public List<Event> getPendingEvents() {
-        String sql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name " +
-                     "FROM Events e " +
-                     "JOIN Categories c ON e.category_id = c.category_id " +
-                     "JOIN Users u ON e.organizer_id = u.user_id " +
-                     "WHERE e.status = 'pending' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ORDER BY e.created_at DESC";
-                     
-        return queryList(sql, NO_PARAMS, rs -> {
-            Event event = mapResultSetToEvent(rs);
-            event.setCategoryName(rs.getString("category_name"));
-            event.setOrganizerName(rs.getString("organizer_name"));
-            return event;
-        });
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
+
+            String sql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name " +
+                         "FROM Events e " +
+                         "JOIN Categories c ON e.category_id = c.category_id " +
+                         "JOIN Users u ON e.organizer_id = u.user_id " +
+                         "WHERE e.status = 'pending' " + sdFilter + "ORDER BY e.created_at DESC";
+                         
+            return queryList(sql, NO_PARAMS, rs -> {
+                Event event = mapResultSetToEvent(rs);
+                event.setCategoryName(rs.getString("category_name"));
+                event.setOrganizerName(rs.getString("organizer_name"));
+                return event;
+            });
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to get pending events", e);
+            return new ArrayList<>();
+        }
     }
 
     public boolean createEvent(Event event) {
@@ -417,24 +482,42 @@ public class EventDAO extends BaseDAO {
     }
 
     public boolean updateEventStatus(int eventId, String status) {
-        String sql = "UPDATE Events " +
-                     "SET status = ?, rejection_reason = NULL, rejected_at = NULL, updated_at = GETDATE() " +
-                     "WHERE event_id = ? AND status IN ('pending', 'draft') AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return executeUpdate(sql, ps -> {
-            ps.setString(1, status);
-            ps.setInt(2, eventId);
-        }) > 0;
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
+            
+            String sql = "UPDATE Events " +
+                         "SET status = ?, rejection_reason = NULL, rejected_at = NULL, updated_at = GETDATE() " +
+                         "WHERE event_id = ? AND status IN ('pending', 'draft')" + sdFilter;
+            
+            return executeUpdate(sql, ps -> {
+                ps.setString(1, status);
+                ps.setInt(2, eventId);
+            }) > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to update event status", e);
+            return false;
+        }
     }
 
     public boolean updateEventStatusWithReason(int eventId, String status, String reason) {
-        String sql = "UPDATE Events " +
-                     "SET status = ?, rejection_reason = ?, rejected_at = GETDATE(), updated_at = GETDATE() " +
-                     "WHERE event_id = ? AND status IN ('pending', 'draft') AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return executeUpdate(sql, ps -> {
-            ps.setString(1, status);
-            ps.setString(2, reason);
-            ps.setInt(3, eventId);
-        }) > 0;
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
+
+            String sql = "UPDATE Events " +
+                         "SET status = ?, rejection_reason = ?, rejected_at = GETDATE(), updated_at = GETDATE() " +
+                         "WHERE event_id = ? AND status IN ('pending', 'draft')" + sdFilter;
+            
+            return executeUpdate(sql, ps -> {
+                ps.setString(1, status);
+                ps.setString(2, reason);
+                ps.setInt(3, eventId);
+            }) > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to update event status with reason", e);
+            return false;
+        }
     }
 
     public void incrementViews(int eventId) {
@@ -448,52 +531,86 @@ public class EventDAO extends BaseDAO {
     }
 
     public List<Event> getRelatedEvents(int categoryId, int currentEventId, int limit) {
-        String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) +
-                     "WHERE e.status = 'approved' AND e.category_id = ? AND e.event_id != ? AND (e.end_date IS NULL OR e.end_date >= GETDATE()) " +
-                     "AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " +
-                     "ORDER BY e.start_date ASC";
-        return queryList(sql, ps -> {
-            ps.setInt(1, limit);
-            ps.setInt(2, categoryId);
-            ps.setInt(3, currentEventId);
-        }, this::mapEventWithJoins);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
+
+            String sql = "SELECT TOP (?) " + BASE_SELECT_WITH_JOINS.substring("SELECT ".length()) +
+                         "WHERE e.status = 'approved' AND e.category_id = ? AND e.event_id != ? AND (e.end_date IS NULL OR e.end_date >= GETDATE()) " +
+                         sdFilter + "ORDER BY e.start_date ASC";
+            
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, limit);
+                ps.setInt(2, categoryId);
+                ps.setInt(3, currentEventId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Event> results = new ArrayList<>();
+                    while (rs.next()) {
+                        results.add(mapEventWithJoins(rs));
+                    }
+                    return results;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to get related events", e);
+            return new ArrayList<>();
+        }
     }
 
     public boolean updateEvent(Event event) {
-        String sql = "UPDATE Events SET " +
-                     "category_id = ?, title = ?, slug = ?, short_description = ?, description = ?, banner_image = ?, " +
-                     "location = ?, address = ?, start_date = ?, end_date = ?, " +
-                     "status = ?, is_featured = ?, is_private = ?, " +
-                     "max_tickets_per_order = ?, max_total_tickets = ?, pre_order_enabled = ?, " +
-                     "updated_at = GETDATE() " +
-                     "WHERE event_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return executeUpdate(sql, ps -> {
-            ps.setInt(1, event.getCategoryId());
-            ps.setString(2, event.getTitle());
-            ps.setString(3, event.getSlug());
-            ps.setString(4, event.getShortDescription());
-            ps.setString(5, event.getDescription());
-            ps.setString(6, event.getBannerImage());
-            ps.setString(7, event.getLocation());
-            ps.setString(8, event.getAddress());
-            ps.setTimestamp(9, new Timestamp(event.getStartDate().getTime()));
-            ps.setTimestamp(10, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
-            // "ended" is a computed display status; persist as "approved" in DB.
-            String normalizedStatus = "ended".equalsIgnoreCase(event.getStatus()) ? "approved" : event.getStatus();
-            ps.setString(11, normalizedStatus);
-            ps.setBoolean(12, event.isFeatured());
-            ps.setBoolean(13, event.isPrivate());
-            ps.setInt(14, event.getMaxTicketsPerOrder());
-            ps.setInt(15, event.getMaxTotalTickets());
-            ps.setBoolean(16, event.isPreOrderEnabled());
-            ps.setInt(17, event.getEventId());
-        }) > 0;
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
+
+            String sql = "UPDATE Events SET " +
+                         "category_id = ?, title = ?, slug = ?, short_description = ?, description = ?, banner_image = ?, " +
+                         "location = ?, address = ?, start_date = ?, end_date = ?, " +
+                         "status = ?, is_featured = ?, is_private = ?, " +
+                         "max_tickets_per_order = ?, max_total_tickets = ?, pre_order_enabled = ?, " +
+                         "updated_at = GETDATE() " +
+                         "WHERE event_id = ?" + sdFilter;
+            
+            return executeUpdate(sql, ps -> {
+                ps.setInt(1, event.getCategoryId());
+                ps.setString(2, event.getTitle());
+                ps.setString(3, event.getSlug());
+                ps.setString(4, event.getShortDescription());
+                ps.setString(5, event.getDescription());
+                ps.setString(6, event.getBannerImage());
+                ps.setString(7, event.getLocation());
+                ps.setString(8, event.getAddress());
+                ps.setTimestamp(9, new Timestamp(event.getStartDate().getTime()));
+                ps.setTimestamp(10, event.getEndDate() != null ? new Timestamp(event.getEndDate().getTime()) : null);
+                String normalizedStatus = "ended".equalsIgnoreCase(event.getStatus()) ? "approved" : event.getStatus();
+                ps.setString(11, normalizedStatus);
+                ps.setBoolean(12, event.isFeatured());
+                ps.setBoolean(13, event.isPrivate());
+                ps.setInt(14, event.getMaxTicketsPerOrder());
+                ps.setInt(15, event.getMaxTotalTickets());
+                ps.setBoolean(16, event.isPreOrderEnabled());
+                ps.setInt(17, event.getEventId());
+            }) > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to update event", e);
+            return false;
+        }
     }
 
     public boolean deleteEvent(int eventId) {
-        String sql = "UPDATE Events SET is_deleted = 1, status = 'cancelled', updated_at = GETDATE() " +
-                     "WHERE event_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return executeUpdate(sql, ps -> ps.setInt(1, eventId)) > 0;
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            if (hasSD) {
+                String sql = "UPDATE Events SET is_deleted = 1, status = 'cancelled', updated_at = GETDATE() " +
+                             "WHERE event_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
+                return executeUpdate(sql, ps -> ps.setInt(1, eventId)) > 0;
+            } else {
+                String sql = "UPDATE Events SET status = 'cancelled', updated_at = GETDATE() WHERE event_id = ?";
+                return executeUpdate(sql, ps -> ps.setInt(1, eventId)) > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to delete event", e);
+            return false;
+        }
     }
 
     public boolean updateEventSettings(int eventId, int maxTicketsPerOrder, int maxTotalTickets, boolean preOrderEnabled) {
@@ -508,57 +625,100 @@ public class EventDAO extends BaseDAO {
     }
 
     public List<Event> getAllEvents(String status, int page, int pageSize) {
-        StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " (1=1) ";
 
-        boolean hasStatus = status != null && !status.trim().isEmpty();
-        sql.append("WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
-        if (hasStatus) sql.append("AND e.status = ? ");
-        sql.append("ORDER BY e.created_at DESC ");
-        sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            StringBuilder sql = new StringBuilder(BASE_SELECT_WITH_JOINS);
+            sql.append("WHERE ").append(sdFilter);
 
-        return queryList(sql.toString(), ps -> {
-            int idx = 1;
-            if (hasStatus) ps.setString(idx++, status);
-            ps.setInt(idx++, (page - 1) * pageSize);
-            ps.setInt(idx, pageSize);
-        }, this::mapEventWithJoins);
+            boolean hasStatus = status != null && !status.trim().isEmpty();
+            if (hasStatus) sql.append("AND e.status = ? ");
+            sql.append("ORDER BY e.created_at DESC ");
+            sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int idx = 1;
+                if (hasStatus) ps.setString(idx++, status);
+                ps.setInt(idx++, (page - 1) * pageSize);
+                ps.setInt(idx, pageSize);
+                
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Event> results = new ArrayList<>();
+                    while (rs.next()) {
+                        results.add(mapEventWithJoins(rs));
+                    }
+                    return results;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to get all events", e);
+            return new ArrayList<>();
+        }
     }
 
     public int countEventsByStatus(String status) {
-        String sql = "SELECT COUNT(*) FROM Events WHERE status = ? AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return queryScalar(sql, ps -> ps.setString(1, status), 0);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
+            
+            String sql = "SELECT COUNT(*) FROM Events WHERE status = ?" + sdFilter;
+            return queryScalar(sql, ps -> ps.setString(1, status), 0);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to count events by status", e);
+            return 0;
+        }
     }
 
     public int countPendingEventsByOrganizer(int organizerId) {
-        String sql = "SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'pending' " +
-                     "AND (is_deleted = 0 OR is_deleted IS NULL)";
-        return queryScalar(sql, ps -> ps.setInt(1, organizerId), 0);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (is_deleted = 0 OR is_deleted IS NULL)" : "";
+            
+            String sql = "SELECT COUNT(*) FROM Events WHERE organizer_id = ? AND status = 'pending' " + sdFilter;
+            return queryScalar(sql, ps -> ps.setInt(1, organizerId), 0);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to count pending events", e);
+            return 0;
+        }
     }
 
     public int countSearchEvents(String keyword, String category, String dateFilter) {
-        StringBuilder sql = new StringBuilder(
-                "SELECT COUNT(*) FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " +
-            "WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
-        }
-        if (category != null && !category.trim().isEmpty()) {
-            sql.append("AND c.slug = ? ");
-        }
-        appendDateFilter(sql, dateFilter);
+            StringBuilder sql = new StringBuilder(
+                    "SELECT COUNT(*) FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " +
+                "WHERE e.status = 'approved' ").append(sdFilter);
 
-        return queryScalar(sql.toString(), ps -> {
-            int idx = 1;
             if (keyword != null && !keyword.trim().isEmpty()) {
-                ps.setString(idx++, "%" + keyword + "%");
-                ps.setString(idx++, "%" + keyword + "%");
+                sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
             }
             if (category != null && !category.trim().isEmpty()) {
-                ps.setString(idx++, category);
+                sql.append("AND c.slug = ? ");
             }
-        }, 0);
+            appendDateFilter(sql, dateFilter);
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int idx = 1;
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    ps.setString(idx++, "%" + keyword + "%");
+                    ps.setString(idx++, "%" + keyword + "%");
+                }
+                if (category != null && !category.trim().isEmpty()) {
+                    ps.setString(idx++, category);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return rs.getInt(1);
+                    return 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to count search events", e);
+            return 0;
+        }
     }
 
     public Map<String, Integer> getAdminEventStatusCounts(String keyword, String category) {
@@ -567,37 +727,46 @@ public class EventDAO extends BaseDAO {
         counts.put("approved", 0);
         counts.put("rejected", 0);
 
-        StringBuilder sql = new StringBuilder(
-                "SELECT e.status, COUNT(*) AS total " +
-                "FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " +
-                "WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
 
-        List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
-            String kw = "%" + keyword.trim() + "%";
-            params.add(kw);
-            params.add(kw);
-        }
-        if (category != null && !category.trim().isEmpty()) {
-            sql.append("AND c.slug = ? ");
-            params.add(category.trim());
-        }
+            StringBuilder sql = new StringBuilder(
+                    "SELECT e.status, COUNT(*) AS total " +
+                    "FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " +
+                    "WHERE (1=1) ").append(sdFilter);
 
-        sql.append("GROUP BY e.status");
-
-        List<Map.Entry<String, Integer>> rows = queryList(sql.toString(), ps -> {
-            int idx = 1;
-            for (Object param : params) {
-                ps.setString(idx++, (String) param);
+            List<Object> params = new ArrayList<>();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                sql.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+                String kw = "%" + keyword.trim() + "%";
+                params.add(kw);
+                params.add(kw);
             }
-        }, rs -> new java.util.AbstractMap.SimpleEntry<>(rs.getString("status"), rs.getInt("total")));
-
-        for (Map.Entry<String, Integer> row : rows) {
-            if (counts.containsKey(row.getKey())) {
-                counts.put(row.getKey(), row.getValue());
+            if (category != null && !category.trim().isEmpty()) {
+                sql.append("AND c.slug = ? ");
+                params.add(category.trim());
             }
+
+            sql.append("GROUP BY e.status");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int idx = 1;
+                for (Object param : params) {
+                    ps.setString(idx++, (String) param);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String status = rs.getString("status");
+                        if (counts.containsKey(status)) {
+                            counts.put(status, rs.getInt("total"));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed to get admin event status counts", e);
         }
         return counts;
     }
@@ -623,205 +792,281 @@ public class EventDAO extends BaseDAO {
             String dateFrom, String dateTo, Double priceMin, Double priceMax,
             String sort, int page, int pageSize) {
 
-        StringBuilder where = new StringBuilder();
-        where.append("WHERE e.status = 'approved' AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
-        where.append("AND (e.end_date IS NULL OR e.end_date >= GETDATE()) ");
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
 
-        List<Object> params = new ArrayList<>();
+            StringBuilder where = new StringBuilder();
+            where.append("WHERE e.status = 'approved' ").append(sdFilter);
+            where.append("AND (e.end_date IS NULL OR e.end_date >= GETDATE()) ");
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append("AND (e.title LIKE ? OR e.description LIKE ? OR e.location LIKE ?) ");
-            String kw = "%" + keyword.trim() + "%";
-            params.add(kw); params.add(kw); params.add(kw);
-        }
-        if (category != null && !category.trim().isEmpty()) {
-            where.append("AND c.slug = ? ");
-            params.add(category.trim());
-        }
-        if (dateFrom != null && !dateFrom.trim().isEmpty()) {
-            where.append("AND CAST(e.start_date AS DATE) >= ? ");
-            params.add(dateFrom.trim());
-        }
-        if (dateTo != null && !dateTo.trim().isEmpty()) {
-            where.append("AND CAST(e.start_date AS DATE) <= ? ");
-            params.add(dateTo.trim());
-        }
-        if (priceMin != null) {
-            where.append("AND ISNULL(tp.min_price, 0) >= ? ");
-            params.add(priceMin);
-        }
-        if (priceMax != null) {
-            where.append("AND ISNULL(tp.min_price, 0) <= ? ");
-            params.add(priceMax);
-        }
+            List<Object> params = new ArrayList<>();
 
-        String orderBy;
-        switch (sort != null ? sort : "date_asc") {
-            case "date_desc": orderBy = "ORDER BY e.start_date DESC "; break;
-            case "price_asc": orderBy = "ORDER BY ISNULL(tp.min_price, 0) ASC "; break;
-            case "price_desc": orderBy = "ORDER BY ISNULL(tp.min_price, 0) DESC "; break;
-            case "popular": orderBy = "ORDER BY e.views DESC "; break;
-            case "newest": orderBy = "ORDER BY e.created_at DESC "; break;
-            default: orderBy = "ORDER BY e.start_date ASC "; break;
-        }
-
-        String dataSql = BASE_SELECT_WITH_JOINS + where.toString() + orderBy + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        String countSql = "SELECT COUNT(*) FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " +
-                "LEFT JOIN (SELECT event_id, MIN(price) as min_price FROM TicketTypes GROUP BY event_id) tp ON tp.event_id = e.event_id " +
-                where.toString();
-
-        ParamSetter setter = ps -> {
-            int idx = 1;
-            for (Object p : params) {
-                if (p instanceof String) ps.setString(idx++, (String) p);
-                else if (p instanceof Double) ps.setDouble(idx++, (Double) p);
-                else if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                where.append("AND (e.title LIKE ? OR e.description LIKE ? OR e.location LIKE ?) ");
+                String kw = "%" + keyword.trim() + "%";
+                params.add(kw); params.add(kw); params.add(kw);
             }
-        };
+            if (category != null && !category.trim().isEmpty()) {
+                where.append("AND c.slug = ? ");
+                params.add(category.trim());
+            }
+            if (dateFrom != null && !dateFrom.trim().isEmpty()) {
+                where.append("AND CAST(e.start_date AS DATE) >= ? ");
+                params.add(dateFrom.trim());
+            }
+            if (dateTo != null && !dateTo.trim().isEmpty()) {
+                where.append("AND CAST(e.start_date AS DATE) <= ? ");
+                params.add(dateTo.trim());
+            }
+            if (priceMin != null) {
+                where.append("AND ISNULL(tp.min_price, 0) >= ? ");
+                params.add(priceMin);
+            }
+            if (priceMax != null) {
+                where.append("AND ISNULL(tp.min_price, 0) <= ? ");
+                params.add(priceMax);
+            }
 
-        return queryPaged(dataSql, countSql, setter, this::mapEventWithJoins, page, pageSize);
+            String orderBy;
+            switch (sort != null ? sort : "date_asc") {
+                case "date_desc": orderBy = "ORDER BY e.start_date DESC "; break;
+                case "price_asc": orderBy = "ORDER BY ISNULL(tp.min_price, 0) ASC "; break;
+                case "price_desc": orderBy = "ORDER BY ISNULL(tp.min_price, 0) DESC "; break;
+                case "popular": orderBy = "ORDER BY e.views DESC "; break;
+                case "newest": orderBy = "ORDER BY e.created_at DESC "; break;
+                default: orderBy = "ORDER BY e.start_date ASC "; break;
+            }
+
+            String dataSql = BASE_SELECT_WITH_JOINS + where.toString() + orderBy + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            String countSql = "SELECT COUNT(*) FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " +
+                    "LEFT JOIN (SELECT event_id, MIN(price) as min_price FROM TicketTypes GROUP BY event_id) tp ON tp.event_id = e.event_id " +
+                    where.toString();
+
+            int totalItems = 0;
+            try (PreparedStatement ps = conn.prepareStatement(countSql)) {
+                int idx = 1;
+                for (Object p : params) {
+                    if (p instanceof String) ps.setString(idx++, (String) p);
+                    else if (p instanceof Double) ps.setDouble(idx++, (Double) p);
+                    else if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) totalItems = rs.getInt(1);
+                }
+            }
+
+            List<Event> items = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(dataSql)) {
+                int idx = 1;
+                for (Object p : params) {
+                    if (p instanceof String) ps.setString(idx++, (String) p);
+                    else if (p instanceof Double) ps.setDouble(idx++, (Double) p);
+                    else if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+                }
+                ps.setInt(idx++, (page - 1) * pageSize);
+                ps.setInt(idx, pageSize);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        items.add(mapEventWithJoins(rs));
+                    }
+                }
+            }
+            return new PageResult<>(items, totalItems, page, pageSize);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed searchEventsPaged", e);
+            return new PageResult<>(new ArrayList<>(), 0, page, pageSize);
+        }
     }
 
     // Paginated search for admin event management
     public PageResult<Event> getAllEventsPaged(String keyword, String[] statuses,
             String category, int page, int pageSize) {
 
-        StringBuilder where = new StringBuilder("WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
-        List<Object> params = new ArrayList<>();
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " WHERE (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " WHERE (1=1) ";
+            List<Object> params = new ArrayList<>();
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
-            String kw = "%" + keyword.trim() + "%";
-            params.add(kw); params.add(kw);
-        }
-        if (statuses != null && statuses.length > 0) {
-            where.append("AND e.status IN (");
-            for (int i = 0; i < statuses.length; i++) {
-                where.append(i > 0 ? ",?" : "?");
-                params.add(statuses[i]);
+            StringBuilder where = new StringBuilder(sdFilter);
+
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                where.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+                String kw = "%" + keyword.trim() + "%";
+                params.add(kw); params.add(kw);
             }
-            where.append(") ");
-        }
-        if (category != null && !category.trim().isEmpty()) {
-            where.append("AND c.slug = ? ");
-            params.add(category.trim());
-        }
-
-        String baseSql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
-                "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
-                "ISNULL(ts.total_tickets, 0) as total_tickets, " +
-                "ISNULL(rev.revenue, 0) as revenue " +
-                "FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " +
-                "JOIN Users u ON e.organizer_id = u.user_id " +
-                "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
-                "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
-                "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
-                "           FROM OrderItems oi " +
-                "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
-                "           JOIN Orders o ON oi.order_id = o.order_id " +
-                "           WHERE o.status IN ('paid','completed') " +
-                "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id ";
-
-        String dataSql = baseSql + where.toString() + "ORDER BY e.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        String countSql = "SELECT COUNT(*) FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " + where.toString();
-
-        ParamSetter setter = ps -> {
-            int idx = 1;
-            for (Object p : params) {
-                if (p instanceof String) ps.setString(idx++, (String) p);
+            if (statuses != null && statuses.length > 0) {
+                where.append("AND e.status IN (");
+                for (int i = 0; i < statuses.length; i++) {
+                    where.append(i > 0 ? ",?" : "?");
+                    params.add(statuses[i]);
+                }
+                where.append(") ");
             }
-        };
+            if (category != null && !category.trim().isEmpty()) {
+                where.append("AND c.slug = ? ");
+                params.add(category.trim());
+            }
 
-        return queryPaged(dataSql, countSql, setter, rs -> {
-            Event event = mapResultSetToEvent(rs);
-            event.setCategoryName(rs.getString("category_name"));
-            event.setOrganizerName(rs.getString("organizer_name"));
-            event.setSoldTickets(rs.getInt("sold_tickets"));
-            event.setTotalTickets(rs.getInt("total_tickets"));
-            event.setRevenue(rs.getDouble("revenue"));
-            return event;
-        }, page, pageSize);
+            String baseSql = "SELECT e.*, c.name as category_name, u.full_name as organizer_name, " +
+                    "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                    "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                    "ISNULL(rev.revenue, 0) as revenue " +
+                    "FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " +
+                    "JOIN Users u ON e.organizer_id = u.user_id " +
+                    "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                    "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                    "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                    "           FROM OrderItems oi " +
+                    "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                    "           JOIN Orders o ON oi.order_id = o.order_id " +
+                    "           WHERE o.status IN ('paid','completed') " +
+                    "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id ";
+
+            String dataSql = baseSql + where.toString() + "ORDER BY e.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            String countSql = "SELECT COUNT(*) FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " + where.toString();
+
+            int totalItems = 0;
+            try (PreparedStatement ps = conn.prepareStatement(countSql)) {
+                int idx = 1;
+                for (Object p : params) {
+                    ps.setString(idx++, (String) p);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) totalItems = rs.getInt(1);
+                }
+            }
+
+            List<Event> items = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(dataSql)) {
+                int idx = 1;
+                for (Object p : params) {
+                    ps.setString(idx++, (String) p);
+                }
+                ps.setInt(idx++, (page - 1) * pageSize);
+                ps.setInt(idx, pageSize);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Event event = mapResultSetToEvent(rs);
+                        event.setCategoryName(rs.getString("category_name"));
+                        event.setOrganizerName(rs.getString("organizer_name"));
+                        event.setSoldTickets(rs.getInt("sold_tickets"));
+                        event.setTotalTickets(rs.getInt("total_tickets"));
+                        event.setRevenue(rs.getDouble("revenue"));
+                        items.add(event);
+                    }
+                }
+            }
+            return new PageResult<>(items, totalItems, page, pageSize);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed getAllEventsPaged", e);
+            return new PageResult<>(new ArrayList<>(), 0, page, pageSize);
+        }
     }
 
     // Paginated search for organizer's own events
     public PageResult<Event> getEventsByOrganizerPaged(int organizerId, String keyword,
             String[] statuses, int page, int pageSize) {
 
-        StringBuilder where = new StringBuilder(
-            "WHERE (e.organizer_id = ? OR EXISTS (" +
-            "SELECT 1 FROM EventStaff es WHERE es.event_id = e.event_id AND es.user_id = ?" +
-            ")) AND (e.is_deleted = 0 OR e.is_deleted IS NULL) ");
-        List<Object> params = new ArrayList<>();
-        params.add(organizerId);
-        params.add(organizerId);
+        try (Connection conn = getConnection()) {
+            boolean hasSD = hasColumn(conn, "Events", "is_deleted");
+            String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            where.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
-            String kw = "%" + keyword.trim() + "%";
-            params.add(kw); params.add(kw);
-        }
-        if (statuses != null && statuses.length > 0) {
-            List<String> statusClauses = new ArrayList<>();
-            for (String raw : statuses) {
-                if (raw == null || raw.trim().isEmpty()) continue;
-                String status = raw.trim().toLowerCase();
-                switch (status) {
-                    case "ended":
-                        // "ended" is a computed state: approved events with past end_date.
-                        statusClauses.add("(e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE())");
-                        break;
-                    case "approved":
-                        // Ongoing approved events only (exclude computed-ended rows).
-                        statusClauses.add("(e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()))");
-                        break;
-                    default:
-                        statusClauses.add("e.status = ?");
-                        params.add(status);
-                        break;
+            StringBuilder where = new StringBuilder(
+                "WHERE (e.organizer_id = ? OR EXISTS (" +
+                "SELECT 1 FROM EventStaff es WHERE es.event_id = e.event_id AND es.user_id = ?" +
+                ")) ").append(sdFilter);
+            
+            List<Object> params = new ArrayList<>();
+            params.add(organizerId);
+            params.add(organizerId);
+
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                where.append("AND (e.title LIKE ? OR e.description LIKE ?) ");
+                String kw = "%" + keyword.trim() + "%";
+                params.add(kw); params.add(kw);
+            }
+            if (statuses != null && statuses.length > 0) {
+                List<String> statusClauses = new ArrayList<>();
+                for (String raw : statuses) {
+                    if (raw == null || raw.trim().isEmpty()) continue;
+                    String status = raw.trim().toLowerCase();
+                    switch (status) {
+                        case "ended":
+                            statusClauses.add("(e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE())");
+                            break;
+                        case "approved":
+                            statusClauses.add("(e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()))");
+                            break;
+                        default:
+                            statusClauses.add("e.status = ?");
+                            params.add(status);
+                            break;
+                    }
+                }
+                if (!statusClauses.isEmpty()) {
+                    where.append("AND (").append(String.join(" OR ", statusClauses)).append(") ");
                 }
             }
-            if (!statusClauses.isEmpty()) {
-                where.append("AND (").append(String.join(" OR ", statusClauses)).append(") ");
+
+            String baseSql = "SELECT e.*, c.name as category_name, " +
+                    "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
+                    "ISNULL(ts.total_tickets, 0) as total_tickets, " +
+                    "ISNULL(rev.revenue, 0) as revenue " +
+                    "FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " +
+                    "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
+                    "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
+                    "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
+                    "           FROM OrderItems oi " +
+                    "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
+                    "           JOIN Orders o ON oi.order_id = o.order_id " +
+                    "           WHERE o.status IN ('paid','completed') " +
+                    "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id ";
+
+            String dataSql = baseSql + where.toString() + "ORDER BY e.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            String countSql = "SELECT COUNT(*) FROM Events e " +
+                    "JOIN Categories c ON e.category_id = c.category_id " + where.toString();
+
+            int totalItems = 0;
+            try (PreparedStatement ps = conn.prepareStatement(countSql)) {
+                int idx = 1;
+                for (Object p : params) {
+                    if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+                    else if (p instanceof String) ps.setString(idx++, (String) p);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) totalItems = rs.getInt(1);
+                }
             }
+
+            List<Event> items = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(dataSql)) {
+                int idx = 1;
+                for (Object p : params) {
+                    if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
+                    else if (p instanceof String) ps.setString(idx++, (String) p);
+                }
+                ps.setInt(idx++, (page - 1) * pageSize);
+                ps.setInt(idx, pageSize);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Event event = mapResultSetToEvent(rs);
+                        event.setCategoryName(rs.getString("category_name"));
+                        event.setSoldTickets(rs.getInt("sold_tickets"));
+                        event.setTotalTickets(rs.getInt("total_tickets"));
+                        event.setRevenue(rs.getDouble("revenue"));
+                        items.add(event);
+                    }
+                }
+            }
+            return new PageResult<>(items, totalItems, page, pageSize);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Failed getEventsByOrganizerPaged", e);
+            return new PageResult<>(new ArrayList<>(), 0, page, pageSize);
         }
-
-        String baseSql = "SELECT e.*, c.name as category_name, " +
-                "ISNULL(ts.sold_tickets, 0) as sold_tickets, " +
-                "ISNULL(ts.total_tickets, 0) as total_tickets, " +
-                "ISNULL(rev.revenue, 0) as revenue " +
-                "FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " +
-                "LEFT JOIN (SELECT event_id, SUM(sold_quantity) as sold_tickets, SUM(quantity) as total_tickets " +
-                "           FROM TicketTypes GROUP BY event_id) ts ON ts.event_id = e.event_id " +
-                "LEFT JOIN (SELECT tt.event_id, SUM(oi.quantity * oi.unit_price) as revenue " +
-                "           FROM OrderItems oi " +
-                "           JOIN TicketTypes tt ON oi.ticket_type_id = tt.ticket_type_id " +
-                "           JOIN Orders o ON oi.order_id = o.order_id " +
-                "           WHERE o.status IN ('paid','completed') " +
-                "           GROUP BY tt.event_id) rev ON rev.event_id = e.event_id ";
-
-        String dataSql = baseSql + where.toString() + "ORDER BY e.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        String countSql = "SELECT COUNT(*) FROM Events e " +
-                "JOIN Categories c ON e.category_id = c.category_id " + where.toString();
-
-        ParamSetter setter = ps -> {
-            int idx = 1;
-            for (Object p : params) {
-                if (p instanceof Integer) ps.setInt(idx++, (Integer) p);
-                else if (p instanceof String) ps.setString(idx++, (String) p);
-            }
-        };
-
-        return queryPaged(dataSql, countSql, setter, rs -> {
-            Event event = mapResultSetToEvent(rs);
-            event.setCategoryName(rs.getString("category_name"));
-            event.setSoldTickets(rs.getInt("sold_tickets"));
-            event.setTotalTickets(rs.getInt("total_tickets"));
-            event.setRevenue(rs.getDouble("revenue"));
-            return event;
-        }, page, pageSize);
     }
 }

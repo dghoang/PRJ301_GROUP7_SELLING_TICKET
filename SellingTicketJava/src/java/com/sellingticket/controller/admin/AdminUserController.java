@@ -1,5 +1,6 @@
 package com.sellingticket.controller.admin;
 
+import com.sellingticket.model.PageResult;
 import com.sellingticket.model.User;
 import com.sellingticket.service.ActivityLogService;
 import com.sellingticket.service.DashboardService;
@@ -7,6 +8,7 @@ import com.sellingticket.service.UserService;
 import com.sellingticket.util.AppConstants;
 import com.sellingticket.util.FlashUtil;
 import static com.sellingticket.util.ServletUtil.parseIntOrDefault;
+import static com.sellingticket.util.ServletUtil.getSessionUser;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,7 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AdminUserController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(AdminUserController.class.getName());
-    private static final Set<String> VALID_ROLES = Set.of("customer", "admin", "support_agent");
+    private static final Set<String> VALID_ROLES = Set.of("customer", "admin", "support_agent", "organizer");
     private final UserService userService = new UserService();
     private final DashboardService dashboardService = new DashboardService();
     private final ActivityLogService activityLog = new ActivityLogService();
@@ -66,30 +68,40 @@ public class AdminUserController extends HttpServlet {
             throws ServletException, IOException {
         try {
             String filter = request.getParameter("filter");
-            List<User> allUsers = userService.getAllUsers();
-            List<User> users = new java.util.ArrayList<>(allUsers);
 
+            // SQL-level filtering
+            String[] roles = null;
+            Boolean isActive = null;
             if ("active".equals(filter)) {
-                users.removeIf(u -> !u.isActive());
+                isActive = true;
             } else if ("locked".equals(filter)) {
-                users.removeIf(User::isActive);
+                isActive = false;
             } else if ("support_agent".equals(filter)) {
-                users.removeIf(u -> !"SUPPORT_AGENT".equalsIgnoreCase(u.getRole()));
+                roles = new String[]{"SUPPORT_AGENT"};
+            } else if ("organizer".equals(filter)) {
+                roles = new String[]{"ORGANIZER"};
+            } else if ("admin".equals(filter)) {
+                roles = new String[]{"ADMIN"};
             }
 
-            request.setAttribute("users", users);
-            request.setAttribute("totalUsers", allUsers.size());
+            int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+            int pageSize = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
+            PageResult<User> result = userService.searchUsersPaged(null, roles, isActive, page, pageSize);
+
+            request.setAttribute("users", result.getItems());
+            request.setAttribute("totalUsers", userService.getTotalUsers());
             request.setAttribute("currentFilter", filter);
+            request.setAttribute("currentPage", result.getCurrentPage());
+            request.setAttribute("totalPages", result.getTotalPages());
+            request.setAttribute("pageSize", pageSize);
+            request.setAttribute("totalRecords", result.getTotalItems());
             request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
 
-            int active = 0, supportAgents = 0, locked = 0;
-            for (User u : allUsers) {
-                if (u.isActive()) active++; else locked++;
-                if ("SUPPORT_AGENT".equalsIgnoreCase(u.getRole())) supportAgents++;
-            }
-            request.setAttribute("activeUsers", active);
-            request.setAttribute("supportAgentCount", supportAgents);
-            request.setAttribute("lockedUsers", locked);
+            // Accurate stats from lightweight count queries
+            request.setAttribute("activeUsers", userService.countActive());
+            request.setAttribute("supportAgentCount", userService.countByRole("support_agent"));
+            request.setAttribute("lockedUsers", userService.countLocked());
+            request.setAttribute("organizerCount", userService.countByRole("organizer"));
 
             request.getRequestDispatcher("/admin/users.jsp").forward(request, response);
         } catch (Exception e) {

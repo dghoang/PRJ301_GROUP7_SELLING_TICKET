@@ -59,19 +59,35 @@ public class AdminSupportController extends HttpServlet {
                 // List
                 String status = request.getParameter("status");
                 String category = request.getParameter("category");
-                int page = parseIntOrDefault(request.getParameter("page"), 1);
+                int page = Math.max(1, parseIntOrDefault(request.getParameter("page"), 1));
+                int size = Math.max(1, Math.min(200, parseIntOrDefault(request.getParameter("size"), 20)));
 
-                List<SupportTicket> tickets = ticketService.getAll(status, category, page, 20);
+                List<SupportTicket> tickets = ticketService.getAll(status, category, page, size);
                 request.setAttribute("tickets", tickets);
                 request.setAttribute("currentPage", page);
                 request.setAttribute("statusFilter", status);
                 request.setAttribute("categoryFilter", category);
 
                 // Stats
-                request.setAttribute("totalTickets", ticketService.countByStatus(null));
-                request.setAttribute("openCount", ticketService.countByStatus("open"));
-                request.setAttribute("inProgressCount", ticketService.countByStatus("in_progress"));
-                request.setAttribute("resolvedCount", ticketService.countByStatus("resolved"));
+                int totalAll = ticketService.countByStatus(null);
+                int openCount = ticketService.countByStatus("open");
+                int inProgressCount = ticketService.countByStatus("in_progress");
+                int resolvedCount = ticketService.countByStatus("resolved");
+                request.setAttribute("totalTickets", totalAll);
+                request.setAttribute("openCount", openCount);
+                request.setAttribute("inProgressCount", inProgressCount);
+                request.setAttribute("resolvedCount", resolvedCount);
+
+                // Pagination attributes
+                int totalRecords;
+                if ("open".equals(status)) totalRecords = openCount;
+                else if ("in_progress".equals(status)) totalRecords = inProgressCount;
+                else if ("resolved".equals(status)) totalRecords = resolvedCount;
+                else totalRecords = totalAll;
+                int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / size));
+                request.setAttribute("totalPages", totalPages);
+                request.setAttribute("pageSize", size);
+                request.setAttribute("totalRecords", totalRecords);
 
                 request.getRequestDispatcher("/admin/support.jsp").forward(request, response);
             }

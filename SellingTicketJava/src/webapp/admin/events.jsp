@@ -44,10 +44,13 @@
             <%-- Stats Cards as Filters --%>
             <div class="row g-3 mb-4">
                 <%-- Tất cả --%>
+                <c:set var="styleAll" value="transition: all 0.3s;" />
+                <c:if test="${empty statusFilter}">
+                    <c:set var="styleAll" value="background: rgba(59,130,246,0.1); border: 2px solid var(--primary) !important;" />
+                </c:if>
                 <div class="col-6 col-md-3 animate-on-scroll">
                     <a href="${pageContext.request.contextPath}/admin/events" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${empty statusFilter ? 'shadow-lg border-primary' : ''}" 
-                             style="${empty statusFilter ? 'background: rgba(59,130,246,0.1); border: 2px solid var(--primary) !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${empty statusFilter ? 'shadow-lg border-primary' : ''}" style="${styleAll}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:12px;">
                                     <i class="fas fa-layer-group text-white"></i>
@@ -62,10 +65,13 @@
                 </div>
 
                 <%-- Chờ duyệt --%>
+                <c:set var="stylePending" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'pending'}">
+                    <c:set var="stylePending" value="background: rgba(245,158,11,0.1); border: 2px solid #f59e0b !important;" />
+                </c:if>
                 <div class="col-6 col-md-3 animate-on-scroll stagger-1">
                     <a href="${pageContext.request.contextPath}/admin/events?status=pending" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'pending' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'pending' ? 'background: rgba(245,158,11,0.1); border: 2px solid #f59e0b !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'pending' ? 'shadow-lg' : ''}" style="${stylePending}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:12px;">
                                     <i class="fas fa-clock text-white"></i>
@@ -80,10 +86,13 @@
                 </div>
 
                 <%-- Đã duyệt --%>
+                <c:set var="styleApproved" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'approved'}">
+                    <c:set var="styleApproved" value="background: rgba(16,185,129,0.1); border: 2px solid #10b981 !important;" />
+                </c:if>
                 <div class="col-6 col-md-3 animate-on-scroll stagger-2">
                     <a href="${pageContext.request.contextPath}/admin/events?status=approved" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'approved' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'approved' ? 'background: rgba(16,185,129,0.1); border: 2px solid #10b981 !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'approved' ? 'shadow-lg' : ''}" style="${styleApproved}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#10b981,#06b6d4);border-radius:12px;">
                                     <i class="fas fa-check text-white"></i>
@@ -98,10 +107,13 @@
                 </div>
 
                 <%-- Từ chối --%>
+                <c:set var="styleRejected" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'rejected'}">
+                    <c:set var="styleRejected" value="background: rgba(239,68,68,0.1); border: 2px solid #ef4444 !important;" />
+                </c:if>
                 <div class="col-6 col-md-3 animate-on-scroll stagger-3">
                     <a href="${pageContext.request.contextPath}/admin/events?status=rejected" class="text-decoration-none">
-                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'rejected' ? 'shadow-lg' : ''}"
-                             style="${statusFilter == 'rejected' ? 'background: rgba(239,68,68,0.1); border: 2px solid #ef4444 !important;' : 'transition: all 0.3s;'}">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'rejected' ? 'shadow-lg' : ''}" style="${styleRejected}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
                                 <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:12px;">
                                     <i class="fas fa-times text-white"></i>
@@ -150,10 +162,10 @@
                         </table>
                     </div>
                 </div>
+                
+                <%-- Pagination --%>
+                <div id="admin-events-pagination" class="card-footer bg-transparent border-0 pb-3"></div>
             </div>
-
-            <%-- Pagination --%>
-            <div id="admin-events-pagination" class="d-flex justify-content-center mt-4"></div>
         </div>
     </div>
 </div>
@@ -239,7 +251,7 @@ function toggleFeatured(eventId, currentState, btn) {
 }
 </script>
 
-<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/ajax-table.js?v=1.1"></script>
 <script>
 (function() {
     var ctxPath = '${pageContext.request.contextPath}';
@@ -280,6 +292,7 @@ function toggleFeatured(eventId, currentState, btn) {
         paginationContainer: '#admin-events-pagination',
         searchInput: '#admin-event-search',
         pageSize: 20,
+        pageSizeSelector: '#eventPageSize',
         skeletonCols: 6,
         debounceDelay: 500,
         onDataLoaded: function(data) {

@@ -27,7 +27,8 @@ public class OrganizerChatController extends HttpServlet {
             }
             
             com.sellingticket.service.EventService eventService = new com.sellingticket.service.EventService();
-            java.util.List<com.sellingticket.model.Event> allowedEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
+            // Use "edit" scope: allows admin/owner/manager/staff (not scanner-only)
+            java.util.List<com.sellingticket.model.Event> allowedEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "edit");
             if (allowedEvents.isEmpty()) {
                 com.sellingticket.util.ServletUtil.setToast(request, "Bạn không có quyền truy cập chức năng này!", "error");
                 response.sendRedirect(request.getContextPath() + "/organizer/events");

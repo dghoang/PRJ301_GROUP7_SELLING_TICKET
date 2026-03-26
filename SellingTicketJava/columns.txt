@@ -1,0 +1,18 @@
+COLUMN_NAME                                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------
+ticket_type_id                                                                                                                  
+event_id                                                                                                                        
+name                                                                                                                            
+description                                                                                                                     
+price                                                                                                                           
+quantity                                                                                                                        
+sold_quantity                                                                                                                   
+sale_start                                                                                                                      
+sale_end                                                                                                                        
+is_active                                                                                                                       
+is_deleted                                                                                                                      
+color_theme                                                                                                                     
+design_url                                                                                                                      
+created_at                                                                                                                      
+
+(14 rows affected)
