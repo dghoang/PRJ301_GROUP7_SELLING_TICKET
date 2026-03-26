@@ -37,7 +37,7 @@
                     <span class="badge rounded-pill ms-auto" style="background: linear-gradient(135deg, #f59e0b, #f97316); font-size: 0.65rem;">${openTickets}</span>
                 </c:if>
             </a>
-            <a href="${pageContext.request.contextPath}/admin/chat-dashboard" 
+            <a href="${pageContext.request.contextPath}/staff/chat-dashboard" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'chat' ? 'active' : ''}">
                 <i class="fas fa-comments" style="width: 20px; text-align: center;"></i>Chat
             </a>

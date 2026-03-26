@@ -157,21 +157,7 @@ public class AuthFilter implements Filter {
                 chain.doFilter(request, response);
                 return;
             }
-            if ("support_agent".equals(role)) {
-                // Support agent: only /admin/support and /admin/chat-dashboard
-                String adminPath = uri.substring((contextPath + "/admin").length());
-                if (adminPath.equals("/support") || adminPath.startsWith("/support/") ||
-                    adminPath.equals("/support-detail") || adminPath.startsWith("/support-detail/") ||
-                    adminPath.equals("/chat-dashboard") || adminPath.startsWith("/chat-dashboard/") ||
-                    adminPath.equals("/notifications") || adminPath.startsWith("/notifications/")) {
-                    chain.doFilter(request, response);
-                    return;
-                }
-                // Block all other admin pages
-                LOGGER.log(Level.WARNING, "Support agent {0} blocked from {1}", new Object[]{user.getEmail(), uri});
-                httpResponse.sendRedirect(contextPath + "/admin/chat-dashboard");
-                return;
-            }
+
             // All other roles: no admin access
             com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn không có quyền truy cập trang này!", "error");
                 httpResponse.sendRedirect(contextPath + "/home");
@@ -180,11 +166,7 @@ public class AuthFilter implements Filter {
 
         // --- Organizer area access control ---
         if (uri.startsWith(contextPath + "/organizer")) {
-            if ("support_agent".equals(role)) {
-                LOGGER.log(Level.WARNING, "Support agent {0} blocked from {1}", new Object[]{user.getEmail(), uri});
-                httpResponse.sendRedirect(contextPath + "/admin/chat-dashboard");
-                return;
-            }
+
 
             // Customer role: allowed paths in /organizer area
             if ("customer".equals(role)) {
@@ -194,6 +176,10 @@ public class AuthFilter implements Filter {
                     httpResponse.sendRedirect(contextPath + "/organizer/events?msg=B%E1%BA%A1n+c%E1%BA%A7n+c%C3%B3+s%E1%BB%B1+ki%E1%BB%87n+%C4%91%C6%B0%E1%BB%A3c+duy%E1%BB%87t+%C4%91%E1%BB%83+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=warning");
                     return;
                 }
+            } else if ("support_agent".equals(role)) {
+                // Redirect support agents seamlessly to their staff chat portal if they accidentally click organizer links
+                httpResponse.sendRedirect(contextPath + "/staff/chat-dashboard");
+                return;
             } else if (!"organizer".equals(role) && !"admin".equals(role)) {
                 // Unknown roles: block entirely
                 com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn không có quyền truy cập trang này!", "error");

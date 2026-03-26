@@ -20,10 +20,10 @@
                     <p class="text-muted mb-0">Quản lý các phiên chat hỗ trợ khách hàng</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="${pageContext.request.contextPath}/admin/chat-dashboard?type=system" class="btn ${param.type == 'system' || empty param.type ? 'btn-gradient' : 'glass'} rounded-pill px-3 small">
+                    <a href="${pageContext.request.contextPath}/staff/chat-dashboard?type=system" class="btn ${param.type == 'system' || empty param.type ? 'btn-gradient' : 'glass'} rounded-pill px-3 small">
                         <i class="fas fa-cog me-1"></i>Hệ thống
                     </a>
-                    <a href="${pageContext.request.contextPath}/admin/chat-dashboard?type=event" class="btn ${param.type == 'event' ? 'btn-gradient' : 'glass'} rounded-pill px-3 small">
+                    <a href="${pageContext.request.contextPath}/staff/chat-dashboard?type=event" class="btn ${param.type == 'event' ? 'btn-gradient' : 'glass'} rounded-pill px-3 small">
                         <i class="fas fa-calendar me-1"></i>Sự kiện
                     </a>
                 </div>

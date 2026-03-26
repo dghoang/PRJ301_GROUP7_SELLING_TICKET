@@ -1,4 +1,4 @@
-package com.sellingticket.controller.admin;
+package com.sellingticket.controller.staff;
 
 import com.sellingticket.service.DashboardService;
 import com.sellingticket.service.SupportTicketService;
@@ -12,10 +12,10 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@WebServlet(name = "AdminChatDashboardController", urlPatterns = {"/admin/chat-dashboard"})
-public class AdminChatDashboardController extends HttpServlet {
+@WebServlet(name = "StaffChatDashboardController", urlPatterns = {"/staff/chat-dashboard"})
+public class StaffChatDashboardController extends HttpServlet {
 
-    private static final Logger LOGGER = Logger.getLogger(AdminChatDashboardController.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(StaffChatDashboardController.class.getName());
     private final DashboardService dashboardService = new DashboardService();
     private final SupportTicketService ticketService = new SupportTicketService();
 
@@ -26,7 +26,7 @@ public class AdminChatDashboardController extends HttpServlet {
             request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
             try { request.setAttribute("openTickets", ticketService.countOpen()); }
             catch (Exception ignored) { request.setAttribute("openTickets", 0); }
-            request.getRequestDispatcher("/admin/chat-dashboard.jsp").forward(request, response);
+            request.getRequestDispatcher("/staff/chat-dashboard.jsp").forward(request, response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load chat dashboard", e);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

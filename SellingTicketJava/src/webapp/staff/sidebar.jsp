@@ -40,6 +40,13 @@
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'notifications' ? 'active' : ''}">
                 <i class="fas fa-bell" style="width: 20px; text-align: center;"></i>Thông báo
             </a>
+
+            <c:if test="${sessionScope.user.role == 'support_agent' || sessionScope.user.role == 'admin'}">
+            <a href="${pageContext.request.contextPath}/staff/chat-dashboard" 
+               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'chat' ? 'active' : ''}">
+                <i class="fas fa-comments" style="width: 20px; text-align: center;"></i>Tư vấn khách hàng
+            </a>
+            </c:if>
             <hr class="my-2">
             <a href="${pageContext.request.contextPath}/" class="nav-link rounded-3 d-flex align-items-center gap-2 text-muted">
                 <i class="fas fa-arrow-left" style="width: 20px; text-align: center;"></i>Về trang chủ
