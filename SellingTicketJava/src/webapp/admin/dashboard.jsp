@@ -305,10 +305,19 @@
                         </div>
                         <div class="card-body px-4 pb-4">
                             <c:forEach var="order" items="${recentOrders}">
+                                <c:set var="statusBg" value="linear-gradient(135deg,#ef4444,#f97316)" />
+                                <c:set var="statusIcon" value="fa-times" />
+                                <c:if test="${order.status == 'paid'}">
+                                    <c:set var="statusBg" value="linear-gradient(135deg,#10b981,#06b6d4)" />
+                                    <c:set var="statusIcon" value="fa-check" />
+                                </c:if>
+                                <c:if test="${order.status == 'pending'}">
+                                    <c:set var="statusBg" value="linear-gradient(135deg,#f59e0b,#f97316)" />
+                                    <c:set var="statusIcon" value="fa-clock" />
+                                </c:if>
                             <div class="d-flex align-items-center gap-3 mb-3 p-2 rounded-3 hover-lift" style="transition: all 0.2s; background: rgba(0,0,0,0.015);">
-                                <div class="dash-icon-box" style="width:36px;height:36px;min-width:36px;border-radius:10px;
-                                    background:${order.status == 'paid' ? 'linear-gradient(135deg,#10b981,#06b6d4)' : order.status == 'pending' ? 'linear-gradient(135deg,#f59e0b,#f97316)' : 'linear-gradient(135deg,#ef4444,#f97316)'};">
-                                    <i class="fas ${order.status == 'paid' ? 'fa-check' : order.status == 'pending' ? 'fa-clock' : 'fa-times'} text-white" style="font-size:0.75rem;"></i>
+                                <div class="dash-icon-box" style="--bg: ${statusBg}; width:36px;height:36px;min-width:36px;border-radius:10px;background:var(--bg);">
+                                    <i class="fas ${statusIcon} text-white" style="font-size:0.75rem;"></i>
                                 </div>
                                 <div class="flex-grow-1" style="min-width:0;">
                                     <p class="mb-0 small fw-medium text-truncate">${order.buyerName}</p>

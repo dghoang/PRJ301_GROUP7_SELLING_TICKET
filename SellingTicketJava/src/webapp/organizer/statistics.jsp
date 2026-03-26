@@ -223,8 +223,15 @@
                                     <td>${evt.soldTickets} / ${evt.totalTickets}</td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
+                                            <c:set var="cStart" value="#f59e0b" />
+                                            <c:set var="cEnd" value="#f97316" />
+                                            <c:if test="${pct >= 70}">
+                                                <c:set var="cStart" value="#10b981" />
+                                                <c:set var="cEnd" value="#06b6d4" />
+                                            </c:if>
                                             <div class="progress flex-grow-1" style="height: 8px; border-radius: 4px; background: rgba(0,0,0,0.05);">
-                                                <div class="progress-bar" style="width: ${pct}%; background: linear-gradient(90deg, ${pct >= 70 ? '#10b981, #06b6d4' : '#f59e0b, #f97316'}); border-radius: 4px;"></div>
+                                                <div class="progress-bar" 
+                                                     style="--w: ${pct}%; --c1: ${cStart}; --c2: ${cEnd}; width: var(--w); background: linear-gradient(90deg, var(--c1), var(--c2)); border-radius: 4px;"></div>
                                             </div>
                                             <small class="fw-bold ${pct >= 70 ? 'text-success' : 'text-warning'}">${pct}%</small>
                                         </div>

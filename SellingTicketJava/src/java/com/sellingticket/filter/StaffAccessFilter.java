@@ -44,8 +44,8 @@ public class StaffAccessFilter implements Filter {
             return;
         }
 
-        // Admins and Support Agents always pass
-        if ("admin".equals(user.getRole()) || "support_agent".equals(user.getRole())) {
+        // Admins always pass
+        if ("admin".equals(user.getRole())) {
             chain.doFilter(request, response);
             return;
         }

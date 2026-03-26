@@ -209,8 +209,7 @@ public class EventService {
 
     public String getUserEventRole(int eventId, int userId, String userRole) {
         if ("admin".equals(userRole)) return "admin";
-        if ("support_agent".equals(userRole)) return "scanner"; // Treat support as scanner for check-in access
-
+        
         Event event = eventDAO.getEventById(eventId);
         if (event == null) return null;
         if (event.getOrganizerId() == userId) return "owner";
@@ -240,8 +239,7 @@ public class EventService {
     }
 
     public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
-        if ("support_agent".equals(userRole)) return true; // Support has global check-in capability
-        String role = getUserEventRole(eventId, userId, userRole);
+                String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role)
                 || "manager".equals(role) || "scanner".equals(role);
@@ -272,7 +270,7 @@ public class EventService {
     }
 
     public List<Event> getAccessibleEvents(int userId, String userRole) {
-        if ("admin".equals(userRole) || "support_agent".equals(userRole)) {
+        if ("admin".equals(userRole)) {
             return eventDAO.getAllEventsWithStats();
         }
 

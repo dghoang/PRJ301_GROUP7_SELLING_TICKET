@@ -1,5 +1,6 @@
 package com.sellingticket.controller.staff;
 
+import com.sellingticket.dao.EventStaffDAO;
 import com.sellingticket.dto.CheckInResult;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.Ticket;
@@ -20,6 +21,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * Staff Check-in Controller.
@@ -44,7 +46,7 @@ public class StaffCheckInController extends HttpServlet {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
 
         List<Map<String, Object>> events = new ArrayList<>();
-        if ("support_agent".equals(user.getRole()) || "admin".equals(user.getRole())) {
+        if ("admin".equals(user.getRole())) {
             List<Event> all = eventService.getAccessibleEvents(user.getUserId(), user.getRole());
             for (Event e : all) {
                 Map<String, Object> m = new LinkedHashMap<>();
@@ -94,7 +96,6 @@ public class StaffCheckInController extends HttpServlet {
     }
 
     private String computeHighestRole(List<Map<String, Object>> events, String userRole) {
-        if ("support_agent".equals(userRole)) return "manager";
         String highest = "staff";
         for (Map<String, Object> ev : events) {
             String role = String.valueOf(ev.getOrDefault("staffRole", "staff"));

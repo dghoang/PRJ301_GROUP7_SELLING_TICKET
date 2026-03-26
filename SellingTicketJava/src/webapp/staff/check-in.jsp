@@ -35,7 +35,7 @@
                             <c:forEach var="ev" items="${assignedEvents}" varStatus="loop">
                             <a href="${pageContext.request.contextPath}/staff/check-in?eventId=${ev.eventId}"
                                class="card glass-strong border-0 rounded-4 mb-3 text-decoration-none animate-fadeInDown hover-glow"
-                               style="animation-delay: ${loop.index * 0.08}s; transition: all 0.3s;">
+                               style="--delay: ${loop.index * 0.08}s; animation-delay: var(--delay); transition: all 0.3s;">
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-3"
@@ -63,8 +63,8 @@
                                     </div>
                                     <c:if test="${ev.ticketsSold > 0}">
                                     <div class="progress mt-3" style="height: 5px; border-radius: 3px;">
-                                        <div class="progress-bar" role="progressbar"
-                                             style="width: ${ev.ticketsChecked * 100 / ev.ticketsSold}%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 3px;"></div>
+                                        <c:set var="pbPct" value="${ev.ticketsChecked * 100 / ev.ticketsSold}" />
+                                        <div class="progress-bar" role="progressbar" style="--w: ${pbPct}%; width: var(--w); background: linear-gradient(90deg, #10b981, #059669); border-radius: 3px;"></div>
                                     </div>
                                     </c:if>
                                 </div>
