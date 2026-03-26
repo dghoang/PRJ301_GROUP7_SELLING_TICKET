@@ -1,5 +1,6 @@
 package com.sellingticket.controller.organizer;
 
+import com.sellingticket.dao.TicketDAO;
 import com.sellingticket.dto.CheckInResult;
 import com.sellingticket.model.Event;
 import com.sellingticket.model.Order;
