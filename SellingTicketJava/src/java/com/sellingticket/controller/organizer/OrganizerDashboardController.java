@@ -46,7 +46,8 @@ public class OrganizerDashboardController extends HttpServlet {
 
             // Dashboard Lockout: redirect to events page when user has 0 events
             if (myEvents.isEmpty()) {
-                response.sendRedirect(request.getContextPath() + "/organizer/events?error=no_events");
+                com.sellingticket.util.ServletUtil.setToast(request, "Bạn chưa có sự kiện nào. Hãy tạo sự kiện mới!", "warning");
+                response.sendRedirect(request.getContextPath() + "/organizer/events");
                 return;
             }
 

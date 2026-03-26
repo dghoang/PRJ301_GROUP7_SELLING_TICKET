@@ -44,8 +44,8 @@ public class StaffAccessFilter implements Filter {
             return;
         }
 
-        // Admins always pass
-        if ("admin".equals(user.getRole())) {
+        // Admins and Support Agents always pass globally
+        if ("admin".equals(user.getRole()) || "support_agent".equals(user.getRole())) {
             chain.doFilter(request, response);
             return;
         }
@@ -53,7 +53,8 @@ public class StaffAccessFilter implements Filter {
         // Check if user is assigned to any event as staff
         List<Integer> assignedEvents = eventStaffDAO.getEventsWhereStaff(user.getUserId());
         if (assignedEvents.isEmpty()) {
-            httpRes.sendRedirect(httpReq.getContextPath() + "/?error=no_staff_access");
+            com.sellingticket.util.ServletUtil.setToast(httpReq, "Tài khoản của bạn chưa được phân công sự kiện nào!", "error");
+            httpRes.sendRedirect(httpReq.getContextPath() + "/home");
             return;
         }
 

@@ -25,6 +25,14 @@ public class OrganizerChatController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/login");
                 return;
             }
+            
+            com.sellingticket.service.EventService eventService = new com.sellingticket.service.EventService();
+            java.util.List<com.sellingticket.model.Event> allowedEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
+            if (allowedEvents.isEmpty()) {
+                com.sellingticket.util.ServletUtil.setToast(request, "Bạn không có quyền truy cập chức năng này!", "error");
+                response.sendRedirect(request.getContextPath() + "/organizer/events");
+                return;
+            }
             request.getRequestDispatcher("/organizer/chat.jsp").forward(request, response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load organizer chat", e);

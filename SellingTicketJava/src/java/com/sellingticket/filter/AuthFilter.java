@@ -173,7 +173,8 @@ public class AuthFilter implements Filter {
                 return;
             }
             // All other roles: no admin access
-            httpResponse.sendRedirect(contextPath + "/home?msg=B%E1%BA%A1n+kh%C3%B4ng+c%C3%B3+quy%E1%BB%81n+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=error");
+            com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn không có quyền truy cập trang này!", "error");
+                httpResponse.sendRedirect(contextPath + "/home");
             return;
         }
 
@@ -195,7 +196,8 @@ public class AuthFilter implements Filter {
                 }
             } else if (!"organizer".equals(role) && !"admin".equals(role)) {
                 // Unknown roles: block entirely
-                httpResponse.sendRedirect(contextPath + "/home?msg=B%E1%BA%A1n+kh%C3%B4ng+c%C3%B3+quy%E1%BB%81n+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=error");
+                com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn không có quyền truy cập trang này!", "error");
+                httpResponse.sendRedirect(contextPath + "/home");
                 return;
             }
         }

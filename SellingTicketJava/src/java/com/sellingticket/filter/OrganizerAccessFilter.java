@@ -59,7 +59,8 @@ public class OrganizerAccessFilter implements Filter {
                               pathInfo.startsWith("/organizer/dashboard");
                               
         if (isDashboard && totalEvents == 0) {
-            httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events?error=no_events");
+            com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn chưa có sự kiện nào. Hãy tạo sự kiện mới!", "warning");
+            httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events");
             return;
         }
 
@@ -71,7 +72,8 @@ public class OrganizerAccessFilter implements Filter {
                            pathInfo.startsWith("/organizer/chat");
                            
         if (!isExempt && !hasApproved) {
-            httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events?error=unapproved_events");
+            com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn cần có sự kiện được duyệt để truy cập trang này!", "warning");
+            httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events");
             return;
         }
 
@@ -82,11 +84,22 @@ public class OrganizerAccessFilter implements Filter {
             int eventId = extractEventId(pathInfo, httpRequest);
             if (eventId > 0) {
                 boolean isCheckInPath = pathInfo.startsWith("/organizer/check-in");
-                boolean hasAccess = isCheckInPath
-                        ? eventService.hasCheckInPermission(eventId, user.getUserId(), user.getRole())
-                        : eventService.hasEditPermission(eventId, user.getUserId(), user.getRole());
+                boolean isManagerPath = pathInfo.startsWith("/organizer/team") ||
+                                        pathInfo.startsWith("/organizer/settings") ||
+                                        pathInfo.startsWith("/organizer/chat") ||
+                                        pathInfo.startsWith("/organizer/support");
+
+                boolean hasAccess;
+                if (isCheckInPath) {
+                    hasAccess = eventService.hasCheckInPermission(eventId, user.getUserId(), user.getRole());
+                } else if (isManagerPath) {
+                    hasAccess = eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole());
+                } else {
+                    hasAccess = eventService.hasEditPermission(eventId, user.getUserId(), user.getRole());
+                }
                 if (!hasAccess) {
-                    httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events?error=no_permission");
+                    com.sellingticket.util.ServletUtil.setToast(httpRequest, "Bạn không có quyền thao tác trên sự kiện này!", "error");
+                    httpResponse.sendRedirect(httpRequest.getContextPath() + "/organizer/events");
                     return;
                 }
             }

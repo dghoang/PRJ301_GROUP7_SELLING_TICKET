@@ -74,7 +74,8 @@ public class StaffCheckInController extends HttpServlet {
 
         // Verify access
         if (!eventService.hasCheckInPermission(eventId, user.getUserId(), user.getRole())) {
-            response.sendRedirect(request.getContextPath() + "/staff/dashboard?error=no_access");
+            com.sellingticket.util.ServletUtil.setToast(request, "Bạn không có quyền thao tác trên sự kiện này!", "error");
+            response.sendRedirect(request.getContextPath() + "/staff/dashboard");
             return;
         }
 

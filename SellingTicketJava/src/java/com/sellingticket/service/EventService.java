@@ -223,12 +223,9 @@ public class EventService {
     }
 
     public boolean hasManagerPermission(int eventId, int userId, String userRole) {
-        if ("admin".equals(userRole)) return true;
-        Event event = eventDAO.getEventById(eventId);
-        if (event == null) return false;
-        if (event.getOrganizerId() == userId) return true;
-        String staffRole = eventStaffDAO.getStaffRole(eventId, userId);
-        return "manager".equals(staffRole);
+        String role = getUserEventRole(eventId, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
     }
 
     public boolean hasEditPermission(int eventId, int userId, String userRole) {
@@ -266,7 +263,14 @@ public class EventService {
 
     public boolean hasApprovedEvents(int userId, String role) {
         if ("admin".equals(role)) return true;
-        return eventDAO.countApprovedEventsForUser(userId) > 0;
+        if (eventDAO.countApprovedEventsForUser(userId) > 0) return true;
+        // Staff members have access if they are assigned to ANY approved event
+        java.util.List<com.sellingticket.model.Event> accessible = getAccessibleEvents(userId, role);
+        for (com.sellingticket.model.Event e : accessible) {
+            String s = e.getStatus();
+            if ("approved".equals(s) || "completed".equals(s) || "cancelled".equals(s)) return true;
+        }
+        return false;
     }
 
     public List<Event> getAccessibleEvents(int userId, String userRole) {

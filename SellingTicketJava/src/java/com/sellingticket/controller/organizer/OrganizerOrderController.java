@@ -66,7 +66,7 @@ public class OrganizerOrderController extends HttpServlet {
     private void listAllOrders(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         try {
-            List<Event> myEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "manager");
+            List<Event> myEvents = eventService.getEventsWithPermission(user.getUserId(), user.getRole(), "edit");
             request.setAttribute("myEvents", myEvents);
 
             int totalPaid = 0;
@@ -115,13 +115,15 @@ public class OrganizerOrderController extends HttpServlet {
 
         int eventId = getIdFromPath(request.getPathInfo());
         if (eventId <= 0 || !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
-            response.sendRedirect(request.getContextPath() + "/organizer/orders?error=access_denied");
+            com.sellingticket.util.ServletUtil.setToast(request, "Bạn không có quyền xem đơn hàng này!", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/orders");
             return;
         }
 
         Event event = eventService.getEventDetails(eventId);
         if (event == null) {
-            response.sendRedirect(request.getContextPath() + "/organizer/orders?error=not_found");
+            com.sellingticket.util.ServletUtil.setToast(request, "Đơn hàng không tồn tại!", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/orders");
             return;
         }
 
@@ -138,13 +140,15 @@ public class OrganizerOrderController extends HttpServlet {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
 
         if (orderId <= 0 || eventId <= 0) {
-            response.sendRedirect(request.getContextPath() + "/organizer/orders?error=action_failed");
+            com.sellingticket.util.ServletUtil.setToast(request, "Thao tác trên đơn hàng thất bại!", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/orders");
             return;
         }
 
         Event event = eventService.getEventDetails(eventId);
         if (event == null || !eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) {
-            response.sendRedirect(request.getContextPath() + "/organizer/orders?error=action_failed");
+            com.sellingticket.util.ServletUtil.setToast(request, "Thao tác trên đơn hàng thất bại!", "error");
+            response.sendRedirect(request.getContextPath() + "/organizer/orders");
             return;
         }
 
