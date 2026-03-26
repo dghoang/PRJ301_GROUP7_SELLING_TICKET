@@ -207,8 +207,8 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
 
         Event event = getAccessibleEvent(request.getPathInfo(), user);
-        if (event == null) {
-            setToast(request, "Không có quyền truy cập sự kiện này", "error");
+        if (event == null || !eventService.hasEditPermission(event.getEventId(), user.getUserId(), user.getRole())) {
+            setToast(request, "Không có quyền chỉnh sửa sự kiện này", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/events");
             return;
         }
@@ -489,7 +489,7 @@ public class OrganizerEventController extends HttpServlet {
             throws ServletException, IOException {
 
         Event event = getAccessibleEvent(request.getPathInfo(), user);
-        if (event == null || !eventService.hasVoucherPermission(event.getEventId(), user.getUserId(), user.getRole())) {
+        if (event == null || !eventService.hasManagerPermission(event.getEventId(), user.getUserId(), user.getRole())) {
             setToast(request, "Bạn không có quyền quản lý nhân sự", "error");
             response.sendRedirect(request.getContextPath() + "/organizer/events");
             return;
@@ -508,7 +508,7 @@ public class OrganizerEventController extends HttpServlet {
         String role = AppConstants.normalizeEventStaffRole(request.getParameter("role"));
 
         if (role != null
-                && eventService.hasVoucherPermission(eventId, user.getUserId(), user.getRole())
+                && eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())
                 && eventService.addEventStaff(eventId, email, role, user.getUserId())) {
             setToast(request, "Đã thêm cộng tác viên!", "success");
         } else {
@@ -524,7 +524,7 @@ public class OrganizerEventController extends HttpServlet {
         int eventId = parseIntOrDefault(request.getParameter("eventId"), -1);
         int userId = parseIntOrDefault(request.getParameter("userId"), -1);
 
-        if (eventService.hasVoucherPermission(eventId, user.getUserId(), user.getRole())
+        if (eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())
                 && eventService.removeEventStaff(eventId, userId)) {
             setToast(request, "Đã xóa cộng tác viên!", "success");
         } else {
@@ -538,11 +538,12 @@ public class OrganizerEventController extends HttpServlet {
     // UTILITY METHODS
     // ========================
 
-    /** Get event only if the current user has manager permission (includes admin bypass). */
+    /** Get event if the current user has ANY permission for it. */
     private Event getAccessibleEvent(String pathInfo, User user) {
         int eventId = getIdFromPath(pathInfo);
         if (eventId <= 0) return null;
-        if (!eventService.hasManagerPermission(eventId, user.getUserId(), user.getRole())) return null;
+        String role = eventService.getUserEventRole(eventId, user.getUserId(), user.getRole());
+        if (role == null) return null;
         return eventService.getEventDetails(eventId);
     }
 
