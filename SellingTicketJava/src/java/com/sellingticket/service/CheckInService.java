@@ -48,9 +48,12 @@ public class CheckInService {
                 return CheckInResult.error("Vé không tồn tại trong hệ thống");
             }
 
-            // 3. Verify event match
+            // 3. Verify event match and permissions
             if (eventId > 0 && tokenEventId != eventId) {
                 return CheckInResult.error("Vé không thuộc sự kiện này! Vé vẫn còn hiệu lực.");
+            }
+            if (!eventService.hasCheckInPermission(tokenEventId, checker.getUserId(), checker.getRole())) {
+                return CheckInResult.error("Bạn không có quyền check-in sự kiện của vé này!");
             }
 
             // 4. Verify order status (anti-fraud)
@@ -103,6 +106,9 @@ public class CheckInService {
 
             if (eventId > 0 && order.getEventId() != eventId) {
                 return CheckInResult.error("Mã không thuộc sự kiện này! Vé vẫn còn hiệu lực.");
+            }
+            if (!eventService.hasCheckInPermission(order.getEventId(), checker.getUserId(), checker.getRole())) {
+                return CheckInResult.error("Bạn không có quyền check-in sự kiện của đơn hàng này!");
             }
 
             if ("cancelled".equals(order.getStatus()) || "refunded".equals(order.getStatus())) {
@@ -159,6 +165,9 @@ public class CheckInService {
 
             if (eventId > 0 && ticket.getEventId() != eventId) {
                 return CheckInResult.error("Vé không thuộc sự kiện này!");
+            }
+            if (!eventService.hasCheckInPermission(ticket.getEventId(), checker.getUserId(), checker.getRole())) {
+                return CheckInResult.error("Bạn không có quyền check-in sự kiện của vé này!");
             }
 
             if (ticket.isCheckedIn()) {

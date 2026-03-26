@@ -188,11 +188,7 @@ public class AuthFilter implements Filter {
             // Customer role: allowed paths in /organizer area
             if ("customer".equals(role)) {
                 String orgPath = uri.substring((contextPath + "/organizer").length());
-                boolean allowedForCustomer =
-                        orgPath.equals("/create-event") || orgPath.startsWith("/create-event/") ||
-                        orgPath.equals("/events") || orgPath.startsWith("/events/") ||
-                        orgPath.startsWith("/events?") ||
-                        orgPath.equals("/settings") || orgPath.startsWith("/settings/");
+                boolean allowedForCustomer = true; // Delegate all organizer route protections to the specific controllers
                 if (!allowedForCustomer) {
                     httpResponse.sendRedirect(contextPath + "/organizer/events?msg=B%E1%BA%A1n+c%E1%BA%A7n+c%C3%B3+s%E1%BB%B1+ki%E1%BB%87n+%C4%91%C6%B0%E1%BB%A3c+duy%E1%BB%87t+%C4%91%E1%BB%83+truy+c%E1%BA%ADp+trang+n%C3%A0y&msgType=warning");
                     return;
