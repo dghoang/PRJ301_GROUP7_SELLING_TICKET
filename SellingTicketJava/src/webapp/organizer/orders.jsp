@@ -144,10 +144,13 @@
                                     </td>
                                     <td>
                                         <c:choose>
-                                            <c:when test="${order.status == 'PAID'}">
+                                            <c:when test="${order.status == 'paid'}">
                                                 <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg,#10b981,#06b6d4); color: transparent; background-clip: padding-box; -webkit-text-fill-color: white;">Đã thanh toán</span>
                                             </c:when>
-                                            <c:when test="${order.status == 'PENDING'}">
+                                            <c:when test="${order.status == 'checked_in'}">
+                                                <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg,#10b981,#06b6d4); color: transparent; background-clip: padding-box; -webkit-text-fill-color: white;">Đã Check-in</span>
+                                            </c:when>
+                                            <c:when test="${order.status == 'pending'}">
                                                 <span class="badge rounded-pill px-3 py-2 bg-warning text-dark">Chờ thanh toán</span>
                                             </c:when>
                                             <c:otherwise>

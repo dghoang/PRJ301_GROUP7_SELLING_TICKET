@@ -68,7 +68,7 @@ public class AdminConfirmPaymentApiServlet extends HttpServlet {
             if (!paymentOk) {
                 // Race condition: another process may have confirmed it already
                 Order refreshed = orderService.getOrderById(orderId);
-                paymentOk = refreshed != null && "paid".equals(refreshed.getStatus());
+                paymentOk = refreshed != null && ("paid".equals(refreshed.getStatus()) || "checked_in".equals(refreshed.getStatus()));
             }
         } else {
             paymentOk = "paid".equals(targetOrder.getStatus()) || "checked_in".equals(targetOrder.getStatus());

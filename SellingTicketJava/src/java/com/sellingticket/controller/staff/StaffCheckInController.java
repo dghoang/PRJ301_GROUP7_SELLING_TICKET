@@ -43,6 +43,11 @@ public class StaffCheckInController extends HttpServlet {
         User user = getSessionUser(request);
         if (user == null) { response.sendError(401); return; }
 
+        if ("support_agent".equals(user.getRole())) {
+            response.sendRedirect(request.getContextPath() + "/staff/chat-dashboard");
+            return;
+        }
+
         int eventId = parseIntOrDefault(request.getParameter("eventId"), 0);
 
         List<Map<String, Object>> events = new ArrayList<>();
@@ -111,6 +116,11 @@ public class StaffCheckInController extends HttpServlet {
             throws ServletException, IOException {
         User user = getSessionUser(request);
         if (user == null) { response.sendError(401); return; }
+
+        if ("support_agent".equals(user.getRole())) {
+            sendJson(response, "{\"success\":false,\"message\":\"Support agents cannot perform check-in.\"}");
+            return;
+        }
 
         String qrToken = request.getParameter("qrToken");
         String ticketCode = request.getParameter("ticketCode");

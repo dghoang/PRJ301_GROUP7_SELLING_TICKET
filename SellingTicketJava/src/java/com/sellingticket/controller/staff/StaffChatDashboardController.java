@@ -22,6 +22,12 @@ public class StaffChatDashboardController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        com.sellingticket.model.User user = com.sellingticket.util.ServletUtil.getSessionUser(request);
+        if (user == null || (!"support_agent".equals(user.getRole()) && !"admin".equals(user.getRole()))) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied");
+            return;
+        }
+
         try {
             request.setAttribute("pendingCount", dashboardService.getPendingEventsCount());
             try { request.setAttribute("openTickets", ticketService.countOpen()); }

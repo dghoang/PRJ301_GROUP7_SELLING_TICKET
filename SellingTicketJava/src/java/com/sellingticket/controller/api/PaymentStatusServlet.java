@@ -155,7 +155,7 @@ public class PaymentStatusServlet extends HttpServlet {
         if (!paymentOk) {
             // Could be a race condition — re-check current status
             Order refreshed = orderService.getOrderById(orderId);
-            if (refreshed != null && "paid".equals(refreshed.getStatus())) {
+            if (refreshed != null && ("paid".equals(refreshed.getStatus()) || "checked_in".equals(refreshed.getStatus()))) {
                 LOGGER.log(Level.INFO, "Payment already confirmed by another process: orderId={0}", orderId);
                 sendJson(response, "{\"status\":\"paid\",\"message\":\"Đã thanh toán (xác nhận bởi hệ thống).\"}");
                 return;

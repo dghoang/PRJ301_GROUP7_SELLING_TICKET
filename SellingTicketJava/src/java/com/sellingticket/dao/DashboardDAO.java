@@ -30,9 +30,9 @@ public class DashboardDAO extends DBContext {
                 "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)) as approved_events, " +
                 "(SELECT COUNT(*) FROM Events WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND (end_date IS NULL OR end_date >= GETDATE())) as active_events, " +
                 "(SELECT COUNT(*) FROM Users) as total_users, " +
-                "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE status = 'paid') as total_revenue, " +
+                "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE status IN ('paid', 'checked_in')) as total_revenue, " +
                 "(SELECT COUNT(*) FROM Orders WHERE status = 'pending') as pending_orders, " +
-                "(SELECT COUNT(*) FROM Orders WHERE status = 'paid') as paid_orders, " +
+                "(SELECT COUNT(*) FROM Orders WHERE status IN ('paid', 'checked_in')) as paid_orders, " +
                 "(SELECT COUNT(*) FROM Orders WHERE status = 'cancelled') as cancelled_orders, " +
                 "(SELECT COUNT(*) FROM Orders) as total_orders";
 
@@ -116,8 +116,8 @@ public class DashboardDAO extends DBContext {
     public List<Map<String, Object>> getRevenueByDays(int days) {
         List<Map<String, Object>> result = new ArrayList<>();
         String sql = "SELECT CONVERT(date, o.created_at) as order_date, " +
-                "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue, " +
-                "COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as ticket_count " +
+                "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.final_amount ELSE 0 END), 0) as revenue, " +
+                "COUNT(CASE WHEN o.status IN ('paid', 'checked_in') THEN 1 END) as ticket_count " +
                 "FROM Orders o " +
                 "WHERE o.created_at >= DATEADD(day, -?, GETDATE()) " +
                 "GROUP BY CONVERT(date, o.created_at) " +
@@ -154,7 +154,7 @@ public class DashboardDAO extends DBContext {
                 "(SELECT COUNT(*) FROM Events WHERE event_id IN (" + inClause + ")) as my_events, " +
                 "(SELECT COUNT(*) FROM Events WHERE event_id IN (" + inClause + ") AND status = 'approved') as approved_events, " +
                 "(SELECT COUNT(*) FROM Events WHERE event_id IN (" + inClause + ") AND status = 'pending') as pending_events, " +
-                "(SELECT ISNULL(SUM(o.final_amount), 0) FROM Orders o WHERE o.event_id IN (" + inClause + ") AND o.status = 'paid') as my_revenue, " +
+                "(SELECT ISNULL(SUM(o.final_amount), 0) FROM Orders o WHERE o.event_id IN (" + inClause + ") AND o.status IN ('paid', 'checked_in')) as my_revenue, " +
                 "(SELECT COUNT(*) FROM Orders o WHERE o.event_id IN (" + inClause + ")) as my_total_orders";
 
         try (Connection conn = getConnection();
@@ -184,7 +184,7 @@ public class DashboardDAO extends DBContext {
         String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT e.event_id, " +
                 "COUNT(o.order_id) as order_count, " +
-                "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue " +
+                "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.final_amount ELSE 0 END), 0) as revenue " +
                 "FROM Events e LEFT JOIN Orders o ON e.event_id = o.event_id " +
                 "WHERE e.event_id IN (" + inClause + ") GROUP BY e.event_id";
 
@@ -214,8 +214,8 @@ public class DashboardDAO extends DBContext {
 
         String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT CONVERT(date, o.created_at) as order_date, " +
-                "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue, " +
-                "COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as ticket_count " +
+                "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.final_amount ELSE 0 END), 0) as revenue, " +
+                "COUNT(CASE WHEN o.status IN ('paid', 'checked_in') THEN 1 END) as ticket_count " +
                 "FROM Orders o " +
                 "WHERE o.event_id IN (" + inClause + ") AND o.created_at >= DATEADD(day, -?, GETDATE()) " +
                 "GROUP BY CONVERT(date, o.created_at) " +
@@ -246,8 +246,8 @@ public class DashboardDAO extends DBContext {
         List<Map<String, Object>> result = new ArrayList<>();
         String sql = "SELECT TOP (?) e.event_id, e.title, e.status, " +
                 "u.full_name as organizer_name, " +
-                "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue, " +
-                "COUNT(CASE WHEN o.status = 'paid' THEN o.order_id END) as order_count " +
+                "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.final_amount ELSE 0 END), 0) as revenue, " +
+                "COUNT(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.order_id END) as order_count " +
                 "FROM Events e " +
                 "LEFT JOIN Orders o ON e.event_id = o.event_id " +
                 "LEFT JOIN Users u ON e.organizer_id = u.user_id " +
@@ -329,7 +329,7 @@ public class DashboardDAO extends DBContext {
         String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT DATEPART(hour, o.created_at) as order_hour, COUNT(*) as order_count " +
                 "FROM Orders o " +
-                "WHERE o.event_id IN (" + inClause + ") AND o.status = 'paid' " +
+                "WHERE o.event_id IN (" + inClause + ") AND o.status IN ('paid', 'checked_in') " +
                 "GROUP BY DATEPART(hour, o.created_at) ORDER BY order_hour";
 
         try (Connection conn = getConnection();
@@ -353,9 +353,9 @@ public class DashboardDAO extends DBContext {
     public Map<String, Object> getEventSpecificStats(int eventId) {
         Map<String, Object> stats = new HashMap<>();
         String sql = "SELECT " +
-                "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE event_id = ? AND status = 'paid') as revenue, " +
+                "(SELECT ISNULL(SUM(final_amount), 0) FROM Orders WHERE event_id = ? AND status IN ('paid', 'checked_in')) as revenue, " +
                 "(SELECT COUNT(*) FROM Orders WHERE event_id = ?) as total_orders, " +
-                "(SELECT COUNT(*) FROM Orders WHERE event_id = ? AND status = 'paid') as paid_orders, " +
+                "(SELECT COUNT(*) FROM Orders WHERE event_id = ? AND status IN ('paid', 'checked_in')) as paid_orders, " +
                 "(SELECT COUNT(*) " +
                 "   FROM Tickets t " +
                 "   JOIN OrderItems oi ON t.order_item_id = oi.order_item_id " +
@@ -391,8 +391,8 @@ public class DashboardDAO extends DBContext {
     public List<Map<String, Object>> getEventRevenueByDays(int eventId, int days) {
         List<Map<String, Object>> result = new ArrayList<>();
         String sql = "SELECT CONVERT(date, o.created_at) as order_date, " +
-                "ISNULL(SUM(CASE WHEN o.status = 'paid' THEN o.final_amount ELSE 0 END), 0) as revenue, " +
-                "COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as ticket_count " +
+                "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.final_amount ELSE 0 END), 0) as revenue, " +
+                "COUNT(CASE WHEN o.status IN ('paid', 'checked_in') THEN 1 END) as ticket_count " +
                 "FROM Orders o " +
                 "WHERE o.event_id = ? AND o.created_at >= DATEADD(day, -?, GETDATE()) " +
                 "GROUP BY CONVERT(date, o.created_at) " +
@@ -486,7 +486,7 @@ public class DashboardDAO extends DBContext {
     public double getConversionRate() {
         String sql = "SELECT " +
                 "CASE WHEN COUNT(*) > 0 THEN " +
-                "  CAST(COUNT(CASE WHEN status = 'paid' THEN 1 END) AS FLOAT) / COUNT(*) * 100 " +
+                "  CAST(COUNT(CASE WHEN status IN ('paid', 'checked_in') THEN 1 END) AS FLOAT) / COUNT(*) * 100 " +
                 "ELSE 0 END as rate FROM Orders";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -510,13 +510,13 @@ public class DashboardDAO extends DBContext {
     public Map<String, Object> getVoucherSettlementStats() {
         Map<String, Object> stats = new HashMap<>();
         String sql = "SELECT " +
-            "ISNULL(SUM(CASE WHEN status='paid' THEN final_amount ELSE 0 END), 0) as total_customer_paid, " +
-            "ISNULL(SUM(CASE WHEN status='paid' THEN system_discount_amount ELSE 0 END), 0) as total_system_subsidy, " +
-            "ISNULL(SUM(CASE WHEN status='paid' THEN event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
-            "ISNULL(SUM(CASE WHEN status='paid' THEN platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
-            "ISNULL(SUM(CASE WHEN status='paid' THEN organizer_payout_amount ELSE 0 END), 0) as total_organizer_payout, " +
-            "COUNT(CASE WHEN status='paid' AND voucher_scope='SYSTEM' THEN 1 END) as system_voucher_count, " +
-            "COUNT(CASE WHEN status='paid' AND voucher_scope='EVENT' THEN 1 END) as event_voucher_count " +
+            "ISNULL(SUM(CASE WHEN status IN ('paid', 'checked_in') THEN final_amount ELSE 0 END), 0) as total_customer_paid, " +
+            "ISNULL(SUM(CASE WHEN status IN ('paid', 'checked_in') THEN system_discount_amount ELSE 0 END), 0) as total_system_subsidy, " +
+            "ISNULL(SUM(CASE WHEN status IN ('paid', 'checked_in') THEN event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
+            "ISNULL(SUM(CASE WHEN status IN ('paid', 'checked_in') THEN platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
+            "ISNULL(SUM(CASE WHEN status IN ('paid', 'checked_in') THEN organizer_payout_amount ELSE 0 END), 0) as total_organizer_payout, " +
+            "COUNT(CASE WHEN status IN ('paid', 'checked_in') AND voucher_scope='SYSTEM' THEN 1 END) as system_voucher_count, " +
+            "COUNT(CASE WHEN status IN ('paid', 'checked_in') AND voucher_scope='EVENT' THEN 1 END) as event_voucher_count " +
             "FROM Orders";
 
         try (Connection conn = getConnection();
@@ -547,11 +547,11 @@ public class DashboardDAO extends DBContext {
 
         String inClause = eventIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
         String sql = "SELECT " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.total_amount ELSE 0 END), 0) as total_face_value, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.system_discount_amount ELSE 0 END), 0) as total_system_discount, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.organizer_payout_amount ELSE 0 END), 0) as total_payout " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.total_amount ELSE 0 END), 0) as total_face_value, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.event_discount_amount ELSE 0 END), 0) as total_event_discount, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.system_discount_amount ELSE 0 END), 0) as total_system_discount, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.platform_fee_amount ELSE 0 END), 0) as total_platform_fee, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.organizer_payout_amount ELSE 0 END), 0) as total_payout " +
             "FROM Orders o " +
             "WHERE o.event_id IN (" + inClause + ")";
 
@@ -577,12 +577,12 @@ public class DashboardDAO extends DBContext {
     public List<Map<String, Object>> getEventSettlementBreakdown(int limit) {
         List<Map<String, Object>> result = new ArrayList<>();
         String sql = "SELECT TOP (?) e.event_id, e.title, u.full_name as organizer_name, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.total_amount ELSE 0 END), 0) as face_value, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.final_amount ELSE 0 END), 0) as customer_paid, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.system_discount_amount ELSE 0 END), 0) as system_subsidy, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.event_discount_amount ELSE 0 END), 0) as event_discount, " +
-            "ISNULL(SUM(CASE WHEN o.status='paid' THEN o.organizer_payout_amount ELSE 0 END), 0) as organizer_payout, " +
-            "COUNT(CASE WHEN o.status='paid' THEN 1 END) as paid_orders " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.total_amount ELSE 0 END), 0) as face_value, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.final_amount ELSE 0 END), 0) as customer_paid, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.system_discount_amount ELSE 0 END), 0) as system_subsidy, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.event_discount_amount ELSE 0 END), 0) as event_discount, " +
+            "ISNULL(SUM(CASE WHEN o.status IN ('paid', 'checked_in') THEN o.organizer_payout_amount ELSE 0 END), 0) as organizer_payout, " +
+            "COUNT(CASE WHEN o.status IN ('paid', 'checked_in') THEN 1 END) as paid_orders " +
             "FROM Events e LEFT JOIN Orders o ON e.event_id = o.event_id " +
             "LEFT JOIN Users u ON e.organizer_id = u.user_id " +
             "GROUP BY e.event_id, e.title, u.full_name " +

@@ -31,6 +31,11 @@ public class StaffDashboardController extends HttpServlet {
         User user = getSessionUser(request);
         if (user == null) { response.sendError(401); return; }
 
+        if ("support_agent".equals(user.getRole())) {
+            response.sendRedirect(request.getContextPath() + "/staff/chat-dashboard");
+            return;
+        }
+
         try {
             List<Map<String, Object>> events = eventStaffDAO.getAssignedEventsWithDetails(user.getUserId());
 

@@ -57,7 +57,7 @@ public class AdminOrderController extends HttpServlet {
             request.setAttribute("statusFilter", status);
 
             // Stats
-            int paid = orderService.countOrdersByStatus("paid");
+            int paid = orderService.countOrdersByStatus("paid") + orderService.countOrdersByStatus("checked_in");
             int pending = orderService.countOrdersByStatus("pending");
             int cancelled = orderService.countOrdersByStatus("cancelled");
             int refundReq = orderService.countOrdersByStatus("refund_requested");
@@ -112,7 +112,7 @@ public class AdminOrderController extends HttpServlet {
                     if (!ok) {
                         // Could be a race where another process already confirmed it.
                         Order refreshed = orderService.getOrderById(orderId);
-                        ok = refreshed != null && "paid".equals(refreshed.getStatus());
+                        ok = refreshed != null && ("paid".equals(refreshed.getStatus()) || "checked_in".equals(refreshed.getStatus()));
                     }
                 } else {
                     ok = "paid".equals(targetOrder.getStatus()) || "checked_in".equals(targetOrder.getStatus());

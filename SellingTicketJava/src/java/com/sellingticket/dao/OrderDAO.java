@@ -512,7 +512,7 @@ public class OrderDAO extends DBContext {
     }
 
     public double getTotalRevenue() {
-        String sql = "SELECT COALESCE(SUM(final_amount), 0) FROM Orders WHERE status = 'paid'";
+        String sql = "SELECT COALESCE(SUM(final_amount), 0) FROM Orders WHERE status IN ('paid', 'checked_in')";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {

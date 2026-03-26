@@ -28,6 +28,7 @@
             </div>
         </div>
         <nav class="nav flex-column sidebar-nav gap-1">
+            <c:if test="${sessionScope.user.role != 'support_agent'}">
             <a href="${pageContext.request.contextPath}/staff/dashboard" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'dashboard' ? 'active' : ''}">
                 <i class="fas fa-tachometer-alt" style="width: 20px; text-align: center;"></i>Dashboard
@@ -36,6 +37,7 @@
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'check-in' ? 'active' : ''}">
                 <i class="fas fa-qrcode" style="width: 20px; text-align: center;"></i>Check-in
             </a>
+            </c:if>
             <a href="${pageContext.request.contextPath}/notifications" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'notifications' ? 'active' : ''}">
                 <i class="fas fa-bell" style="width: 20px; text-align: center;"></i>Thông báo
@@ -45,6 +47,10 @@
             <a href="${pageContext.request.contextPath}/staff/chat-dashboard" 
                class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'chat' ? 'active' : ''}">
                 <i class="fas fa-comments" style="width: 20px; text-align: center;"></i>Tư vấn khách hàng
+            </a>
+            <a href="${pageContext.request.contextPath}/staff/support" 
+               class="nav-link rounded-3 d-flex align-items-center gap-2 ${param.activePage == 'support' ? 'active' : ''}">
+                <i class="fas fa-envelope-open-text" style="width: 20px; text-align: center;"></i>Quản lý yêu cầu
             </a>
             </c:if>
             <hr class="my-2">

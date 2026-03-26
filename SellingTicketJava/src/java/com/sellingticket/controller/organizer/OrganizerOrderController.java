@@ -102,7 +102,7 @@ public class OrganizerOrderController extends HttpServlet {
             }
 
             for (Order o : allOrders) {
-                if (AppConstants.OrderStatus.PAID.getValue().equals(o.getStatus())) {
+                if (AppConstants.OrderStatus.PAID.getValue().equals(o.getStatus()) || AppConstants.OrderStatus.CHECKED_IN.getValue().equals(o.getStatus())) {
                     totalPaid++;
                     totalRevenueStr += o.getFinalAmount();
                 } else if (AppConstants.OrderStatus.PENDING.getValue().equals(o.getStatus())) {
