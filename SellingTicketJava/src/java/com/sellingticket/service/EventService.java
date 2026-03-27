@@ -209,12 +209,17 @@ public class EventService {
 
     public String getUserEventRole(int eventId, int userId, String userRole) {
         if ("admin".equals(userRole)) return "admin";
-        
         Event event = eventDAO.getEventById(eventId);
+        return getUserEventRole(event, userId, userRole);
+    }
+
+    public String getUserEventRole(Event event, int userId, String userRole) {
+        if ("admin".equals(userRole)) return "admin";
+        
         if (event == null) return null;
         if (event.getOrganizerId() == userId) return "owner";
 
-        String staffRole = eventStaffDAO.getStaffRole(eventId, userId);
+        String staffRole = eventStaffDAO.getStaffRole(event.getEventId(), userId);
         return AppConstants.normalizeEventStaffRole(staffRole); // "manager", "staff", "scanner", or null
     }
 
@@ -228,8 +233,21 @@ public class EventService {
         return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
     }
 
+    public boolean hasManagerPermission(Event event, int userId, String userRole) {
+        String role = getUserEventRole(event, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
+    }
+
     public boolean hasEditPermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role)
+                || "manager".equals(role) || "staff".equals(role);
+    }
+
+    public boolean hasEditPermission(Event event, int userId, String userRole) {
+        String role = getUserEventRole(event, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role)
                 || "manager".equals(role) || "staff".equals(role);
@@ -238,7 +256,13 @@ public class EventService {
     public boolean hasCheckInPermission(int eventId, int userId, String userRole) {
         String role = getUserEventRole(eventId, userId, userRole);
         if (role == null) return false;
-        // Hierarchy: admin > owner > manager > staff > scanner — all can check in
+        return "admin".equals(role) || "owner".equals(role)
+                || "manager".equals(role) || "staff".equals(role) || "scanner".equals(role);
+    }
+
+    public boolean hasCheckInPermission(Event event, int userId, String userRole) {
+        String role = getUserEventRole(event, userId, userRole);
+        if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role)
                 || "manager".equals(role) || "staff".equals(role) || "scanner".equals(role);
     }
@@ -248,18 +272,31 @@ public class EventService {
         return "admin".equals(role) || "owner".equals(role);
     }
 
+    public boolean hasDeletePermission(Event event, int userId, String userRole) {
+        String role = getUserEventRole(event, userId, userRole);
+        return "admin".equals(role) || "owner".equals(role);
+    }
+
     public boolean hasVoucherPermission(int eventId, int userId, String userRole) {
-        // Global/system vouchers (eventId <= 0) are reserved for system admins only.
-        if (eventId <= 0) {
-            return "admin".equals(userRole);
-        }
+        if (eventId <= 0) return "admin".equals(userRole);
         String role = getUserEventRole(eventId, userId, userRole);
+        if (role == null) return false;
+        return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
+    }
+
+    public boolean hasVoucherPermission(Event event, int userId, String userRole) {
+        if (event == null || event.getEventId() <= 0) return "admin".equals(userRole);
+        String role = getUserEventRole(event, userId, userRole);
         if (role == null) return false;
         return "admin".equals(role) || "owner".equals(role) || "manager".equals(role);
     }
 
     public boolean hasStatsPermission(int eventId, int userId, String userRole) {
         return hasEditPermission(eventId, userId, userRole);
+    }
+
+    public boolean hasStatsPermission(Event event, int userId, String userRole) {
+        return hasEditPermission(event, userId, userRole);
     }
 
     public boolean hasApprovedEvents(int userId, String role) {
@@ -349,11 +386,11 @@ public class EventService {
         for (Event e : all) {
             boolean hasAccess = false;
             switch(permissionType) {
-                case "stats" -> hasAccess = hasStatsPermission(e.getEventId(), userId, userRole);
-                case "manager" -> hasAccess = hasManagerPermission(e.getEventId(), userId, userRole);
-                case "edit" -> hasAccess = hasEditPermission(e.getEventId(), userId, userRole);
-                case "voucher" -> hasAccess = hasVoucherPermission(e.getEventId(), userId, userRole);
-                case "checkin" -> hasAccess = hasCheckInPermission(e.getEventId(), userId, userRole);
+                case "stats" -> hasAccess = hasStatsPermission(e, userId, userRole);
+                case "manager" -> hasAccess = hasManagerPermission(e, userId, userRole);
+                case "edit" -> hasAccess = hasEditPermission(e, userId, userRole);
+                case "voucher" -> hasAccess = hasVoucherPermission(e, userId, userRole);
+                case "checkin" -> hasAccess = hasCheckInPermission(e, userId, userRole);
                 default -> hasAccess = false;
             }
             if (hasAccess) filtered.add(e);
