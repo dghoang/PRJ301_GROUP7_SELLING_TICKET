@@ -52,6 +52,7 @@ public class AdminEventApiServlet extends HttpServlet {
         Map<String, Integer> statusCounts = eventService.getAdminEventStatusCounts(keyword, category);
         int pendingCount = statusCounts.getOrDefault("pending", 0);
         int approvedCount = statusCounts.getOrDefault("approved", 0);
+        int endedCount = statusCounts.getOrDefault("ended", 0);
         int rejectedCount = statusCounts.getOrDefault("rejected", 0);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
@@ -63,8 +64,9 @@ public class AdminEventApiServlet extends HttpServlet {
             .put("pageSize", result.getPageSize())
             .put("pendingCount", pendingCount)
             .put("approvedCount", approvedCount)
+            .put("endedCount", endedCount)
             .put("rejectedCount", rejectedCount)
-            .put("statusTotal", pendingCount + approvedCount + rejectedCount);
+            .put("statusTotal", pendingCount + approvedCount + endedCount + rejectedCount);
 
         json.startArray("items");
         for (Event e : result.getItems()) {

@@ -85,20 +85,26 @@ public class AdminEventController extends HttpServlet {
             try {
                 Map<String, Object> stats = dashboardDAO.getAdminDashboardStats();
                 int approved = ((Number) stats.getOrDefault("approvedEvents", 0)).intValue();
+                int active = ((Number) stats.getOrDefault("activeEvents", 0)).intValue();
                 int pending = ((Number) stats.getOrDefault("pendingEvents", 0)).intValue();
                 int total = ((Number) stats.getOrDefault("totalEvents", 0)).intValue();
-                request.setAttribute("approvedCount", approved);
+                int ended = approved - active;
+                int rejected = total - approved - pending;
+                request.setAttribute("approvedCount", active);
                 request.setAttribute("pendingCount", pending);
-                request.setAttribute("rejectedCount", total - approved - pending);
+                request.setAttribute("endedCount", ended);
+                request.setAttribute("rejectedCount", rejected);
 
                 // Compute totalRecords based on filter
-                if ("approved".equals(status)) totalRecords = approved;
+                if ("approved".equals(status)) totalRecords = active;
                 else if ("pending".equals(status)) totalRecords = pending;
-                else if ("rejected".equals(status)) totalRecords = total - approved - pending;
+                else if ("ended".equals(status)) totalRecords = ended;
+                else if ("rejected".equals(status)) totalRecords = rejected;
                 else totalRecords = total;
             } catch (Exception e) {
                 request.setAttribute("approvedCount", 0);
                 request.setAttribute("pendingCount", 0);
+                request.setAttribute("endedCount", 0);
                 request.setAttribute("rejectedCount", 0);
             }
 
@@ -112,6 +118,7 @@ public class AdminEventController extends HttpServlet {
             request.setAttribute("currentPage", 1);
             request.setAttribute("approvedCount", 0);
             request.setAttribute("pendingCount", 0);
+            request.setAttribute("endedCount", 0);
             request.setAttribute("rejectedCount", 0);
         }
 
@@ -260,7 +267,7 @@ public class AdminEventController extends HttpServlet {
         if (location != null) event.setLocation(InputValidator.truncate(location.trim(), 500));
         if (status != null && !status.trim().isEmpty()) {
             String normalized = status.trim().toLowerCase();
-            if (!InputValidator.isOneOf(normalized, "draft", "pending", "approved", "rejected", "cancelled", "completed")) {
+            if (!InputValidator.isOneOf(normalized, "draft", "pending", "approved", "rejected", "cancelled", "completed", "ended")) {
                 FlashUtil.error(request, "Trạng thái sự kiện không hợp lệ!");
                 response.sendRedirect(request.getContextPath() + "/admin/events");
                 return;

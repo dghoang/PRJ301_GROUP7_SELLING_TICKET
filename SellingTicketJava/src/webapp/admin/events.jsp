@@ -32,6 +32,9 @@
                         <input type="checkbox" value="approved" class="d-none"> <i class="fas fa-check me-1 text-success"></i>Đã duyệt
                     </label>
                     <label class="btn btn-sm glass rounded-pill px-3">
+                        <input type="checkbox" value="ended" class="d-none"> <i class="fas fa-flag-checkered me-1 text-secondary"></i>Kết thúc
+                    </label>
+                    <label class="btn btn-sm glass rounded-pill px-3">
                         <input type="checkbox" value="rejected" class="d-none"> <i class="fas fa-times me-1 text-danger"></i>Từ chối
                     </label>
                 </div>
@@ -56,7 +59,7 @@
                                     <i class="fas fa-layer-group text-white"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 id="stat-total-count" class="fw-bold mb-0 text-dark">${pendingCount + approvedCount + rejectedCount}</h4>
+                                    <h4 id="stat-total-count" class="fw-bold mb-0 text-dark">${pendingCount + approvedCount + rejectedCount + (endedCount != null ? endedCount : 0)}</h4>
                                     <small class="text-muted d-block text-truncate">Tất cả</small>
                                 </div>
                             </div>
@@ -106,12 +109,33 @@
                     </a>
                 </div>
 
+                <%-- Kết thúc --%>
+                <c:set var="styleEnded" value="transition: all 0.3s;" />
+                <c:if test="${statusFilter == 'ended'}">
+                    <c:set var="styleEnded" value="background: rgba(107,114,128,0.1); border: 2px solid #6b7280 !important;" />
+                </c:if>
+                <div class="col-6 col-md-3 animate-on-scroll stagger-3">
+                    <a href="${pageContext.request.contextPath}/admin/events?status=ended" class="text-decoration-none">
+                        <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'ended' ? 'shadow-lg' : ''}" style="${styleEnded}">
+                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                <div class="dash-icon-box flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,#6b7280,#4b5563);border-radius:12px;">
+                                    <i class="fas fa-flag-checkered text-white"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 id="stat-ended-count" class="fw-bold mb-0 text-dark">${endedCount != null ? endedCount : 0}</h4>
+                                    <small class="text-muted d-block text-truncate">Kết thúc</small>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
                 <%-- Từ chối --%>
                 <c:set var="styleRejected" value="transition: all 0.3s;" />
                 <c:if test="${statusFilter == 'rejected'}">
                     <c:set var="styleRejected" value="background: rgba(239,68,68,0.1); border: 2px solid #ef4444 !important;" />
                 </c:if>
-                <div class="col-6 col-md-3 animate-on-scroll stagger-3">
+                <div class="col-6 col-md-3 animate-on-scroll stagger-4">
                     <a href="${pageContext.request.contextPath}/admin/events?status=rejected" class="text-decoration-none">
                         <div class="card glass-strong border-0 rounded-4 hover-lift h-100 ${statusFilter == 'rejected' ? 'shadow-lg' : ''}" style="${styleRejected}">
                             <div class="card-body d-flex align-items-center gap-3 p-3">
@@ -271,6 +295,7 @@ function toggleFeatured(eventId, currentState, btn) {
         switch(status) {
             case 'approved': return '<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check me-1"></i>Đã duyệt</span>';
             case 'pending': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#f59e0b,#f97316);color:white;"><i class="fas fa-clock me-1"></i>Chờ duyệt</span>';
+            case 'ended': return '<span class="badge rounded-pill px-3 py-2" style="background:linear-gradient(135deg,#6b7280,#4b5563);color:white;"><i class="fas fa-flag-checkered me-1"></i>Kết thúc</span>';
             case 'rejected': return '<span class="badge bg-danger rounded-pill px-3 py-2"><i class="fas fa-times me-1"></i>Từ chối</span>';
             default: return '<span class="badge bg-secondary rounded-pill px-3 py-2">' + esc(status) + '</span>';
         }
@@ -300,10 +325,12 @@ function toggleFeatured(eventId, currentState, btn) {
             var pendingEl = document.getElementById('stat-pending-count');
             var approvedEl = document.getElementById('stat-approved-count');
             var rejectedEl = document.getElementById('stat-rejected-count');
+            var endedEl = document.getElementById('stat-ended-count');
 
             if (totalEl && typeof data.statusTotal !== 'undefined') totalEl.textContent = data.statusTotal;
             if (pendingEl && typeof data.pendingCount !== 'undefined') pendingEl.textContent = data.pendingCount;
             if (approvedEl && typeof data.approvedCount !== 'undefined') approvedEl.textContent = data.approvedCount;
+            if (endedEl && typeof data.endedCount !== 'undefined') endedEl.textContent = data.endedCount;
             if (rejectedEl && typeof data.rejectedCount !== 'undefined') rejectedEl.textContent = data.rejectedCount;
         },
         renderRow: function(e) {

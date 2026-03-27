@@ -633,13 +633,23 @@ public class EventDAO extends BaseDAO {
             sql.append("WHERE ").append(sdFilter);
 
             boolean hasStatus = status != null && !status.trim().isEmpty();
-            if (hasStatus) sql.append("AND e.status = ? ");
+            boolean isEndedFilter = "ended".equalsIgnoreCase(status);
+            boolean isApprovedFilter = "approved".equalsIgnoreCase(status);
+            if (hasStatus) {
+                if (isEndedFilter) {
+                    sql.append("AND e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE() ");
+                } else if (isApprovedFilter) {
+                    sql.append("AND e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()) ");
+                } else {
+                    sql.append("AND e.status = ? ");
+                }
+            }
             sql.append("ORDER BY e.created_at DESC ");
             sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 int idx = 1;
-                if (hasStatus) ps.setString(idx++, status);
+                if (hasStatus && !isEndedFilter && !isApprovedFilter) ps.setString(idx++, status);
                 ps.setInt(idx++, (page - 1) * pageSize);
                 ps.setInt(idx, pageSize);
                 
@@ -725,6 +735,7 @@ public class EventDAO extends BaseDAO {
         Map<String, Integer> counts = new HashMap<>();
         counts.put("pending", 0);
         counts.put("approved", 0);
+        counts.put("ended", 0);
         counts.put("rejected", 0);
 
         try (Connection conn = getConnection()) {
@@ -732,7 +743,10 @@ public class EventDAO extends BaseDAO {
             String sdFilter = hasSD ? " AND (e.is_deleted = 0 OR e.is_deleted IS NULL) " : " ";
 
             StringBuilder sql = new StringBuilder(
-                    "SELECT e.status, COUNT(*) AS total " +
+                    "SELECT e.status, " +
+                    "CASE WHEN e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE() " +
+                    "     THEN 'ended' ELSE e.status END AS effective_status, " +
+                    "COUNT(*) AS total " +
                     "FROM Events e " +
                     "JOIN Categories c ON e.category_id = c.category_id " +
                     "WHERE (1=1) ").append(sdFilter);
@@ -749,7 +763,9 @@ public class EventDAO extends BaseDAO {
                 params.add(category.trim());
             }
 
-            sql.append("GROUP BY e.status");
+            sql.append("GROUP BY e.status, " +
+                    "CASE WHEN e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE() " +
+                    "     THEN 'ended' ELSE e.status END");
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 int idx = 1;
@@ -758,9 +774,9 @@ public class EventDAO extends BaseDAO {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        String status = rs.getString("status");
-                        if (counts.containsKey(status)) {
-                            counts.put(status, rs.getInt("total"));
+                        String effectiveStatus = rs.getString("effective_status");
+                        if (counts.containsKey(effectiveStatus)) {
+                            counts.put(effectiveStatus, counts.get(effectiveStatus) + rs.getInt("total"));
                         }
                     }
                 }
@@ -897,12 +913,26 @@ public class EventDAO extends BaseDAO {
                 params.add(kw); params.add(kw);
             }
             if (statuses != null && statuses.length > 0) {
-                where.append("AND e.status IN (");
-                for (int i = 0; i < statuses.length; i++) {
-                    where.append(i > 0 ? ",?" : "?");
-                    params.add(statuses[i]);
+                List<String> statusClauses = new ArrayList<>();
+                for (String raw : statuses) {
+                    if (raw == null || raw.trim().isEmpty()) continue;
+                    String s = raw.trim().toLowerCase();
+                    switch (s) {
+                        case "ended":
+                            statusClauses.add("(e.status = 'approved' AND e.end_date IS NOT NULL AND e.end_date < GETDATE())");
+                            break;
+                        case "approved":
+                            statusClauses.add("(e.status = 'approved' AND (e.end_date IS NULL OR e.end_date >= GETDATE()))");
+                            break;
+                        default:
+                            statusClauses.add("e.status = ?");
+                            params.add(s);
+                            break;
+                    }
                 }
-                where.append(") ");
+                if (!statusClauses.isEmpty()) {
+                    where.append("AND (").append(String.join(" OR ", statusClauses)).append(") ");
+                }
             }
             if (category != null && !category.trim().isEmpty()) {
                 where.append("AND c.slug = ? ");
